@@ -411,14 +411,6 @@ export const DonneesPage: React.FC = () => {
 
   // Filter and sort data
   const filteredData = useMemo(() => {
-    const actionColumn: ColumnDef = {
-      key: '__actions',
-      label: 'Actions',
-      type: 'text',
-      isCore: true,
-      editable: false,
-      width: 90,
-    };
     let data: (Eleve | Enseignant)[] = activeTab === 'eleves' ? eleves : enseignants;
 
     // Search
