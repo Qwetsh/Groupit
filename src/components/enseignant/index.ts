@@ -1,0 +1,1 @@
+export { EnseignantProfileDrawer } from './EnseignantProfileDrawer';

@@ -1,0 +1,710 @@
+/* ============================================================
+   JURY MANAGER - Styles Drag & Drop
+   ============================================================ */
+
+.jury-manager-dnd {
+  padding: 16px;
+}
+
+/* Header */
+.jury-manager-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.jury-manager-header .header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.jury-manager-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 18px;
+  color: #1e293b;
+}
+
+.capacity-summary {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.capacity-summary strong {
+  color: #3b82f6;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Auto Generate Section */
+.auto-generate-section {
+  margin-bottom: 20px;
+}
+
+.auto-generate-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+}
+
+.auto-generate-card > svg {
+  color: #0284c7;
+  flex-shrink: 0;
+}
+
+.auto-generate-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.auto-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #0369a1;
+}
+
+.auto-desc {
+  font-size: 12px;
+  color: #0284c7;
+}
+
+.auto-generate-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.auto-generate-controls label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.auto-generate-controls input[type="number"] {
+  width: 60px;
+  padding: 6px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.auto-generate-controls input[type="number"]:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.warning-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #fef3c7;
+  border: 1px solid #fbbf24;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #92400e;
+}
+
+/* Capacity Preview - Stats en temps réel */
+.capacity-preview {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-top: 12px;
+  padding: 10px 16px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 8px;
+}
+
+.preview-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.preview-label {
+  color: #64748b;
+}
+
+.preview-value {
+  font-weight: 600;
+  color: #0369a1;
+}
+
+.preview-detail {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.preview-stat.warning {
+  color: #b45309;
+}
+
+.preview-stat.warning .preview-value.danger {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.preview-stat.success {
+  color: #16a34a;
+}
+
+.preview-stat.success .preview-value.success {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+/* DnD Workspace */
+.dnd-workspace {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 20px;
+  min-height: 400px;
+}
+
+/* Unassigned Zone Wrapper */
+.unassigned-zone-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.unassigned-zone-wrapper .unassigned-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  font-weight: 600;
+  font-size: 14px;
+  color: #475569;
+}
+
+/* Unassigned Zone (Enseignants disponibles) */
+.unassigned-zone {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 150px;
+  max-height: 500px;
+  overflow-y: auto;
+  background: #f8fafc;
+  border: 2px dashed #e2e8f0;
+  border-radius: 12px;
+  padding: 12px;
+  transition: all 0.2s;
+}
+
+.unassigned-zone.empty {
+  justify-content: center;
+  align-items: center;
+}
+
+.unassigned-zone.drag-over {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  border-style: solid;
+}
+
+.unassigned-zone .drop-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  color: #16a34a;
+  font-size: 13px;
+  text-align: center;
+}
+
+.unassigned-zone .drop-placeholder .drop-hint {
+  font-size: 11px;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.unassigned-zone.drag-over .drop-placeholder {
+  color: #3b82f6;
+}
+
+.unassigned-zone.drag-over .drop-placeholder .drop-hint {
+  color: #3b82f6;
+}
+
+/* Jurys Grid */
+.jurys-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+  align-content: start;
+}
+
+.empty-jurys {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  background: #f8fafc;
+  border: 2px dashed #e2e8f0;
+  border-radius: 12px;
+  text-align: center;
+  color: #94a3b8;
+}
+
+.empty-jurys svg {
+  margin-bottom: 12px;
+}
+
+.empty-jurys p {
+  margin: 0 0 4px 0;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.empty-jurys span {
+  font-size: 13px;
+}
+
+/* Droppable Jury Card */
+.droppable-jury {
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px;
+  transition: all 0.2s;
+}
+
+.droppable-jury:hover {
+  border-color: #cbd5e1;
+}
+
+.droppable-jury.drag-over {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.jury-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.jury-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.jury-name {
+  font-weight: 600;
+  font-size: 15px;
+  color: #1e293b;
+}
+
+.capacity-badge {
+  padding: 3px 10px;
+  background: #f1f5f9;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #475569;
+}
+
+.capacity-badge.full {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.jury-header-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-icon-sm {
+  padding: 6px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #94a3b8;
+  transition: all 0.15s;
+}
+
+.btn-icon-sm:hover {
+  background: #f1f5f9;
+  color: #374151;
+}
+
+.btn-icon-sm.danger:hover {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.btn-icon-sm.success {
+  color: #16a34a;
+}
+
+.btn-icon-sm.success:hover {
+  background: #f0fdf4;
+}
+
+/* Edit Form */
+.jury-edit-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.jury-edit-form input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.jury-edit-form input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.capacite-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.capacite-input input {
+  width: 50px;
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Jury Matieres Tags */
+.jury-matieres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.matiere-mini-tag {
+  padding: 2px 8px;
+  background: #dbeafe;
+  border-radius: 4px;
+  font-size: 10px;
+  color: #1e40af;
+}
+
+/* Enseignants Zone in Jury */
+.jury-enseignants-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 80px;
+  padding: 10px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px dashed transparent;
+  transition: all 0.2s;
+}
+
+.jury-enseignants-zone.empty {
+  align-items: center;
+  justify-content: center;
+  border-color: #e2e8f0;
+}
+
+.drop-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.jury-affectations-count {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: #f0fdf4;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #166534;
+}
+
+/* Draggable Enseignant */
+.draggable-enseignant {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: grab;
+  user-select: none;
+  transition: all 0.15s;
+}
+
+.draggable-enseignant:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+
+.draggable-enseignant.dragging {
+  opacity: 0.5;
+}
+
+.draggable-enseignant.dragging-overlay {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  transform: rotate(2deg);
+  cursor: grabbing;
+}
+
+.drag-handle {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.ens-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ens-name {
+  font-weight: 500;
+  font-size: 13px;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ens-matiere {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.ens-heures {
+  font-size: 10px;
+  color: #94a3b8;
+  padding: 2px 6px;
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+/* Couleurs par catégorie de matière */
+.draggable-enseignant.categorie-fondamentale {
+  border-left: 3px solid #3b82f6;
+}
+
+.draggable-enseignant.categorie-scientifique {
+  border-left: 3px solid #22c55e;
+}
+
+.draggable-enseignant.categorie-linguistique {
+  border-left: 3px solid #f59e0b;
+}
+
+.draggable-enseignant.categorie-artistique {
+  border-left: 3px solid #ec4899;
+}
+
+.draggable-enseignant.categorie-sportive {
+  border-left: 3px solid #ef4444;
+}
+
+.draggable-enseignant.categorie-technologique {
+  border-left: 3px solid #8b5cf6;
+}
+
+.draggable-enseignant.categorie-autre {
+  border-left: 3px solid #64748b;
+}
+
+/* Buttons */
+.btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: #ffffff;
+  color: #475569;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-secondary:hover {
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+  .dnd-workspace {
+    grid-template-columns: 1fr;
+  }
+  
+  .unassigned-zone {
+    order: 2;
+  }
+  
+  .jurys-grid {
+    order: 1;
+  }
+}
+
+/* Legacy styles kept for compatibility */
+.jury-manager {
+  padding: 20px;
+}
+
+.jurys-section .jury-manager,
+.jurys-section .jury-manager-dnd {
+  padding: 0;
+}
+
+/* ----- Ready Banner (prêt pour affectations) ----- */
+.jury-ready-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, #f3e8ff, #ede9fe);
+  border: 1px solid #8b5cf6;
+  border-radius: 0.75rem;
+  margin-top: 1rem;
+}
+
+.jury-ready-banner .ready-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #5b21b6;
+}
+
+.jury-ready-banner .ready-content svg {
+  flex-shrink: 0;
+  color: #8b5cf6;
+}
+
+.jury-ready-banner .ready-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.jury-ready-banner .ready-text strong {
+  font-size: 0.9375rem;
+  color: #5b21b6;
+}
+
+.jury-ready-banner .ready-text span {
+  font-size: 0.8125rem;
+  color: #7c3aed;
+}
+
+.jury-ready-banner .btn-go-affectations {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: #8b5cf6;
+  color: white;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.jury-ready-banner .btn-go-affectations:hover {
+  background: #7c3aed;
+  transform: translateX(2px);
+}
+
+.jury-ready-banner .btn-go-affectations svg {
+  transition: transform 0.2s;
+}
+
+.jury-ready-banner .btn-go-affectations:hover svg {
+  transform: translateX(4px);
+}
