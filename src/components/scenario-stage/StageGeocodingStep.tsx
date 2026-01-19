@@ -6,7 +6,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useStageStore } from '../../stores/stageStore';
 import { geocodeAddressWithFallback } from '../../infrastructure/geo/stageGeoWorkflow';
 import type { Scenario, Stage, Enseignant } from '../../domain/models';
-import { MapPin, Navigation, Play, AlertCircle, Check, RefreshCw, ChevronRight } from 'lucide-react';
+import { MapPin, Navigation, Play, AlertCircle, Check, RefreshCw } from 'lucide-react';
 
 interface StageGeocodingStepProps {
   scenario: Scenario;
@@ -15,7 +15,7 @@ interface StageGeocodingStepProps {
   onComplete: () => void;
 }
 
-export function StageGeocodingStep({ scenario, stages, enseignants, onComplete }: StageGeocodingStepProps) {
+export function StageGeocodingStep({ scenario, stages, enseignants }: StageGeocodingStepProps) {
   const { updateStage } = useStageStore();
   
   const [isGeocoding, setIsGeocoding] = useState(false);
