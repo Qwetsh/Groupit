@@ -1,0 +1,234 @@
+/* ============================================================ */
+/* ENSEIGNANT CARD STYLES */
+/* ============================================================ */
+
+.enseignant-card {
+  display: flex;
+  align-items: stretch;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.enseignant-card:hover {
+  border-color: #8b5cf6;
+  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.15);
+}
+
+.enseignant-card.dragging {
+  opacity: 0.5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.enseignant-card.full {
+  background: linear-gradient(to right, #fef2f2 0%, white 30%);
+  border-left: 3px solid #ef4444;
+}
+
+.enseignant-card.compact {
+  padding: 6px;
+}
+
+/* Drag Handle */
+.enseignant-card-drag {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 4px;
+  background: #f8fafc;
+  cursor: grab;
+  color: #94a3b8;
+  border-right: 1px solid #e2e8f0;
+}
+
+.enseignant-card-drag:hover {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.enseignant-card-drag:active {
+  cursor: grabbing;
+}
+
+/* Content */
+.enseignant-card-content {
+  flex: 1;
+  padding: 10px 12px;
+  min-width: 0;
+}
+
+.enseignant-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.enseignant-card-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #ede9fe;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #7c3aed;
+  flex-shrink: 0;
+}
+
+.enseignant-card-name {
+  flex: 1;
+  min-width: 0;
+}
+
+.enseignant-card-name .nom {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.enseignant-card-name .prenom {
+  display: block;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.pp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* Matière */
+.enseignant-card-matiere {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 10px;
+  background: #8b5cf6;
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* Info */
+.enseignant-card-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Classes */
+.enseignant-card-classes {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.classe-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+/* Capacité */
+.enseignant-card-capacite {
+  margin-top: 10px;
+}
+
+.capacite-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.capacite-value {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.capacite-bar {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.capacite-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.capacite-fill.low {
+  background: #22c55e;
+}
+
+.capacite-fill.medium {
+  background: #f59e0b;
+}
+
+.capacite-fill.high {
+  background: #f97316;
+}
+
+.capacite-fill.full {
+  background: #ef4444;
+}
+
+/* Actions */
+.enseignant-card-actions {
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  gap: 4px;
+  border-left: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.enseignant-card-actions .action-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  transition: all 0.2s;
+}
+
+.enseignant-card-actions .action-btn:hover {
+  background: #e2e8f0;
+  color: #8b5cf6;
+}
+
+.enseignant-card-actions .action-btn.delete:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}

@@ -1,0 +1,275 @@
+/* ============================================================ */
+/* DASHBOARD PAGE STYLES */
+/* ============================================================ */
+
+.dashboard-page {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.dashboard-header {
+  margin-bottom: 24px;
+}
+
+.dashboard-header h1 {
+  margin: 0 0 4px;
+  font-size: 28px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.dashboard-header p {
+  margin: 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* Stats grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.stat-icon.eleves {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+.stat-icon.enseignants {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.stat-icon.affectations {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+}
+
+.stat-icon.scenarios {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+.stat-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* Dashboard content */
+.dashboard-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.dashboard-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-card h2 {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+/* Affectation status */
+.affectation-status {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.status-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.status-item.success {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.status-item.warning {
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.status-item.info {
+  background: #f0f9ff;
+  color: #1e40af;
+}
+
+.status-count {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 8px 0 4px;
+}
+
+.status-label {
+  font-size: 12px;
+}
+
+.score-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #475569;
+}
+
+.score-summary strong {
+  color: #1e293b;
+}
+
+/* Classes list */
+.classes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.class-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.class-name {
+  width: 80px;
+  font-weight: 500;
+  color: #1e293b;
+  font-size: 14px;
+}
+
+.class-bar {
+  flex: 1;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.class-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.class-count {
+  width: 30px;
+  text-align: right;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+/* Active scenario */
+.active-scenario h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.active-scenario > p {
+  margin: 0 0 16px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.scenario-params h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.scenario-params ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scenario-params li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.param-name {
+  color: #1e293b;
+  text-transform: capitalize;
+}
+
+.param-weight {
+  color: #3b82f6;
+  font-weight: 500;
+}
+
+.no-scenario {
+  text-align: center;
+  padding: 24px;
+}
+
+.no-scenario p {
+  margin: 0 0 4px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.no-scenario span {
+  color: #94a3b8;
+  font-size: 12px;
+}

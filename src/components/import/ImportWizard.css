@@ -1,0 +1,506 @@
+/* ============================================================ */
+/* IMPORT WIZARD STYLES */
+/* ============================================================ */
+
+.import-wizard-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.import-wizard {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 700px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+/* Header */
+.wizard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.wizard-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  color: #64748b;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+/* Steps */
+.wizard-steps {
+  display: flex;
+  padding: 16px 24px;
+  background: #f8fafc;
+  gap: 8px;
+}
+
+.step-indicator {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  opacity: 0.6;
+  transition: all 0.2s;
+}
+
+.step-indicator.active {
+  opacity: 1;
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.step-indicator.completed {
+  opacity: 1;
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.step-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.step-indicator.active .step-number {
+  background: #3b82f6;
+  color: white;
+}
+
+.step-indicator.completed .step-number {
+  background: #22c55e;
+  color: white;
+}
+
+.step-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+}
+
+/* Content */
+.wizard-content {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+/* Upload Zone */
+.upload-zone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 48px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.upload-zone:hover,
+.upload-zone.active {
+  border-color: #3b82f6;
+  background: #f0f9ff;
+}
+
+.upload-zone svg {
+  color: #94a3b8;
+  margin-bottom: 16px;
+}
+
+.upload-zone h3 {
+  margin: 0 0 8px;
+  color: #1e293b;
+  font-size: 18px;
+}
+
+.upload-zone p {
+  margin: 0 0 16px;
+  color: #64748b;
+}
+
+.supported-formats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* Mapping Step */
+.mapping-step h4 {
+  margin: 0 0 16px;
+  color: #475569;
+  font-size: 14px;
+}
+
+.mapping-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f0fdf4;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.mapping-info svg {
+  color: #22c55e;
+}
+
+.mapping-info div {
+  display: flex;
+  flex-direction: column;
+}
+
+.mapping-info strong {
+  color: #1e293b;
+  font-size: 14px;
+}
+
+.mapping-info span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.mapping-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mapping-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-radius: 6px;
+}
+
+.csv-header {
+  flex: 1;
+  min-width: 0;
+}
+
+.header-name {
+  display: block;
+  font-weight: 500;
+  color: #1e293b;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-sample {
+  display: block;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.mapping-row svg {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.mapping-row select {
+  width: 160px;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  background: white;
+  cursor: pointer;
+}
+
+.mapping-row select.mapped {
+  border-color: #22c55e;
+  background: #f0fdf4;
+}
+
+.check-icon {
+  color: #22c55e !important;
+}
+
+/* Classe Step */
+.classe-step {
+  text-align: center;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.classe-step h4 {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: #1e293b;
+}
+
+.classe-step > p {
+  margin: 0 0 24px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.classe-input-group {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.classe-input {
+  flex: 1;
+  padding: 14px 18px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  text-transform: uppercase;
+  transition: border-color 0.2s;
+}
+
+.classe-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.suggestion-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: #f0f9ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  color: #2563eb;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.suggestion-btn:hover {
+  background: #dbeafe;
+}
+
+.suggestion-info {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Preview Step */
+.preview-step {
+  /* Full width */
+}
+
+.preview-summary {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.summary-item.success {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.summary-item.warning {
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.summary-item.error {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.messages-list {
+  margin-bottom: 16px;
+}
+
+.message {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.message.warning {
+  background: #fffbeb;
+  color: #92400e;
+  border-left: 3px solid #f59e0b;
+}
+
+.message.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border-left: 3px solid #ef4444;
+}
+
+.preview-table-container {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.preview-table th {
+  background: #f8fafc;
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  color: #475569;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.preview-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #1e293b;
+}
+
+.preview-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.classe-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #3b82f6;
+  color: white;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.more-rows {
+  text-align: center;
+  padding: 12px;
+  color: #64748b;
+  font-size: 13px;
+  margin: 0;
+  background: #f8fafc;
+}
+
+/* Importing */
+.importing-step {
+  text-align: center;
+  padding: 48px;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Footer */
+.wizard-footer {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-secondary {
+  background: white;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+}
+
+.btn-secondary:hover {
+  background: #f1f5f9;
+}
+
+.btn-primary {
+  background: #3b82f6;
+  border: 1px solid #3b82f6;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2563eb;
+}
+
+.btn-primary:disabled {
+  background: #94a3b8;
+  border-color: #94a3b8;
+  cursor: not-allowed;
+}

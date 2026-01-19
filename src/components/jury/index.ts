@@ -1,0 +1,1 @@
+export { JuryManager } from './JuryManager';
