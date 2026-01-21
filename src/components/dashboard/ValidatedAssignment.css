@@ -1,0 +1,456 @@
+/* ============================================================ */
+/* VALIDATED ASSIGNMENT STYLES */
+/* ============================================================ */
+
+/* Card */
+.validated-assignment-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.validated-assignment-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.validated-assignment-card .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.validated-assignment-card .card-type {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.validated-assignment-card .card-type:has([data-type="oral_dnb"]) {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.validated-assignment-card .card-type {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.validated-assignment-card .card-date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.validated-assignment-card .card-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.validated-assignment-card .card-stats {
+  display: flex;
+  gap: 16px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.validated-assignment-card .stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+}
+
+.validated-assignment-card .stat-value {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.validated-assignment-card .stat-label {
+  font-size: 12px;
+}
+
+.validated-assignment-card .stat.success {
+  color: #16a34a;
+}
+
+.validated-assignment-card .stat.success .stat-value {
+  color: #16a34a;
+}
+
+.validated-assignment-card .card-classes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.validated-assignment-card .class-badge {
+  padding: 2px 8px;
+  background: #e2e8f0;
+  color: #475569;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.validated-assignment-card .class-more {
+  padding: 2px 8px;
+  background: #f1f5f9;
+  color: #94a3b8;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.validated-assignment-card .card-metadata {
+  display: flex;
+  gap: 12px;
+}
+
+.validated-assignment-card .metadata-item {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.validated-assignment-card .card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.btn-action-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #64748b;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-action-card:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #1e293b;
+}
+
+.btn-action-card.primary {
+  flex: 1;
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+}
+
+.btn-action-card.primary:hover {
+  background: #2563eb;
+}
+
+/* ============================================================ */
+/* VALIDATED ASSIGNMENT DRAWER */
+/* ============================================================ */
+
+.validated-assignment-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.validated-assignment-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 600px;
+  max-width: 95vw;
+  background: white;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+  animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+}
+
+.drawer-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.drawer-header-info .type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  width: fit-content;
+}
+
+.drawer-header-info .type-badge.oral_dnb {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.drawer-header-info .type-badge.suivi_stage {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.drawer-header-info .type-badge.custom {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.drawer-header-info h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #1e293b;
+}
+
+.drawer-header-info .date {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.drawer-close {
+  padding: 8px;
+  background: none;
+  border: none;
+  border-radius: 8px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.drawer-close:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.drawer-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.drawer-section {
+  margin-bottom: 24px;
+}
+
+.drawer-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.drawer-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.drawer-stat {
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.drawer-stat .value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.drawer-stat .label {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.drawer-stat.success .value {
+  color: #16a34a;
+}
+
+/* Enseignant list in drawer */
+.enseignant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.enseignant-item {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.enseignant-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.enseignant-item-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.enseignant-item-name .avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.enseignant-item-name .name {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.enseignant-item-role {
+  padding: 4px 10px;
+  background: #e2e8f0;
+  color: #475569;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.eleves-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.eleve-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.eleve-chip .eleve-name {
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.eleve-chip .eleve-classe {
+  color: #64748b;
+  font-size: 11px;
+}
+
+.eleve-chip .eleve-meta {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+/* Drawer footer */
+.drawer-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.drawer-footer .btn-export {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.drawer-footer .btn-export:hover {
+  background: #f8fafc;
+  border-color: #3b82f6;
+  color: #3b82f6;
+}
+
+/* Empty state */
+.validated-empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #64748b;
+}
+
+.validated-empty-state svg {
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+.validated-empty-state h3 {
+  margin: 0 0 8px;
+  color: #1e293b;
+  font-size: 18px;
+}
+
+.validated-empty-state p {
+  margin: 0;
+  font-size: 14px;
+}

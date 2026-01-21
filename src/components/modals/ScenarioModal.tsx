@@ -3,7 +3,7 @@
 // ============================================================
 
 import { useState, useEffect, useMemo } from 'react';
-import { X, Save, Settings, Users, GraduationCap, Filter, Mic, Briefcase, AlertCircle } from 'lucide-react';
+import { X, Save, Settings, Users, GraduationCap, Filter, Mic, Briefcase, AlertCircle, Search, ChevronDown, ChevronUp, UserCheck } from 'lucide-react';
 import { useScenarioStore } from '../../stores/scenarioStore';
 import { useEleveStore } from '../../stores/eleveStore';
 import { useEnseignantStore } from '../../stores/enseignantStore';
@@ -35,6 +35,241 @@ const TYPES_SCENARIO: { value: ScenarioType; label: string; description: string;
 // Liste des matières autorisées pour l'oral DNB (basée sur la table de référence)
 const MATIERES_ORAL_DISPONIBLES = MATIERES_HEURES_3E.map(m => m.matiere);
 
+// ============================================================
+// COMPOSANT FILTRE ENSEIGNANTS
+// ============================================================
+
+type EnseignantForFilter = {
+  id?: string;
+  nom: string;
+  prenom?: string;
+  matierePrincipale: string;
+  classesEnCharge?: string[];
+  estProfPrincipal?: boolean;
+};
+
+interface EnseignantsFilterTabProps {
+  enseignants: EnseignantForFilter[];
+  filtresEnseignants: {
+    matieres: string[];
+    classesEnCharge: string[];
+    niveauxEnCharge: Niveau[];
+    ppOnly: boolean;
+    enseignantIds: string[];
+  };
+  distinctMatieres: string[];
+  distinctClasses: string[];
+  distinctNiveaux: Niveau[];
+  filteredEnseignants: EnseignantForFilter[];
+  filteredEnseignantsCount: number;
+  onUpdateFilters: (updates: Partial<EnseignantsFilterTabProps['filtresEnseignants']>) => void;
+}
+
+function EnseignantsFilterTab({
+  enseignants,
+  filtresEnseignants,
+  distinctMatieres,
+  distinctClasses,
+  distinctNiveaux,
+  filteredEnseignants,
+  filteredEnseignantsCount,
+  onUpdateFilters,
+}: EnseignantsFilterTabProps) {
+  const [showIndividualSelection, setShowIndividualSelection] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const isIndividualMode = filtresEnseignants.enseignantIds.length > 0;
+
+  // Enseignants filtrés par recherche pour la sélection individuelle
+  const searchedEnseignants = useMemo(() => {
+    if (!searchQuery.trim()) return enseignants;
+    const query = searchQuery.toLowerCase();
+    return enseignants.filter(e =>
+      e.nom.toLowerCase().includes(query) ||
+      e.prenom?.toLowerCase().includes(query) ||
+      e.matierePrincipale?.toLowerCase().includes(query)
+    );
+  }, [enseignants, searchQuery]);
+
+  const toggleEnseignant = (id: string) => {
+    const current = filtresEnseignants.enseignantIds;
+    const updated = current.includes(id)
+      ? current.filter(x => x !== id)
+      : [...current, id];
+    onUpdateFilters({ enseignantIds: updated });
+  };
+
+  const clearIndividualSelection = () => {
+    onUpdateFilters({ enseignantIds: [] });
+  };
+
+  const selectAllFromFilter = () => {
+    const ids = filteredEnseignants.map(e => e.id!).filter(Boolean);
+    onUpdateFilters({ enseignantIds: ids });
+  };
+
+  return (
+    <div className="form-section enseignants-filter-tab">
+      <p className="section-description">
+        Sélectionnez les enseignants qui pourront recevoir des élèves.
+        {!isIndividualMode && ' Si aucun filtre n\'est défini, tous les enseignants seront inclus.'}
+      </p>
+
+      {/* Mode indicator */}
+      {isIndividualMode && (
+        <div className="mode-indicator individual">
+          <UserCheck size={16} />
+          <span>Mode sélection individuelle : {filtresEnseignants.enseignantIds.length} enseignant(s) sélectionné(s)</span>
+          <button type="button" className="btn-link" onClick={clearIndividualSelection}>
+            Revenir aux filtres
+          </button>
+        </div>
+      )}
+
+      {/* Filtres rapides (masqués en mode sélection individuelle) */}
+      {!isIndividualMode && (
+        <>
+          <div className="form-group">
+            <label className="checkbox-item highlight">
+              <input
+                type="checkbox"
+                checked={filtresEnseignants.ppOnly}
+                onChange={e => onUpdateFilters({ ppOnly: e.target.checked })}
+              />
+              Uniquement les professeurs principaux
+            </label>
+          </div>
+
+          <div className="form-group">
+            <label>Filtrer par niveau enseigné</label>
+            <div className="checkbox-grid compact">
+              {distinctNiveaux.map(niveau => (
+                <label key={niveau} className="checkbox-item">
+                  <input
+                    type="checkbox"
+                    checked={filtresEnseignants.niveauxEnCharge.includes(niveau)}
+                    onChange={e => {
+                      const niveauxEnCharge = e.target.checked
+                        ? [...filtresEnseignants.niveauxEnCharge, niveau]
+                        : filtresEnseignants.niveauxEnCharge.filter(n => n !== niveau);
+                      onUpdateFilters({ niveauxEnCharge });
+                    }}
+                  />
+                  {niveau}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Filtrer par matière</label>
+            <div className="checkbox-grid">
+              {distinctMatieres.map(matiere => (
+                <label key={matiere} className="checkbox-item">
+                  <input
+                    type="checkbox"
+                    checked={filtresEnseignants.matieres.includes(matiere)}
+                    onChange={e => {
+                      const matieres = e.target.checked
+                        ? [...filtresEnseignants.matieres, matiere]
+                        : filtresEnseignants.matieres.filter(m => m !== matiere);
+                      onUpdateFilters({ matieres });
+                    }}
+                  />
+                  {matiere}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Filtrer par classe en charge</label>
+            <div className="checkbox-grid">
+              {distinctClasses.map(classe => (
+                <label key={classe} className="checkbox-item">
+                  <input
+                    type="checkbox"
+                    checked={filtresEnseignants.classesEnCharge.includes(classe)}
+                    onChange={e => {
+                      const classesEnCharge = e.target.checked
+                        ? [...filtresEnseignants.classesEnCharge, classe]
+                        : filtresEnseignants.classesEnCharge.filter(c => c !== classe);
+                      onUpdateFilters({ classesEnCharge });
+                    }}
+                  />
+                  {classe}
+                </label>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Aperçu et sélection fine */}
+      <div className="filter-preview-section">
+        <div className="filter-preview">
+          <strong>{filteredEnseignantsCount}</strong> enseignants {isIndividualMode ? 'sélectionnés' : 'correspondent aux filtres'}
+        </div>
+
+        {!isIndividualMode && filteredEnseignantsCount > 0 && filteredEnseignantsCount < enseignants.length && (
+          <button type="button" className="btn-link small" onClick={selectAllFromFilter}>
+            Convertir en sélection individuelle
+          </button>
+        )}
+      </div>
+
+      {/* Section sélection individuelle (repliable) */}
+      <div className="collapsible-section">
+        <button
+          type="button"
+          className="collapsible-header"
+          onClick={() => setShowIndividualSelection(!showIndividualSelection)}
+        >
+          <span>
+            <UserCheck size={16} />
+            Sélection individuelle
+          </span>
+          {showIndividualSelection ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
+
+        {showIndividualSelection && (
+          <div className="collapsible-content">
+            <div className="search-box">
+              <Search size={16} />
+              <input
+                type="text"
+                placeholder="Rechercher un enseignant..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+            </div>
+
+            <div className="enseignants-list">
+              {searchedEnseignants.map(ens => (
+                <label key={ens.id} className={`enseignant-item ${filtresEnseignants.enseignantIds.includes(ens.id!) ? 'selected' : ''}`}>
+                  <input
+                    type="checkbox"
+                    checked={filtresEnseignants.enseignantIds.includes(ens.id!)}
+                    onChange={() => toggleEnseignant(ens.id!)}
+                  />
+                  <span className="ens-name">{ens.nom} {ens.prenom}</span>
+                  <span className="ens-matiere">{ens.matierePrincipale}</span>
+                  {ens.classesEnCharge && ens.classesEnCharge.length > 0 && (
+                    <span className="ens-classes">{ens.classesEnCharge.slice(0, 3).join(', ')}{ens.classesEnCharge.length > 3 ? '...' : ''}</span>
+                  )}
+                </label>
+              ))}
+              {searchedEnseignants.length === 0 && (
+                <div className="no-results">Aucun enseignant trouvé</div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function ScenarioModal({ onClose }: ScenarioModalProps) {
   const scenarios = useScenarioStore(state => state.scenarios);
   const addScenario = useScenarioStore(state => state.addScenario);
@@ -54,8 +289,18 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
     [...new Set(eleves.map(e => e.classe))].sort(), [eleves]);
   const distinctOptions = useMemo(() => 
     [...new Set(eleves.flatMap(e => e.options))].filter(Boolean).sort(), [eleves]);
-  const distinctMatieres = useMemo(() => 
+  const distinctMatieres = useMemo(() =>
     [...new Set(enseignants.map(e => e.matierePrincipale))].filter(Boolean).sort(), [enseignants]);
+  const distinctNiveaux = useMemo(() => {
+    const niveaux = new Set<string>();
+    enseignants.forEach(e => {
+      e.classesEnCharge?.forEach(c => {
+        const niveau = c.replace(/[^0-9]/g, '')[0];
+        if (niveau) niveaux.add(niveau + 'e');
+      });
+    });
+    return [...niveaux].sort((a, b) => parseInt(b) - parseInt(a)) as Niveau[];
+  }, [enseignants]);
 
   const [formData, setFormData] = useState({
     nom: '',
@@ -81,7 +326,9 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
     filtresEnseignants: {
       matieres: [] as string[],
       classesEnCharge: [] as string[],
+      niveauxEnCharge: [] as Niveau[],
       ppOnly: false,
+      enseignantIds: [] as string[],
     },
     // Configuration spécifique Oral DNB
     oralDnb: {
@@ -136,7 +383,9 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
         filtresEnseignants: {
           matieres: scenario.parametres.filtresEnseignants?.matieres || [],
           classesEnCharge: scenario.parametres.filtresEnseignants?.classesEnCharge || [],
+          niveauxEnCharge: scenario.parametres.filtresEnseignants?.niveauxEnCharge || [],
           ppOnly: scenario.parametres.filtresEnseignants?.ppOnly || false,
+          enseignantIds: scenario.parametres.filtresEnseignants?.enseignantIds || [],
         },
         oralDnb: {
           matieresAutorisees: scenario.parametres.oralDnb?.matieresAutorisees || [...MATIERES_ORAL_DISPONIBLES],
@@ -168,14 +417,33 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
     }).length;
   }, [eleves, formData.filtresEleves]);
 
-  const filteredEnseignantsCount = useMemo(() => {
+  // Filtrer les enseignants selon tous les critères
+  const filteredEnseignants = useMemo(() => {
+    const { ppOnly, matieres, classesEnCharge, niveauxEnCharge, enseignantIds } = formData.filtresEnseignants;
+
+    // Si sélection individuelle active, elle prend le dessus
+    if (enseignantIds.length > 0) {
+      return enseignants.filter(e => enseignantIds.includes(e.id!));
+    }
+
+    // Sinon, appliquer les filtres
     return enseignants.filter(e => {
-      if (formData.filtresEnseignants.ppOnly && !e.estProfPrincipal) return false;
-      if (formData.filtresEnseignants.matieres.length > 0 && !formData.filtresEnseignants.matieres.includes(e.matierePrincipale)) return false;
-      if (formData.filtresEnseignants.classesEnCharge.length > 0 && !formData.filtresEnseignants.classesEnCharge.some(c => e.classesEnCharge.includes(c))) return false;
+      if (ppOnly && !e.estProfPrincipal) return false;
+      if (matieres.length > 0 && !matieres.includes(e.matierePrincipale)) return false;
+      if (classesEnCharge.length > 0 && !classesEnCharge.some(c => e.classesEnCharge?.includes(c))) return false;
+      if (niveauxEnCharge.length > 0) {
+        // Vérifier si l'enseignant a au moins une classe du niveau demandé
+        const hasMatchingNiveau = e.classesEnCharge?.some(c => {
+          const niveau = c.replace(/[^0-9]/g, '')[0] + 'e';
+          return niveauxEnCharge.includes(niveau as Niveau);
+        });
+        if (!hasMatchingNiveau) return false;
+      }
       return true;
-    }).length;
+    });
   }, [enseignants, formData.filtresEnseignants]);
+
+  const filteredEnseignantsCount = filteredEnseignants.length;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -219,7 +487,11 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
           filtresEleves: formData.filtresEleves.classes.length > 0 || formData.filtresEleves.niveaux.length > 0 || formData.filtresEleves.options.length > 0
             ? formData.filtresEleves
             : undefined,
-          filtresEnseignants: formData.filtresEnseignants.matieres.length > 0 || formData.filtresEnseignants.classesEnCharge.length > 0 || formData.filtresEnseignants.ppOnly
+          filtresEnseignants: formData.filtresEnseignants.matieres.length > 0
+            || formData.filtresEnseignants.classesEnCharge.length > 0
+            || formData.filtresEnseignants.niveauxEnCharge.length > 0
+            || formData.filtresEnseignants.ppOnly
+            || formData.filtresEnseignants.enseignantIds.length > 0
             ? formData.filtresEnseignants
             : undefined,
           // Configuration Oral DNB
@@ -579,71 +851,19 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
 
             {/* TAB: Filtres Enseignants */}
             {activeTab === 'enseignants' && (
-              <div className="form-section">
-                <p className="section-description">
-                  Sélectionnez les enseignants qui pourront recevoir des élèves. Si aucun filtre n'est défini, tous les enseignants seront inclus.
-                </p>
-
-                <div className="form-group">
-                  <label className="checkbox-item highlight">
-                    <input
-                      type="checkbox"
-                      checked={formData.filtresEnseignants.ppOnly}
-                      onChange={e => setFormData(prev => ({ 
-                        ...prev, 
-                        filtresEnseignants: { ...prev.filtresEnseignants, ppOnly: e.target.checked } 
-                      }))}
-                    />
-                    Uniquement les professeurs principaux
-                  </label>
-                </div>
-
-                <div className="form-group">
-                  <label>Filtrer par matière</label>
-                  <div className="checkbox-grid">
-                    {distinctMatieres.map(matiere => (
-                      <label key={matiere} className="checkbox-item">
-                        <input
-                          type="checkbox"
-                          checked={formData.filtresEnseignants.matieres.includes(matiere)}
-                          onChange={e => {
-                            const matieres = e.target.checked
-                              ? [...formData.filtresEnseignants.matieres, matiere]
-                              : formData.filtresEnseignants.matieres.filter(m => m !== matiere);
-                            setFormData(prev => ({ ...prev, filtresEnseignants: { ...prev.filtresEnseignants, matieres } }));
-                          }}
-                        />
-                        {matiere}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Enseignants ayant en charge les classes</label>
-                  <div className="checkbox-grid">
-                    {distinctClasses.map(classe => (
-                      <label key={classe} className="checkbox-item">
-                        <input
-                          type="checkbox"
-                          checked={formData.filtresEnseignants.classesEnCharge.includes(classe)}
-                          onChange={e => {
-                            const classesEnCharge = e.target.checked
-                              ? [...formData.filtresEnseignants.classesEnCharge, classe]
-                              : formData.filtresEnseignants.classesEnCharge.filter(c => c !== classe);
-                            setFormData(prev => ({ ...prev, filtresEnseignants: { ...prev.filtresEnseignants, classesEnCharge } }));
-                          }}
-                        />
-                        {classe}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="filter-preview">
-                  <strong>{filteredEnseignantsCount}</strong> enseignants pourront recevoir des élèves
-                </div>
-              </div>
+              <EnseignantsFilterTab
+                enseignants={enseignants}
+                filtresEnseignants={formData.filtresEnseignants}
+                distinctMatieres={distinctMatieres}
+                distinctClasses={distinctClasses}
+                distinctNiveaux={distinctNiveaux}
+                filteredEnseignants={filteredEnseignants}
+                filteredEnseignantsCount={filteredEnseignantsCount}
+                onUpdateFilters={(updates) => setFormData(prev => ({
+                  ...prev,
+                  filtresEnseignants: { ...prev.filtresEnseignants, ...updates }
+                }))}
+              />
             )}
 
             {/* TAB: Critères de scoring - Nouvelle UI */}

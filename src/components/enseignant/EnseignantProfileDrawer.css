@@ -89,6 +89,7 @@
   margin: 0;
   font-size: 1.35rem;
   font-weight: 600;
+  color: white;
 }
 
 .hero-matiere {
@@ -98,6 +99,7 @@
   margin-top: 0.35rem;
   font-size: 0.875rem;
   opacity: 0.9;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 /* Drawer Actions */
@@ -497,12 +499,32 @@
   margin-bottom: 0.25rem;
 }
 
-.timeline-eleves {
+.timeline-eleves-section {
+  margin-top: 0.5rem;
+}
+
+.timeline-eleves-header {
   display: flex;
   align-items: center;
   gap: 0.35rem;
   font-size: 0.8rem;
   color: var(--text-tertiary, #9ca3af);
+  margin-bottom: 0.4rem;
+}
+
+.timeline-eleves-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.eleve-name-chip {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 4px;
+  font-size: 0.75rem;
 }
 
 /* ============================================================

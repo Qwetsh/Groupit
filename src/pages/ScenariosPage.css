@@ -156,6 +156,34 @@
   color: #475569;
   border-radius: 4px;
   font-size: 12px;
+  border-left: 3px solid transparent;
+}
+
+.critere-tag.high {
+  background: #dbeafe;
+  color: #1e40af;
+  border-left-color: #3b82f6;
+}
+
+.critere-tag.medium {
+  background: #fef3c7;
+  color: #92400e;
+  border-left-color: #f59e0b;
+}
+
+.critere-tag.low {
+  background: #f1f5f9;
+  color: #64748b;
+  border-left-color: #94a3b8;
+}
+
+.critere-more {
+  padding: 4px 8px;
+  background: #e2e8f0;
+  color: #64748b;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
 }
 
 /* Card actions */
@@ -420,4 +448,60 @@
 .btn-import-matieres:hover {
   background: #bfdbfe;
   border-color: #60a5fa;
+}
+
+/* Scoring Summary - nouveau design simplifié */
+.scoring-summary {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 16px !important;
+  margin-top: 16px;
+}
+
+.scoring-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+
+.scoring-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.scoring-item.constraints {
+  grid-column: 1 / -1;
+}
+
+.scoring-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.scoring-value {
+  font-size: 14px;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.scoring-value.active {
+  color: #16a34a;
+}
+
+.constraints-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.constraint-tag-mini {
+  padding: 3px 8px;
+  background: #fef2f2;
+  color: #991b1b;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
 }

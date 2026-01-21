@@ -130,9 +130,18 @@ function HistoryTimeline({ enseignantId }: HistoryTimelineProps) {
                 </div>
               )}
               {entry.eleves && entry.eleves.length > 0 && (
-                <div className="timeline-eleves">
-                  <Users size={12} />
-                  {entry.eleves.length} élève(s)
+                <div className="timeline-eleves-section">
+                  <div className="timeline-eleves-header">
+                    <Users size={12} />
+                    {entry.eleves.length} élève(s)
+                  </div>
+                  <div className="timeline-eleves-list">
+                    {entry.eleves.map((eleve, i) => (
+                      <span key={i} className="eleve-name-chip">
+                        {eleve.elevePrenom} {eleve.eleveNom}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

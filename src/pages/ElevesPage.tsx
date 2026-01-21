@@ -1,11 +1,13 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useEleveStore } from '../stores/eleveStore';
+import { useStageStore } from '../stores/stageStore';
 import { useUIStore } from '../stores/uiStore';
 import { MATIERES_HEURES_3E } from '../domain/models';
 import { ImportMatiereOralModal } from '../components/import';
-import { 
-  Search, 
-  Download, 
+import { StageTab } from '../components/eleves';
+import {
+  Search,
+  Download,
   Upload,
   Calendar,
   BookOpen,
@@ -16,7 +18,8 @@ import {
   Edit2,
   Save,
   ChevronDown,
-  Mic
+  Mic,
+  Building2
 } from 'lucide-react';
 import './ElevesPage.css';
 
@@ -32,7 +35,7 @@ export const ElevesPage: React.FC = () => {
   const [selectedClasse, setSelectedClasse] = useState<string>('');
   const [sortBy, setSortBy] = useState<'nom' | 'classe' | 'dateNaissance' | 'matiere'>('nom');
   const [filterMatiere, setFilterMatiere] = useState<'all' | 'with' | 'without'>('all');
-  const [activeTab, setActiveTab] = useState<'liste' | 'matieres'>('liste');
+  const [activeTab, setActiveTab] = useState<'liste' | 'matieres' | 'stage'>('liste');
   
   // Pour édition en ligne des matières
   const [editingEleveId, setEditingEleveId] = useState<string | null>(null);
@@ -52,6 +55,16 @@ export const ElevesPage: React.FC = () => {
     const withoutMatiere = eleves.length - withMatiere;
     return { withMatiere, withoutMatiere, total: eleves.length };
   }, [eleves]);
+
+  // Stats stages (utilise le store pour obtenir les stages globaux)
+  const stages = useStageStore(state => state.stages);
+  const stageStats = useMemo(() => {
+    const globalStages = stages.filter(stage => !stage.scenarioId);
+    const elevesWithStage = new Set(globalStages.map(stage => stage.eleveId));
+    const withStage = eleves.filter(e => elevesWithStage.has(e.id)).length;
+    const withoutStage = eleves.length - withStage;
+    return { withStage, withoutStage, total: eleves.length };
+  }, [eleves, stages]);
 
   // Filter and sort eleves
   const filteredEleves = useMemo(() => {
@@ -236,7 +249,7 @@ export const ElevesPage: React.FC = () => {
           <Filter size={16} />
           Liste des élèves
         </button>
-        <button 
+        <button
           className={`tab-btn ${activeTab === 'matieres' ? 'active' : ''}`}
           onClick={() => setActiveTab('matieres')}
         >
@@ -244,6 +257,16 @@ export const ElevesPage: React.FC = () => {
           Matières Oral DNB
           {matiereStats.withoutMatiere > 0 && (
             <span className="tab-badge warning">{matiereStats.withoutMatiere}</span>
+          )}
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'stage' ? 'active' : ''}`}
+          onClick={() => setActiveTab('stage')}
+        >
+          <Building2 size={16} />
+          Stages
+          {stageStats.withoutStage > 0 && (
+            <span className="tab-badge warning">{stageStats.withoutStage}</span>
           )}
         </button>
       </div>
@@ -589,6 +612,11 @@ export const ElevesPage: React.FC = () => {
             </ul>
           </div>
         </>
+      )}
+
+      {/* Onglet Stages */}
+      {activeTab === 'stage' && (
+        <StageTab />
       )}
 
       {/* Modal Import Matières Oral */}

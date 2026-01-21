@@ -19,10 +19,12 @@ import { useAffectationStore } from '../../stores/affectationStore';
 import { useScenarioStore } from '../../stores/scenarioStore';
 import { useJuryStore } from '../../stores/juryStore';
 import { useStageStore } from '../../stores/stageStore';
+import { useScenarioArchiveStore } from '../../stores/scenarioArchiveStore';
+import { buildArchiveFromCurrentState, formatArchiveDate } from '../../services';
 import { solveMatching, convertToAffectations, solveOralDnbComplete, solveStageMatching, toStageGeoInfo, toEnseignantGeoInfo } from '../../algorithms';
 import { getEffectiveCriteres, criteresToStageOptions } from '../../domain/criteriaConfig';
 import type { Eleve, Enseignant, Affectation, Jury, MatchingResultDNB } from '../../domain/models';
-import { Wand2, RefreshCw, AlertCircle, GripVertical, Info, UserX, Users, CheckCircle, RotateCcw, MapPin } from 'lucide-react';
+import { Wand2, RefreshCw, AlertCircle, GripVertical, Info, UserX, Users, CheckCircle, RotateCcw, MapPin, Save, Loader2, CheckCheck } from 'lucide-react';
 import { ContextMenu, type ContextMenuItem } from '../context-menu';
 import { EleveInfoModal } from '../modals/EleveInfoModal';
 import { ExportButtons } from '../export';
@@ -377,7 +379,7 @@ export const Board: React.FC = () => {
   const scenarios = useScenarioStore(state => state.scenarios);
   const currentScenarioId = useScenarioStore(state => state.currentScenarioId);
   const jurys = useJuryStore(state => state.jurys);
-  const { stages, loadStagesByScenario } = useStageStore();
+  const { stages, loadGlobalStages } = useStageStore();
 
   const activeScenario = useMemo(() => {
     return scenarios.find(s => s.id === currentScenarioId) || scenarios[0];
@@ -417,27 +419,33 @@ export const Board: React.FC = () => {
   const [mapDrawerOpen, setMapDrawerOpen] = useState(false);
   const [selectedTeacherForMap, setSelectedTeacherForMap] = useState<Enseignant | null>(null);
 
-  // Load stages when scenario changes (for stage scenarios)
+  // Validation state
+  const [isValidating, setIsValidating] = useState(false);
+  const [showValidationModal, setShowValidationModal] = useState(false);
+  const [validationSuccess, setValidationSuccess] = useState<{ date: Date; archiveId: string } | null>(null);
+  const createArchive = useScenarioArchiveStore(state => state.createArchive);
+
+  // Load global stages when entering a stage scenario
   useEffect(() => {
-    if (isStageScenario && activeScenario?.id) {
-      loadStagesByScenario(activeScenario.id);
+    if (isStageScenario) {
+      loadGlobalStages();
     }
-  }, [isStageScenario, activeScenario?.id, loadStagesByScenario]);
+  }, [isStageScenario, loadGlobalStages]);
 
   // Get stages for the selected teacher
   const selectedTeacherStages = useMemo(() => {
     if (!selectedTeacherForMap || !isStageScenario) return [];
-    
+
     // Get affectations for this teacher
     const teacherAffectations = affectations.filter(
       a => a.enseignantId === selectedTeacherForMap.id && a.scenarioId === activeScenario?.id
     );
-    
-    // Get stages for the assigned students
+
+    // Get stages for the assigned students (stages are global, filter by eleveId)
     const assignedEleveIds = new Set(teacherAffectations.map(a => a.eleveId));
-    
+
     return stages
-      .filter(s => s.scenarioId === activeScenario?.id && s.eleveId && assignedEleveIds.has(s.eleveId))
+      .filter(s => s.eleveId && assignedEleveIds.has(s.eleveId))
       .map(stage => {
         const eleve = eleves.find(e => e.id === stage.eleveId);
         return { ...stage, eleve };
@@ -469,8 +477,23 @@ export const Board: React.FC = () => {
 
   // Filter eleves/enseignants based on scenario
   const scenarioEleves = useMemo(() => {
-    if (!activeScenario?.parametres?.filtresEleves) return eleves;
-    const filters = activeScenario.parametres.filtresEleves;
+    const filters = activeScenario?.parametres?.filtresEleves;
+
+    // Pour les scénarios Suivi Stage, filtrer par défaut sur les 3ème
+    if (isStageScenario) {
+      const niveauxFiltres = filters?.niveaux?.length ? filters.niveaux : ['3e'];
+      const classesFiltres = filters?.classes || [];
+
+      return eleves.filter(e => {
+        const niveau = e.classe.replace(/[^0-9]/g, '')[0] + 'e';
+        const matchNiveau = niveauxFiltres.includes(niveau as any);
+        const matchClasse = classesFiltres.length === 0 || classesFiltres.includes(e.classe);
+        return matchNiveau && matchClasse;
+      });
+    }
+
+    // Pour les autres scénarios, comportement normal
+    if (!filters) return eleves;
     return eleves.filter(e => {
       if (filters.classes && filters.classes.length > 0 && !filters.classes.includes(e.classe)) return false;
       if (filters.niveaux && filters.niveaux.length > 0) {
@@ -479,14 +502,32 @@ export const Board: React.FC = () => {
       }
       return true;
     });
-  }, [eleves, activeScenario]);
+  }, [eleves, activeScenario, isStageScenario]);
 
   const scenarioEnseignants = useMemo(() => {
     if (!activeScenario?.parametres?.filtresEnseignants) return enseignants;
     const filters = activeScenario.parametres.filtresEnseignants;
+
+    // Si sélection individuelle active, elle prend le dessus
+    if (filters.enseignantIds && filters.enseignantIds.length > 0) {
+      return enseignants.filter(e => filters.enseignantIds!.includes(e.id!));
+    }
+
+    // Sinon, appliquer les filtres
     return enseignants.filter(e => {
       if (filters.ppOnly && !e.estProfPrincipal) return false;
       if (filters.matieres && filters.matieres.length > 0 && !filters.matieres.includes(e.matierePrincipale)) return false;
+      if (filters.classesEnCharge && filters.classesEnCharge.length > 0) {
+        const hasMatchingClass = e.classesEnCharge?.some(c => filters.classesEnCharge!.includes(c));
+        if (!hasMatchingClass) return false;
+      }
+      if (filters.niveauxEnCharge && filters.niveauxEnCharge.length > 0) {
+        const hasMatchingNiveau = e.classesEnCharge?.some(c => {
+          const niveau = c.replace(/[^0-9]/g, '')[0] + 'e';
+          return filters.niveauxEnCharge!.includes(niveau as any);
+        });
+        if (!hasMatchingNiveau) return false;
+      }
       return true;
     });
   }, [enseignants, activeScenario]);
@@ -881,27 +922,31 @@ export const Board: React.FC = () => {
       if (isStageScenario) {
         console.log('🎯 [MATCHING STAGE] Début du matching Suivi de Stage');
         console.log('  - Scenario ID:', activeScenario.id);
-        console.log('  - Stages dans le store:', stages.length);
+        console.log('  - Stages dans le store (global):', stages.length);
+        console.log('  - Élèves du scénario:', scenarioEleves.length);
         console.log('  - Enseignants filtrés:', scenarioEnseignants.length);
-        
+
+        // Filtrer les stages pour les élèves du scénario (source globale)
+        const eleveIds = new Set(scenarioEleves.map(e => e.id!));
+        const scenarioStagesForMatching = stages.filter(s => s.eleveId && eleveIds.has(s.eleveId));
+        console.log('  - Stages des élèves du scénario:', scenarioStagesForMatching.length);
+
         // Filtrer les stages géocodés
-        const geocodedStages = stages.filter(
-          s => s.scenarioId === activeScenario.id && 
-               (s.geoStatus === 'ok' || s.geoStatus === 'manual') && 
-               s.lat && s.lon
+        const geocodedStages = scenarioStagesForMatching.filter(
+          s => (s.geoStatus === 'ok' || s.geoStatus === 'manual') && s.lat && s.lon
         );
-        
-        console.log('  - Stages géocodés pour ce scénario:', geocodedStages.length);
-        
+
+        console.log('  - Stages géocodés:', geocodedStages.length);
+
         // Filtrer les enseignants géocodés
         const geocodedEnseignants = scenarioEnseignants.filter(
           e => (e.geoStatus === 'ok' || e.geoStatus === 'manual') && e.lat && e.lon
         );
-        
+
         console.log('  - Enseignants géocodés:', geocodedEnseignants.length);
 
         if (geocodedStages.length === 0) {
-          setMatchingError('⚠️ Aucun stage géocodé. Allez dans Scénarios > Suivi de Stage > Géocodage pour localiser les stages.');
+          setMatchingError('⚠️ Aucun stage géocodé. Allez dans Élèves > Stage pour ajouter et géocoder les stages.');
           return;
         }
         
@@ -1144,13 +1189,77 @@ export const Board: React.FC = () => {
     }
   };
 
-  const scenarioAffectations = affectations.filter(a => a.scenarioId === activeScenario?.id);
-  const capacity = activeScenario?.parametres?.capaciteConfig?.capaciteBaseDefaut || 5;
+  // Validate and archive the current affectations
+  const handleValidateAffectations = async () => {
+    if (!activeScenario) return;
 
-  // Stats pour le suivi de stage
-  const scenarioStages = useMemo(() => 
-    stages.filter(s => s.scenarioId === activeScenario?.id), 
-    [stages, activeScenario?.id]
+    const scenarioAffs = affectations.filter(a => a.scenarioId === activeScenario.id);
+    if (scenarioAffs.length === 0) {
+      setMatchingError('Aucune affectation à valider. Lancez d\'abord le matching.');
+      return;
+    }
+
+    setIsValidating(true);
+    setMatchingError(null);
+
+    try {
+      // Build the archive from current state
+      const result = buildArchiveFromCurrentState({
+        scenario: activeScenario,
+        affectations,
+        eleves,
+        enseignants,
+        jurys: isJuryMode ? scenarioJurys : undefined,
+        stages: isStageScenario ? stages : undefined,
+      });
+
+      // Save to database
+      const archiveId = await createArchive(result.archive);
+
+      // Success feedback
+      setValidationSuccess({ date: new Date(), archiveId });
+      setShowValidationModal(false);
+
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => setValidationSuccess(null), 5000);
+
+    } catch (err) {
+      setMatchingError(`Erreur lors de la validation : ${String(err)}`);
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  // Confirmation modal for validation
+  const handleValidateClick = () => {
+    const scenarioAffs = affectations.filter(a => a.scenarioId === activeScenario?.id);
+    if (scenarioAffs.length === 0) {
+      setMatchingError('Aucune affectation à valider. Lancez d\'abord le matching.');
+      return;
+    }
+    setShowValidationModal(true);
+  };
+
+  const scenarioAffectations = affectations.filter(a => a.scenarioId === activeScenario?.id);
+
+  // Capacité selon le type de scénario
+  const capacity = useMemo(() => {
+    if (!activeScenario) return 5;
+
+    // Suivi Stage : utilise capaciteTuteurDefaut
+    if (isStageScenario) {
+      return activeScenario.parametres?.suiviStage?.capaciteTuteurDefaut || 5;
+    }
+
+    // Autres scénarios : utilise capaciteBaseDefaut
+    return activeScenario.parametres?.capaciteConfig?.capaciteBaseDefaut || 5;
+  }, [activeScenario, isStageScenario]);
+
+  // Stats pour le suivi de stage - utilise les stages des élèves du scénario (source globale)
+  const scenarioEleveIds = useMemo(() => new Set(scenarioEleves.map(e => e.id!)), [scenarioEleves]);
+  const scenarioStages = useMemo(() =>
+    stages.filter(s => s.eleveId && scenarioEleveIds.has(s.eleveId)),
+    [stages, scenarioEleveIds]
   );
   const geocodedStagesCount = useMemo(() => 
     scenarioStages.filter(s => (s.geoStatus === 'ok' || s.geoStatus === 'manual') && s.lat && s.lon).length,
@@ -1215,9 +1324,9 @@ export const Board: React.FC = () => {
           >
             <RotateCcw size={18} />
           </button>
-          <button 
-            className="btn-action" 
-            onClick={runMatching} 
+          <button
+            className="btn-action"
+            onClick={runMatching}
             disabled={runButtonDisabled}
             title={runButtonTitle}
           >
@@ -1230,6 +1339,24 @@ export const Board: React.FC = () => {
               <>
                 <Wand2 size={18} />
                 Lancer le matching
+              </>
+            )}
+          </button>
+          <button
+            className="btn-action validate"
+            onClick={handleValidateClick}
+            disabled={!activeScenario || isRunning || isValidating || scenarioAffectations.length === 0}
+            title={scenarioAffectations.length === 0 ? 'Lancez d\'abord le matching' : 'Valider et archiver les affectations'}
+          >
+            {isValidating ? (
+              <>
+                <Loader2 size={18} className="spinning" />
+                Validation...
+              </>
+            ) : (
+              <>
+                <Save size={18} />
+                Valider
               </>
             )}
           </button>
@@ -1273,6 +1400,18 @@ export const Board: React.FC = () => {
             <span className="matiere-info"> • {Math.round(matchingStats.tauxMatiere * 100)}% correspondance matière</span>
           )}
           <button onClick={() => setMatchingStats(null)}>×</button>
+        </div>
+      )}
+
+      {/* Validation success message */}
+      {validationSuccess && (
+        <div className="matching-message success validated">
+          <CheckCheck size={18} />
+          <span>
+            Affectation validée le {formatArchiveDate(validationSuccess.date)}
+            <span className="validation-hint"> — Consultable dans le tableau de bord</span>
+          </span>
+          <button onClick={() => setValidationSuccess(null)}>×</button>
         </div>
       )}
 
@@ -1405,6 +1544,70 @@ export const Board: React.FC = () => {
           assignedStages={selectedTeacherStages}
           collegeGeo={COLLEGE_GEO}
         />
+      )}
+
+      {/* Validation Confirmation Modal */}
+      {showValidationModal && (
+        <div className="validation-modal-overlay" onClick={() => setShowValidationModal(false)}>
+          <div className="validation-modal" onClick={e => e.stopPropagation()}>
+            <h2>Valider l'affectation</h2>
+            <p className="modal-description">
+              Cette action va créer un snapshot immuable des affectations actuelles.
+              Il sera consultable dans le tableau de bord et l'historique des enseignants.
+            </p>
+            <div className="modal-summary">
+              <div className="summary-item">
+                <span className="label">Scénario</span>
+                <span className="value">{activeScenario?.nom}</span>
+              </div>
+              <div className="summary-item">
+                <span className="label">Type</span>
+                <span className="value">
+                  {activeScenario?.type === 'oral_dnb' ? 'Oral du DNB' :
+                   activeScenario?.type === 'suivi_stage' ? 'Suivi de stage' : 'Standard'}
+                </span>
+              </div>
+              <div className="summary-item">
+                <span className="label">Affectations</span>
+                <span className="value">{scenarioAffectations.length}</span>
+              </div>
+              <div className="summary-item">
+                <span className="label">Enseignants</span>
+                <span className="value">
+                  {isJuryMode
+                    ? scenarioJurys.reduce((sum, j) => sum + j.enseignantIds.length, 0)
+                    : new Set(scenarioAffectations.map(a => a.enseignantId)).size}
+                </span>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button
+                className="btn-cancel"
+                onClick={() => setShowValidationModal(false)}
+                disabled={isValidating}
+              >
+                Annuler
+              </button>
+              <button
+                className="btn-validate"
+                onClick={handleValidateAffectations}
+                disabled={isValidating}
+              >
+                {isValidating ? (
+                  <>
+                    <Loader2 size={16} className="spinning" />
+                    Validation...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={16} />
+                    Confirmer la validation
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

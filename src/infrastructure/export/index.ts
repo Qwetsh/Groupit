@@ -19,7 +19,7 @@ export {
 } from './types';
 
 // Data Mapper
-export { mapToExportData } from './dataMapper';
+export { mapToExportData, mapArchiveToExportData } from './dataMapper';
 export type { UnassignedReasons } from './dataMapper';
 
 // CSV Export

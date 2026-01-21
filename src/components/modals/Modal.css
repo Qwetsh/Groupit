@@ -710,3 +710,204 @@
 .custom-fields-section .form-group {
   margin-bottom: 0.75rem;
 }
+
+/* ============================================================
+   ENSEIGNANTS FILTER TAB
+   ============================================================ */
+
+.enseignants-filter-tab .mode-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+}
+
+.enseignants-filter-tab .mode-indicator.individual {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.enseignants-filter-tab .mode-indicator .btn-link {
+  margin-left: auto;
+}
+
+.enseignants-filter-tab .checkbox-grid.compact {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.enseignants-filter-tab .checkbox-grid.compact .checkbox-item {
+  min-width: auto;
+}
+
+.enseignants-filter-tab .filter-preview-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 16px 0;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.enseignants-filter-tab .filter-preview {
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+}
+
+.enseignants-filter-tab .btn-link {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.enseignants-filter-tab .btn-link:hover {
+  background: #eff6ff;
+  text-decoration: underline;
+}
+
+.enseignants-filter-tab .btn-link.small {
+  font-size: 0.8rem;
+}
+
+/* Collapsible section */
+.collapsible-section {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #374151;
+  transition: background 0.2s;
+}
+
+.collapsible-header:hover {
+  background: #f1f5f9;
+}
+
+.collapsible-header span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.collapsible-content {
+  padding: 16px;
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+/* Search box */
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  background: #ffffff;
+}
+
+.search-box:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.search-box svg {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.search-box input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.875rem;
+  background: transparent;
+}
+
+/* Enseignants list */
+.enseignants-list {
+  max-height: 250px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.enseignant-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  border: 1px solid transparent;
+}
+
+.enseignant-item:hover {
+  background: #f8fafc;
+}
+
+.enseignant-item.selected {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.enseignant-item input[type="checkbox"] {
+  flex-shrink: 0;
+}
+
+.enseignant-item .ens-name {
+  font-weight: 500;
+  color: #1f2937;
+  min-width: 150px;
+}
+
+.enseignant-item .ens-matiere {
+  font-size: 0.8rem;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.enseignant-item .ens-classes {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-left: auto;
+}
+
+.enseignants-list .no-results {
+  text-align: center;
+  padding: 20px;
+  color: #9ca3af;
+  font-size: 0.875rem;
+}

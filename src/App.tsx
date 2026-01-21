@@ -19,6 +19,7 @@ import { useScenarioStore } from './stores/scenarioStore';
 import { useGroupeStore } from './stores/groupeStore';
 import { useAffectationStore } from './stores/affectationStore';
 import { useJuryStore } from './stores/juryStore';
+import { useScenarioArchiveStore } from './stores/scenarioArchiveStore';
 import { useUIStore } from './stores/uiStore';
 import type { Eleve } from './domain/models';
 import './App.css';
@@ -35,6 +36,7 @@ function App() {
   const loadGroupes = useGroupeStore(state => state.loadGroupes);
   const loadAffectations = useAffectationStore(state => state.loadAffectations);
   const loadJurys = useJuryStore(state => state.loadJurys);
+  const loadArchives = useScenarioArchiveStore(state => state.loadArchives);
 
   // Load all data on mount
   useEffect(() => {
@@ -48,6 +50,7 @@ function App() {
           loadGroupes(),
           loadAffectations(),
           loadJurys(),
+          loadArchives(),
         ]);
       } catch (error) {
         console.error('Error initializing app:', error);
@@ -57,7 +60,7 @@ function App() {
     };
 
     initializeApp();
-  }, [loadEleves, loadEnseignants, loadScenarios, loadGroupes, loadAffectations, loadJurys]);
+  }, [loadEleves, loadEnseignants, loadScenarios, loadGroupes, loadAffectations, loadJurys, loadArchives]);
 
   const handleImport = async (eleves: Partial<Eleve>[]) => {
     await addEleves(eleves as Omit<Eleve, 'id' | 'createdAt' | 'updatedAt'>[]);

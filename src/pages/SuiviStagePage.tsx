@@ -728,7 +728,7 @@ export function SuiviStagePage() {
       for (let i = 0; i < stagesToGeocode.length; i++) {
         const stage = stagesToGeocode[i];
         console.log(`[${i+1}/${stagesToGeocode.length}] Géocodage stage: "${stage.adresse}"`);
-        setProgress(p => ({ ...p, currentAddress: stage.adresse, completed: i }));
+        setProgress(p => ({ ...p, currentAddress: stage.adresse ?? null, completed: i }));
         
         try {
           // Utiliser le géocodage avec fallback
@@ -822,13 +822,13 @@ export function SuiviStagePage() {
     
     try {
       const stageInfos: StageGeoInfo[] = stages
-        .filter(s => s.geoStatus === 'ok' || s.geoStatus === 'manual')
-        .map(s => toStageGeoInfo(s));
-      
+        .filter(s => s.adresse && (s.geoStatus === 'ok' || s.geoStatus === 'manual'))
+        .map(s => toStageGeoInfo(s as Stage & { adresse: string; geoStatus: string }));
+
       const teacherInfos: EnseignantGeoInfo[] = enseignants
         .filter(e => e.geoStatus === 'ok' || e.geoStatus === 'manual')
         .map(e => toEnseignantGeoInfo(e));
-      
+
       const batchResult = await computeRoutePairs(
         stageInfos,
         teacherInfos,
@@ -859,13 +859,13 @@ export function SuiviStagePage() {
     
     try {
       const stageInfos: StageGeoInfo[] = stages
-        .filter(s => s.geoStatus === 'ok' || s.geoStatus === 'manual')
-        .map(s => toStageGeoInfo(s));
-      
+        .filter(s => s.adresse && (s.geoStatus === 'ok' || s.geoStatus === 'manual'))
+        .map(s => toStageGeoInfo(s as Stage & { adresse: string; geoStatus: string }));
+
       const teacherInfos: EnseignantGeoInfo[] = enseignants
         .filter(e => e.geoStatus === 'ok' || e.geoStatus === 'manual')
         .map(e => toEnseignantGeoInfo(e));
-      
+
       const result = solveStageMatching(stageInfos, teacherInfos, pairs, {
         dureeMaxMin: 60,
         distanceMaxKm: 50,
