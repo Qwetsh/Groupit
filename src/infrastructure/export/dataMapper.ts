@@ -8,6 +8,7 @@ import type {
   Jury,
   Affectation,
   Scenario,
+  ScenarioArchive,
 } from '../../domain/models';
 import type {
   ExportResultData,
@@ -225,10 +226,10 @@ export function mapToExportData(
     scenarioName: scenario.nom,
     scenarioType: scenario.type || 'oral_dnb',
     dateExport: new Date().toISOString(),
-    
+
     jurys: exportJurys,
     unassigned: unassignedEleves,
-    
+
     stats: {
       totalEleves,
       totalAffectes,
@@ -237,6 +238,187 @@ export function mapToExportData(
       tauxMatchMatiere: totalAffectes > 0 ? Math.round((totalMatchMatiere / totalAffectes) * 100) : 0,
       nbJurys: exportJurys.length,
       nbEnseignants: enseignantIds.size,
+    },
+  };
+}
+
+// ============================================================
+// ARCHIVE TO EXPORT DATA - Pour exporter depuis une archive validée
+// ============================================================
+
+/**
+ * Convertit une archive validée vers le format ExportResultData
+ * Utilisé pour exporter PDF/CSV depuis le tableau de bord
+ */
+export function mapArchiveToExportData(archive: ScenarioArchive): ExportResultData {
+  // Pour les scénarios de type oral_dnb avec jurys
+  if (archive.scenarioType === 'oral_dnb' && archive.metadata?.jurys) {
+    return mapOralDnbArchiveToExport(archive);
+  }
+
+  // Pour suivi_stage et autres types (export par enseignant)
+  return mapStandardArchiveToExport(archive);
+}
+
+/**
+ * Convertit une archive Oral DNB (avec jurys) vers ExportResultData
+ */
+function mapOralDnbArchiveToExport(archive: ScenarioArchive): ExportResultData {
+  const jurys = archive.metadata?.jurys || [];
+
+  // Créer un map des participants pour lookup rapide
+  const participantMap = new Map(
+    archive.participants.map(p => [p.enseignantId, p])
+  );
+
+  // Créer un map des affectations par juryId
+  const affectationsByJury = new Map<string, typeof archive.affectations[0]>();
+  archive.affectations.forEach(aff => {
+    if (aff.juryId && !affectationsByJury.has(aff.juryId)) {
+      affectationsByJury.set(aff.juryId, aff);
+    }
+  });
+
+  // Mapper les jurys vers ExportJuryData
+  const exportJurys: ExportJuryData[] = jurys.map(jury => {
+    const aff = affectationsByJury.get(jury.id);
+    const eleves = aff?.eleves || [];
+
+    // Mapper les enseignants du jury
+    const enseignants: ExportEnseignantData[] = jury.enseignantIds.map(ensId => {
+      const participant = participantMap.get(ensId);
+      return {
+        enseignantId: ensId,
+        nom: participant?.enseignantNom || 'Inconnu',
+        prenom: participant?.enseignantPrenom || '',
+        matierePrincipale: participant?.roleLabel || 'Non définie',
+      };
+    });
+
+    // Mapper les élèves
+    const exportEleves: ExportEleveData[] = eleves.map(eleve => ({
+      eleveId: eleve.eleveId,
+      nom: eleve.eleveNom,
+      prenom: eleve.elevePrenom,
+      classe: eleve.eleveClasse,
+      matieresOral: eleve.matiereOral ? [eleve.matiereOral] : [],
+      matiereAffectee: eleve.matiereOral || null,
+    }));
+
+    return {
+      juryId: jury.id,
+      juryName: jury.nom,
+      enseignants,
+      eleves: exportEleves,
+      capaciteMax: eleves.length,
+      nbAffectes: eleves.length,
+      tauxRemplissage: 100,
+      nbMatchMatiere: eleves.filter(e => e.matiereOral).length,
+    };
+  });
+
+  // Trier par nom
+  exportJurys.sort((a, b) => a.juryName.localeCompare(b.juryName, 'fr', { numeric: true }));
+
+  const totalAffectes = archive.stats.nbAffectations;
+  const totalEleves = archive.stats.nbEleves;
+
+  return {
+    scenarioId: archive.scenarioId,
+    scenarioName: archive.scenarioNom,
+    scenarioType: archive.scenarioType,
+    dateExport: archive.archivedAt instanceof Date
+      ? archive.archivedAt.toISOString()
+      : new Date(archive.archivedAt).toISOString(),
+
+    jurys: exportJurys,
+    unassigned: [], // Pas d'info sur les non-affectés dans l'archive
+
+    stats: {
+      totalEleves,
+      totalAffectes,
+      totalNonAffectes: 0,
+      tauxAffectation: archive.stats.tauxAffectation || 100,
+      tauxMatchMatiere: 0, // Non calculé dans l'archive
+      nbJurys: exportJurys.length,
+      nbEnseignants: archive.stats.nbEnseignants,
+    },
+  };
+}
+
+/**
+ * Convertit une archive standard (suivi_stage ou autre) vers ExportResultData
+ * Crée un "pseudo-jury" par enseignant
+ */
+function mapStandardArchiveToExport(archive: ScenarioArchive): ExportResultData {
+  // Créer un map des participants
+  const participantMap = new Map(
+    archive.participants.map(p => [p.enseignantId, p])
+  );
+
+  // Mapper chaque affectation comme un "jury" (un par enseignant)
+  const exportJurys: ExportJuryData[] = archive.affectations.map(aff => {
+    const participant = participantMap.get(aff.enseignantId);
+
+    const enseignant: ExportEnseignantData = {
+      enseignantId: aff.enseignantId,
+      nom: participant?.enseignantNom || 'Inconnu',
+      prenom: participant?.enseignantPrenom || '',
+      matierePrincipale: participant?.roleLabel || 'Référent',
+    };
+
+    // Mapper les élèves
+    const exportEleves: ExportEleveData[] = aff.eleves.map(eleve => ({
+      eleveId: eleve.eleveId,
+      nom: eleve.eleveNom,
+      prenom: eleve.elevePrenom,
+      classe: eleve.eleveClasse,
+      matieresOral: eleve.matiereOral ? [eleve.matiereOral] : [],
+      matiereAffectee: eleve.matiereOral || null,
+      // Pour suivi_stage, on pourrait ajouter des champs supplémentaires
+    }));
+
+    const juryName = participant
+      ? `${participant.enseignantPrenom} ${participant.enseignantNom}`
+      : aff.juryNom || 'Enseignant';
+
+    return {
+      juryId: aff.enseignantId,
+      juryName,
+      enseignants: [enseignant],
+      eleves: exportEleves,
+      capaciteMax: aff.eleves.length,
+      nbAffectes: aff.eleves.length,
+      tauxRemplissage: 100,
+      nbMatchMatiere: 0,
+    };
+  });
+
+  // Trier par nom
+  exportJurys.sort((a, b) => a.juryName.localeCompare(b.juryName, 'fr'));
+
+  const totalAffectes = archive.stats.nbAffectations;
+  const totalEleves = archive.stats.nbEleves;
+
+  return {
+    scenarioId: archive.scenarioId,
+    scenarioName: archive.scenarioNom,
+    scenarioType: archive.scenarioType,
+    dateExport: archive.archivedAt instanceof Date
+      ? archive.archivedAt.toISOString()
+      : new Date(archive.archivedAt).toISOString(),
+
+    jurys: exportJurys,
+    unassigned: [],
+
+    stats: {
+      totalEleves,
+      totalAffectes,
+      totalNonAffectes: 0,
+      tauxAffectation: archive.stats.tauxAffectation || 100,
+      tauxMatchMatiere: 0,
+      nbJurys: exportJurys.length,
+      nbEnseignants: archive.stats.nbEnseignants,
     },
   };
 }

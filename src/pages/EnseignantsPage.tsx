@@ -97,12 +97,20 @@ function EnseignantCard({ enseignant, onClick, onEdit, onDelete, onDuplicate }: 
         </div>
         <div className="identity">
           <h3>{enseignant.prenom} <span className="nom-upper">{enseignant.nom.toUpperCase()}</span></h3>
-          {enseignant.matierePrincipale && (
-            <span className="matiere-badge">
-              <BookOpen size={12} />
-              {enseignant.matierePrincipale}
-            </span>
-          )}
+          <div className="identity-badges">
+            {enseignant.matierePrincipale && (
+              <span className="matiere-badge">
+                <BookOpen size={12} />
+                {enseignant.matierePrincipale}
+              </span>
+            )}
+            {enseignant.estProfPrincipal && (
+              <span className="pp-badge-inline">
+                <Award size={10} />
+                PP {enseignant.classePP}
+              </span>
+            )}
+          </div>
         </div>
         <div className="menu-trigger" onClick={handleMenuClick}>
           <MoreVertical size={18} />
@@ -131,14 +139,6 @@ function EnseignantCard({ enseignant, onClick, onEdit, onDelete, onDuplicate }: 
           </div>
         )}
 
-        {/* PP badge */}
-        {enseignant.estProfPrincipal && (
-          <div className="info-row pp-row">
-            <Award size={14} />
-            <span>Prof Principal</span>
-            {enseignant.classePP && <span className="pp-classe">{enseignant.classePP}</span>}
-          </div>
-        )}
 
         {/* Adresse avec statut géocodage */}
         {(enseignant.adresse || enseignant.commune) && (
@@ -192,15 +192,18 @@ export const EnseignantsPage: React.FC = () => {
 
   // Stores
   const enseignants = useEnseignantStore(s => s.enseignants);
+  const loading = useEnseignantStore(s => s.loading);
   const loadEnseignants = useEnseignantStore(s => s.loadEnseignants);
   const deleteEnseignant = useEnseignantStore(s => s.deleteEnseignant);
   const addEnseignant = useEnseignantStore(s => s.addEnseignant);
   const openModal = useUIStore(s => s.openModal);
 
-  // Load on mount
+  // Load on mount only if not already loaded
   useEffect(() => {
-    loadEnseignants();
-  }, [loadEnseignants]);
+    if (enseignants.length === 0 && !loading) {
+      loadEnseignants();
+    }
+  }, [enseignants.length, loading, loadEnseignants]);
 
   // Get distinct matieres for filter
   const distinctMatieres = useMemo(() => {
@@ -381,7 +384,7 @@ export const EnseignantsPage: React.FC = () => {
       </div>
 
       {/* Empty state */}
-      {filteredEnseignants.length === 0 && (
+      {filteredEnseignants.length === 0 && !loading && (
         <div className="empty-state-v2">
           {enseignants.length === 0 ? (
             <>
@@ -403,6 +406,14 @@ export const EnseignantsPage: React.FC = () => {
               </button>
             </>
           )}
+        </div>
+      )}
+
+      {/* Loading state */}
+      {loading && enseignants.length === 0 && (
+        <div className="empty-state-v2">
+          <div className="loading-spinner" />
+          <p>Chargement des enseignants...</p>
         </div>
       )}
 

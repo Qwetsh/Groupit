@@ -75,12 +75,16 @@ export const ScenariosPage: React.FC = () => {
 
   const getCritereLabel = (id: string) => {
     const labels: Record<string, string> = {
-      distance: 'Distance domicile-enseignant',
-      equilibrage: 'Équilibrage des charges',
-      mixite: 'Mixité filles/garçons',
+      distance: 'Distance',
+      equilibrage: 'Équilibrage',
+      mixite: 'Mixité',
       niveauScolaire: 'Niveau scolaire',
-      preferences: 'Préférences utilisateur',
-      matiere: 'Correspondance matière',
+      preferences: 'Préférences',
+      matiere: 'Matière',
+      capacite: 'Capacité',
+      contraintes_relationnelles: 'Contraintes relationnelles',
+      classe: 'Classe',
+      secteur: 'Secteur géographique',
     };
     return labels[id] || id;
   };
@@ -134,11 +138,20 @@ export const ScenariosPage: React.FC = () => {
                   <p className="description">{scenario.description}</p>
                 )}
                 <div className="criteres-preview">
-                  {scenario.parametres.criteres.filter(c => c.actif).map((c, i) => (
-                    <span key={i} className="critere-tag">
-                      {getCritereLabel(c.id)} (×{c.poids})
+                  {scenario.parametres.criteres
+                    .filter(c => c.actif)
+                    .sort((a, b) => b.poids - a.poids)
+                    .slice(0, 4)
+                    .map((c, i) => (
+                      <span key={i} className={`critere-tag ${c.poids >= 50 ? 'high' : c.poids >= 20 ? 'medium' : 'low'}`}>
+                        {getCritereLabel(c.id)}
+                      </span>
+                    ))}
+                  {scenario.parametres.criteres.filter(c => c.actif).length > 4 && (
+                    <span className="critere-more">
+                      +{scenario.parametres.criteres.filter(c => c.actif).length - 4}
                     </span>
-                  ))}
+                  )}
                 </div>
               </div>
 
@@ -193,59 +206,32 @@ export const ScenariosPage: React.FC = () => {
 
             {expandedId === scenario.id && (
               <div className="card-details">
-                <div className="details-section">
+                {/* Résumé scoring simplifié */}
+                <div className="details-section scoring-summary">
                   <h4>
                     <Settings size={16} />
-                    Critères de scoring
+                    Configuration du scoring
                   </h4>
-                  <table className="criteres-table">
-                    <thead>
-                      <tr>
-                        <th>Critère</th>
-                        <th>Poids</th>
-                        <th>Statut</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {scenario.parametres.criteres.map((critere, i) => (
-                        <tr key={i} className={critere.actif ? '' : 'disabled'}>
-                          <td>{getCritereLabel(critere.id)}</td>
-                          <td>
-                            <span className="weight-badge">×{critere.poids}</span>
-                          </td>
-                          <td>
-                            <span className={`status-badge ${critere.actif ? 'active' : 'inactive'}`}>
-                              {critere.actif ? 'Actif' : 'Inactif'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <div className="details-section">
-                  <h4>Configuration capacité</h4>
-                  <div className="config-info">
-                    <div className="config-item">
-                      <span className="label">Capacité de base:</span>
-                      <span className="value">{scenario.parametres.capaciteConfig.capaciteBaseDefaut}</span>
+                  <div className="scoring-grid">
+                    <div className="scoring-item">
+                      <span className="scoring-label">Capacité par défaut</span>
+                      <span className="scoring-value">{scenario.parametres.capaciteConfig.capaciteBaseDefaut} élèves</span>
                     </div>
-                    <div className="config-item">
-                      <span className="label">Équilibrage:</span>
-                      <span className="value">{scenario.parametres.equilibrageActif ? 'Oui' : 'Non'}</span>
+                    <div className="scoring-item">
+                      <span className="scoring-label">Équilibrage automatique</span>
+                      <span className={`scoring-value ${scenario.parametres.equilibrageActif ? 'active' : ''}`}>
+                        {scenario.parametres.equilibrageActif ? 'Activé' : 'Désactivé'}
+                      </span>
                     </div>
-                  </div>
-                </div>
-
-                <div className="details-section">
-                  <h4>Contraintes dures</h4>
-                  <div className="constraints-list">
-                    {scenario.parametres.criteres.filter(c => c.estContrainteDure).map((c, i) => (
-                      <span key={i} className="constraint-tag">{c.nom}</span>
-                    ))}
-                    {scenario.parametres.criteres.filter(c => c.estContrainteDure).length === 0 && (
-                      <span className="no-constraints">Aucune contrainte dure</span>
+                    {scenario.parametres.criteres.filter(c => c.estContrainteDure).length > 0 && (
+                      <div className="scoring-item constraints">
+                        <span className="scoring-label">Contraintes</span>
+                        <div className="constraints-inline">
+                          {scenario.parametres.criteres.filter(c => c.estContrainteDure).map((c, i) => (
+                            <span key={i} className="constraint-tag-mini">{getCritereLabel(c.id)}</span>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>

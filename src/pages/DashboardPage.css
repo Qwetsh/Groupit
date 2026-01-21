@@ -273,3 +273,62 @@
   color: #94a3b8;
   font-size: 12px;
 }
+
+/* ============================================================ */
+/* VALIDATED ASSIGNMENTS SECTION */
+/* ============================================================ */
+
+.stat-icon.validated {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.dashboard-card.full-width {
+  grid-column: 1 / -1;
+}
+
+.card-header-with-count {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.card-header-with-count h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.card-header-with-count .count-badge {
+  padding: 4px 10px;
+  background: #e2e8f0;
+  color: #475569;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.validated-assignments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.loading-state {
+  text-align: center;
+  padding: 40px;
+  color: #64748b;
+}
+
+.see-more-link {
+  margin-top: 16px;
+  text-align: center;
+  color: #64748b;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.see-more-link:hover {
+  color: #3b82f6;
+}

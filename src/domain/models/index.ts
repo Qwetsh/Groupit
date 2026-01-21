@@ -271,48 +271,48 @@ export type GeoStatusExtended =
 export interface Stage {
   id: string;
   eleveId?: string; // Référence vers l'élève (optionnel si élève non trouvé)
-  scenarioId: string;
-  
+  scenarioId?: string; // Optionnel - permet les stages globaux non liés à un scénario
+
   // Informations de l'élève (pour import sans correspondance)
   eleveNom?: string;
   elevePrenom?: string;
   eleveClasse?: string;
-  
+
   // Informations du stage
   nomEntreprise?: string;     // Nom de l'entreprise
   tuteur?: string;
   tuteurEmail?: string;
   tuteurTel?: string;
   secteurActivite?: string;
-  
+
   // Adresse du stage
-  adresse: string;
+  adresse?: string; // Rendu optionnel pour permettre la création progressive
   codePostal?: string;
   ville?: string;
-  
+
   // Géocodage (coordonnées)
   lat?: number;
   lon?: number;
-  
+
   // Ancien statut (rétrocompatibilité)
-  geoStatus: 'pending' | 'ok' | 'error' | 'manual' | 'not_found';
+  geoStatus?: 'pending' | 'ok' | 'error' | 'manual' | 'not_found';
   geoErrorMessage?: string;
-  
+
   // Nouveaux champs géocodage avec fallback
   geoStatusExtended?: GeoStatusExtended;
   geoPrecision?: GeoPrecision;
   geoQueryUsed?: string; // La requête qui a abouti
-  
+
   // Dates
   dateDebut?: string;
   dateFin?: string;
-  
+
   // Notes / commentaires
   notes?: string;
-  
+
   // Marqueur de données de test
   isTest?: boolean;
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -421,8 +421,10 @@ export interface ScenarioParametres {
   filtresEnseignants?: {
     matieres?: string[];        // ex: ["SVT", "Physique-Chimie"]
     classesEnCharge?: string[]; // ex: ["3A", "3B"]
+    niveauxEnCharge?: Niveau[]; // ex: ["3e", "4e"] - enseigne à ce niveau
     ppOnly?: boolean;           // seulement les profs principaux
     tags?: string[];            // ex: ["disponible"]
+    enseignantIds?: string[];   // sélection individuelle d'enseignants
   };
   
   // Paramètres legacy pour compatibilité

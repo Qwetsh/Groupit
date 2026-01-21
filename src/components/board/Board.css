@@ -931,3 +931,157 @@
   opacity: 1;
   transform: scale(1.1);
 }
+
+/* ============================================================ */
+/* VALIDATION BUTTON & MODAL */
+/* ============================================================ */
+
+.btn-action.validate {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  box-shadow: 0 2px 4px rgba(22, 163, 74, 0.3);
+}
+
+.btn-action.validate:hover {
+  box-shadow: 0 4px 8px rgba(22, 163, 74, 0.4);
+}
+
+.btn-action.validate:disabled {
+  background: #94a3b8;
+}
+
+.matching-message.validated {
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  border-color: #86efac;
+}
+
+.matching-message .validation-hint {
+  color: #22c55e;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* Validation Modal */
+.validation-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.validation-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 480px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.validation-modal h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  color: #1e293b;
+}
+
+.validation-modal .modal-description {
+  margin: 0 0 20px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.validation-modal .modal-summary {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.validation-modal .summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.validation-modal .summary-item .label {
+  font-size: 12px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.validation-modal .summary-item .value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.validation-modal .modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.validation-modal .btn-cancel {
+  padding: 10px 20px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.validation-modal .btn-cancel:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.validation-modal .btn-validate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(22, 163, 74, 0.3);
+}
+
+.validation-modal .btn-validate:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(22, 163, 74, 0.4);
+}
+
+.validation-modal .btn-validate:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
