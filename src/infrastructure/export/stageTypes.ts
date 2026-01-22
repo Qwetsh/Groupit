@@ -37,7 +37,9 @@ export interface StageExportEleveData {
   lon?: number;
   distanceKm?: number;
   dureeEstimeeMin?: number;
-  isDistanceApprox: boolean;  // true si fallback ville utilisé
+  dureeMin?: number;           // alias pour dureeEstimeeMin
+  adresseStage?: string;       // alias pour adresseComplete
+  isDistanceApprox: boolean;   // true si fallback ville utilisé
   geoPrecision?: 'FULL' | 'CITY' | 'TOWNHALL' | 'NONE';
   
   // Métadonnées pour extensions futures
@@ -80,6 +82,7 @@ export interface StageExportUnassignedData {
   classe: string;
   entreprise?: string;
   adresse?: string;
+  adresseStage?: string;  // alias pour adresse
   ville?: string;
   raisons: string[];
 }
@@ -110,6 +113,10 @@ export interface StageExportResultData {
     nbEnseignants: number;
     distanceTotaleGlobaleKm: number;
     distanceMoyenneGlobaleKm: number;
+    distanceMoyenneKm?: number;    // alias pour compatibilité
+    distanceMaxKm?: number;
+    dureeMoyenneMin?: number;
+    nbTuteurs?: number;
     nbDistancesApprox: number;
   };
 }
@@ -127,7 +134,10 @@ export interface StageCsvExportOptions {
   includeContactInfo: boolean;     // tuteur, email, tel
   includeDates: boolean;           // dateDebut, dateFin
   includeDistanceApproxFlag: boolean;
-  
+  includeAdresse?: boolean;        // adresse du stage
+  includeDistance?: boolean;       // distance en km
+  includeDuration?: boolean;       // durée estimée en min
+
   // Format
   separator: ',' | ';' | '\t';
   includeHeaders: boolean;

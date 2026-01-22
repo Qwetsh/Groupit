@@ -249,6 +249,8 @@ export async function geocodeBatch(
  * @deprecated Utiliser geocodeBatchWithFallback de './geocodeFallback' à la place.
  * Cette fonction n'est plus exportée depuis l'index et sera supprimée dans une version future.
  */
+// @ts-expect-error Fonction dépréciée gardée pour référence
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function _geocodeBatchWithFallbackLegacy(
   addresses: string[],
   options?: {

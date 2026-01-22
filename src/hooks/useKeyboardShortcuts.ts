@@ -36,7 +36,8 @@ export const SHORTCUT_CATEGORIES = {
 
 export function useKeyboardShortcuts() {
   const navigate = useNavigate();
-  const location = useLocation();
+  // useLocation available for future route-aware shortcuts
+  void useLocation();
   const openModal = useUIStore(state => state.openModal);
   const toggleShortcutsHelp = useUIStore(state => state.toggleShortcutsHelp);
 

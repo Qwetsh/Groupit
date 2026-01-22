@@ -56,9 +56,16 @@ function calculateColumnWidths(data: unknown[][]): number[] {
 }
 
 /**
+ * Options communes pour la création de feuilles Excel
+ */
+interface WorksheetOptions {
+  autoWidth?: boolean;
+}
+
+/**
  * Crée une feuille Excel à partir de données 2D
  */
-function createWorksheet(data: unknown[][], options: ExcelExportOptions): XLSX.WorkSheet {
+function createWorksheet(data: unknown[][], options: WorksheetOptions): XLSX.WorkSheet {
   const ws = XLSX.utils.aoa_to_sheet(data);
 
   // Appliquer la largeur automatique des colonnes
@@ -239,11 +246,17 @@ export interface StageExcelExportOptions extends Omit<StageCsvExportOptions, 'se
 }
 
 export const DEFAULT_STAGE_EXCEL_OPTIONS: StageExcelExportOptions = {
+  // From StageCsvExportOptions
+  includeGeoDetails: DEFAULT_STAGE_CSV_OPTIONS.includeGeoDetails,
+  includeContactInfo: DEFAULT_STAGE_CSV_OPTIONS.includeContactInfo,
+  includeDates: DEFAULT_STAGE_CSV_OPTIONS.includeDates,
+  includeDistanceApproxFlag: DEFAULT_STAGE_CSV_OPTIONS.includeDistanceApproxFlag,
   includeDistance: DEFAULT_STAGE_CSV_OPTIONS.includeDistance,
   includeDuration: DEFAULT_STAGE_CSV_OPTIONS.includeDuration,
   includeAdresse: DEFAULT_STAGE_CSV_OPTIONS.includeAdresse,
-  includeHeaders: true,
-  includeUnassignedSheet: true,
+  includeHeaders: DEFAULT_STAGE_CSV_OPTIONS.includeHeaders,
+  includeUnassignedSheet: DEFAULT_STAGE_CSV_OPTIONS.includeUnassignedSheet,
+  // Excel-specific
   sheetName: 'Affectations Stages',
   autoWidth: true,
   headerStyle: true,
@@ -326,7 +339,7 @@ function generateStageUnassignedData(data: StageExportResultData, options: Stage
  * Génère les données pour la feuille des statistiques de stage
  */
 function generateStageStatsData(data: StageExportResultData): unknown[][] {
-  return [
+  const rows: unknown[][] = [
     ['Statistique', 'Valeur'],
     ['Scénario', data.scenarioName],
     ['Date export', new Date(data.dateExport).toLocaleDateString('fr-FR')],
@@ -335,11 +348,23 @@ function generateStageStatsData(data: StageExportResultData): unknown[][] {
     ['Stages affectés', data.stats.totalAffectes],
     ['Stages non affectés', data.stats.totalNonAffectes],
     ['Taux affectation', `${data.stats.tauxAffectation}%`],
-    ['Distance moyenne', `${data.stats.distanceMoyenneKm.toFixed(1)} km`],
-    ['Distance max', `${data.stats.distanceMaxKm.toFixed(1)} km`],
-    ['Durée moyenne', `${data.stats.dureeMoyenneMin.toFixed(0)} min`],
-    ['Nombre tuteurs', data.stats.nbTuteurs],
   ];
+
+  // Ajouter les stats optionnelles si disponibles
+  if (data.stats.distanceMoyenneKm !== undefined) {
+    rows.push(['Distance moyenne', `${data.stats.distanceMoyenneKm.toFixed(1)} km`]);
+  }
+  if (data.stats.distanceMaxKm !== undefined) {
+    rows.push(['Distance max', `${data.stats.distanceMaxKm.toFixed(1)} km`]);
+  }
+  if (data.stats.dureeMoyenneMin !== undefined) {
+    rows.push(['Durée moyenne', `${data.stats.dureeMoyenneMin.toFixed(0)} min`]);
+  }
+  if (data.stats.nbTuteurs !== undefined) {
+    rows.push(['Nombre tuteurs', data.stats.nbTuteurs]);
+  }
+
+  return rows;
 }
 
 /**
@@ -355,19 +380,19 @@ export function exportStageExcelResults(
 
   // Feuille principale - Affectations
   const affectedData = generateStageAffectedData(data, opts);
-  const wsAffected = createWorksheet(affectedData, opts as ExcelExportOptions);
+  const wsAffected = createWorksheet(affectedData, opts);
   XLSX.utils.book_append_sheet(wb, wsAffected, opts.sheetName || 'Affectations Stages');
 
   // Feuille des non-affectés (si activée)
   if (opts.includeUnassignedSheet && data.unassigned.length > 0) {
     const unassignedData = generateStageUnassignedData(data, opts);
-    const wsUnassigned = createWorksheet(unassignedData, opts as ExcelExportOptions);
+    const wsUnassigned = createWorksheet(unassignedData, opts);
     XLSX.utils.book_append_sheet(wb, wsUnassigned, 'Non-affectés');
   }
 
   // Feuille des statistiques
   const statsData = generateStageStatsData(data);
-  const wsStats = createWorksheet(statsData, opts as ExcelExportOptions);
+  const wsStats = createWorksheet(statsData, opts);
   XLSX.utils.book_append_sheet(wb, wsStats, 'Statistiques');
 
   return wb;
