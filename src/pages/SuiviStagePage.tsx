@@ -133,8 +133,8 @@ function AddressesTab({
   onDeleteFakeStages: () => void;
   isGenerating: boolean;
 }) {
-  const { updateStage } = useStageStore();
-  const { updateEnseignant } = useEnseignantStore();
+  const updateStage = useStageStore(state => state.updateStage);
+  const updateEnseignant = useEnseignantStore(state => state.updateEnseignant);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
 
@@ -674,10 +674,18 @@ function MatchingTab({
 export function SuiviStagePage() {
   const [activeTab, setActiveTab] = useState<TabId>('addresses');
   
-  // Stores
-  const { stages, loadStages, updateStageGeoExtended, setStageGeoError, addStage, deleteStage } = useStageStore();
-  const { enseignants, loadEnseignants, updateEnseignant } = useEnseignantStore();
-  const { eleves, loadEleves } = useEleveStore();
+  // Stores - sélecteurs granulaires pour éviter re-renders
+  const stages = useStageStore(state => state.stages);
+  const loadStages = useStageStore(state => state.loadStages);
+  const updateStageGeoExtended = useStageStore(state => state.updateStageGeoExtended);
+  const setStageGeoError = useStageStore(state => state.setStageGeoError);
+  const addStage = useStageStore(state => state.addStage);
+  const deleteStage = useStageStore(state => state.deleteStage);
+  const enseignants = useEnseignantStore(state => state.enseignants);
+  const loadEnseignants = useEnseignantStore(state => state.loadEnseignants);
+  const updateEnseignant = useEnseignantStore(state => state.updateEnseignant);
+  const eleves = useEleveStore(state => state.eleves);
+  const loadEleves = useEleveStore(state => state.loadEleves);
   
   // State
   const [pairs, setPairs] = useState<TeacherStagePair[]>([]);

@@ -11,6 +11,7 @@ import { useEnseignantStore } from '../../stores/enseignantStore';
 import { useEleveStore } from '../../stores/eleveStore';
 import { useScenarioStore } from '../../stores/scenarioStore';
 import type { Scenario } from '../../domain/models';
+import { filterEleves, filterEnseignants } from '../../utils/filteringUtils';
 import { StageStatusStep } from './StageStatusStep';
 import { Check, AlertCircle, ArrowRight, ClipboardList } from 'lucide-react';
 import './StageScenarioManager.css';
@@ -38,10 +39,11 @@ export function StageScenarioManager({ scenario }: StageScenarioManagerProps) {
   const navigate = useNavigate();
   const setCurrentScenario = useScenarioStore(state => state.setCurrentScenario);
 
-  // Stores
-  const { stages, loadGlobalStages } = useStageStore();
-  const { enseignants } = useEnseignantStore();
-  const { eleves } = useEleveStore();
+  // Stores - sélecteurs granulaires
+  const stages = useStageStore(state => state.stages);
+  const loadGlobalStages = useStageStore(state => state.loadGlobalStages);
+  const enseignants = useEnseignantStore(state => state.enseignants);
+  const eleves = useEleveStore(state => state.eleves);
 
   // State local
   const [isComputingRoutes, setIsComputingRoutes] = useState(false);
@@ -54,14 +56,7 @@ export function StageScenarioManager({ scenario }: StageScenarioManagerProps) {
 
   // Filtrer les élèves de 3ème selon les filtres du scénario
   const eleves3eme = useMemo(() => {
-    const niveauxFiltres = scenario.parametres.filtresEleves?.niveaux || ['3e'];
-    const classesFiltres = scenario.parametres.filtresEleves?.classes || [];
-
-    return eleves.filter(e => {
-      const matchNiveau = niveauxFiltres.some(n => e.classe.startsWith(n.replace('e', '')));
-      const matchClasse = classesFiltres.length === 0 || classesFiltres.includes(e.classe);
-      return matchNiveau && matchClasse;
-    });
+    return filterEleves(eleves, scenario.parametres.filtresEleves, ['3e']);
   }, [eleves, scenario.parametres.filtresEleves]);
 
   // Filtrer les stages pour les élèves de 3ème uniquement
@@ -72,31 +67,7 @@ export function StageScenarioManager({ scenario }: StageScenarioManagerProps) {
 
   // Filtrer les enseignants selon les filtres définis dans le scénario
   const enseignantsEligibles = useMemo(() => {
-    const filtres = scenario.parametres.filtresEnseignants;
-
-    if (!filtres) {
-      return enseignants;
-    }
-
-    return enseignants.filter(e => {
-      if (filtres.ppOnly && !e.estProfPrincipal) {
-        return false;
-      }
-      if (filtres.matieres && filtres.matieres.length > 0) {
-        if (!filtres.matieres.includes(e.matierePrincipale)) {
-          return false;
-        }
-      }
-      if (filtres.classesEnCharge && filtres.classesEnCharge.length > 0) {
-        const hasMatchingClass = e.classesEnCharge?.some(c =>
-          filtres.classesEnCharge!.includes(c)
-        );
-        if (!hasMatchingClass) {
-          return false;
-        }
-      }
-      return true;
-    });
+    return filterEnseignants(enseignants, scenario.parametres.filtresEnseignants);
   }, [enseignants, scenario.parametres.filtresEnseignants]);
 
   // Stats pour affichage

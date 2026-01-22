@@ -13,12 +13,22 @@ export interface GeoPoint {
 /**
  * Statut de géocodage
  */
-export type GeoStatus = 
+export type GeoStatus =
   | 'pending'      // En attente de géocodage
   | 'ok'           // Géocodé avec succès
   | 'error'        // Erreur de géocodage (adresse invalide, etc.)
   | 'manual'       // Coordonnées saisies manuellement
   | 'not_found';   // Adresse non trouvée
+
+const GEO_STATUSES: readonly GeoStatus[] = ['pending', 'ok', 'error', 'manual', 'not_found'] as const;
+
+export function isGeoStatus(value: string): value is GeoStatus {
+  return GEO_STATUSES.includes(value as GeoStatus);
+}
+
+export function toGeoStatus(value: string | undefined): GeoStatus {
+  return isGeoStatus(value ?? '') ? value as GeoStatus : 'pending';
+}
 
 /**
  * Niveau de confiance du géocodage
@@ -184,8 +194,20 @@ export interface EnseignantGeoInfo {
 /**
  * Exclusion d'un enseignant (classes, zones, élèves)
  */
+export type StageExclusionType = 'classe' | 'zone' | 'eleve' | 'secteur';
+
+const EXCLUSION_TYPES: readonly StageExclusionType[] = ['classe', 'zone', 'eleve', 'secteur'] as const;
+
+export function isExclusionType(value: string): value is StageExclusionType {
+  return EXCLUSION_TYPES.includes(value as StageExclusionType);
+}
+
+export function toExclusionType(value: string): StageExclusionType {
+  return isExclusionType(value) ? value : 'classe';
+}
+
 export interface StageExclusion {
-  type: 'classe' | 'zone' | 'eleve' | 'secteur';
+  type: StageExclusionType;
   value: string;                  // ex: "3A", "eleveId123", "Paris 15e"
   reason?: string;
 }
@@ -261,7 +283,8 @@ export interface StageMatchingOptions {
   maxCandidatsParStage?: number;  // Limiter les candidats par stage (perf)
   useLocalSearch?: boolean;       // Amélioration par recherche locale
   maxIterations?: number;         // Itérations max pour local search
-  
+  localSearchTimeoutMs?: number;  // Timeout pour éviter freeze UI
+
   verbose?: boolean;
 }
 
@@ -273,7 +296,8 @@ export const DEFAULT_STAGE_MATCHING_OPTIONS: StageMatchingOptions = {
   distanceMaxKm: 50,
   maxCandidatsParStage: 10,
   useLocalSearch: true,
-  maxIterations: 100,
+  maxIterations: 50, // Réduit de 100 à 50 pour meilleures performances
+  localSearchTimeoutMs: 3000, // 3 secondes max
   verbose: false,
 };
 

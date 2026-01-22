@@ -1,29 +1,67 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useEleveStore } from '../stores/eleveStore';
 import { useEnseignantStore } from '../stores/enseignantStore';
-import { useAffectationStore } from '../stores/affectationStore';
 import { useScenarioStore } from '../stores/scenarioStore';
 import { useScenarioArchiveStore } from '../stores/scenarioArchiveStore';
-import { ValidatedAssignmentCard, ValidatedAssignmentDrawer } from '../components/dashboard';
+import { useStageStore } from '../stores/stageStore';
+import { useUIStore } from '../stores/uiStore';
+import { ValidatedAssignmentCard, ValidatedAssignmentDrawer, StagesMapCard } from '../components/dashboard';
+import { HelpTooltip, HELP_TEXTS } from '../components/ui/Tooltip';
 import { mapArchiveToExportData, downloadExportPdf, downloadExportCsv } from '../infrastructure/export';
 import type { ScenarioArchive } from '../domain/models';
+import type { GeoPoint } from '../infrastructure/geo/types';
 import {
-  Users,
-  GraduationCap,
-  Link2,
-  TrendingUp,
-  AlertTriangle,
   CheckCircle,
-  Archive,
-  ClipboardList
+  Circle,
+  AlertTriangle,
+  Play,
+  Upload,
+  Plus,
+  ClipboardList,
+  MapPin,
+  ArrowRight,
+  Sparkles,
+  Settings,
+  X,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import './DashboardPage.css';
 
+// Coordonnées du collège (référence pour la carte)
+const COLLEGE_GEO: GeoPoint = {
+  lat: 49.1452,
+  lon: 6.1667,
+};
+
+// Types pour les alertes
+interface Alert {
+  id: string;
+  type: 'warning' | 'error' | 'info';
+  message: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+}
+
 export const DashboardPage: React.FC = () => {
+  const navigate = useNavigate();
   const eleves = useEleveStore(state => state.eleves);
   const enseignants = useEnseignantStore(state => state.enseignants);
-  const affectations = useAffectationStore(state => state.affectations);
+  const scenarios = useScenarioStore(state => state.scenarios);
   const activeScenario = useScenarioStore(state => state.getActiveScenario());
+  const stages = useStageStore(state => state.stages);
+  const loadStages = useStageStore(state => state.loadStages);
+  const openModal = useUIStore(state => state.openModal);
+
+  // Dashboard preferences
+  const dashboardPrefs = useUIStore(state => state.dashboardPrefs);
+  const toggleDashboardPref = useUIStore(state => state.toggleDashboardPref);
+
+  // Config panel state
+  const [showConfigPanel, setShowConfigPanel] = useState(false);
 
   // Archives state
   const archives = useScenarioArchiveStore(state => state.archives);
@@ -34,27 +72,114 @@ export const DashboardPage: React.FC = () => {
   const [selectedArchive, setSelectedArchive] = useState<ScenarioArchive | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  // Load archives on mount
+  // Load data on mount
   useEffect(() => {
     loadArchives();
-  }, [loadArchives]);
+    loadStages();
+  }, [loadArchives, loadStages]);
 
-  // Count by score threshold
-  const highScoreCount = affectations.filter(a => (a.scoreTotal || 0) >= 70).length;
-  const lowScoreCount = affectations.filter(a => (a.scoreTotal || 0) < 40).length;
-  const mediumScoreCount = affectations.length - highScoreCount - lowScoreCount;
-  const averageScore = affectations.length > 0
-    ? Math.round(affectations.reduce((sum, a) => sum + (a.scoreTotal || 0), 0) / affectations.length)
-    : 0;
+  // Checklist items
+  const checklist = useMemo(() => {
+    const hasEleves = eleves.length > 0;
+    const hasEnseignants = enseignants.length > 0;
+    const hasScenario = scenarios.length > 0;
+    const hasActiveScenario = !!activeScenario;
 
-  // Group eleves by class
-  const classeStats = eleves.reduce((acc, e) => {
-    const key = e.classe || 'Non défini';
-    acc[key] = (acc[key] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+    // Pour suivi_stage, vérifier aussi les stages
+    const isStageScenario = activeScenario?.type === 'suivi_stage';
+    const hasStages = stages.length > 0;
 
-  // Handlers for archive actions
+    const allReady = hasEleves && hasEnseignants && hasScenario && hasActiveScenario && (!isStageScenario || hasStages);
+
+    return {
+      hasEleves,
+      hasEnseignants,
+      hasScenario,
+      hasActiveScenario,
+      isStageScenario,
+      hasStages,
+      allReady
+    };
+  }, [eleves.length, enseignants.length, scenarios.length, activeScenario, stages.length]);
+
+  // Calcul des alertes
+  const alerts = useMemo(() => {
+    const result: Alert[] = [];
+
+    // Alertes seulement si on a des données
+    if (eleves.length === 0 && enseignants.length === 0) {
+      return result;
+    }
+
+    // Vérifier si le scénario actif utilise la distance
+    const usesDistance = activeScenario?.parametres.criteres.some(
+      c => c.actif && (c.id === 'distance' || c.id === 'secteur')
+    );
+
+    // Enseignants sans coordonnées (si distance activée)
+    if (usesDistance && enseignants.length > 0) {
+      const enseignantsSansCoords = enseignants.filter(e => !e.lat || !e.lon);
+      if (enseignantsSansCoords.length > 0) {
+        result.push({
+          id: 'enseignants-no-coords',
+          type: 'warning',
+          message: `${enseignantsSansCoords.length} enseignant(s) sans coordonnées géographiques`,
+          action: {
+            label: 'Voir',
+            onClick: () => navigate('/enseignants')
+          }
+        });
+      }
+    }
+
+    // Stages sans géocodage (pour suivi_stage)
+    if (activeScenario?.type === 'suivi_stage' && stages.length > 0) {
+      const stagesSansCoords = stages.filter(s => !s.lat || !s.lon);
+      if (stagesSansCoords.length > 0) {
+        result.push({
+          id: 'stages-no-coords',
+          type: 'warning',
+          message: `${stagesSansCoords.length} stage(s) sans coordonnées (géocodage en attente)`,
+          action: {
+            label: 'Géocoder',
+            onClick: () => navigate('/donnees')
+          }
+        });
+      }
+    }
+
+    // Enseignants sans capacité définie
+    if (enseignants.length > 0) {
+      const sansCapacite = enseignants.filter(e => !e.capaciteBase && !e.capaciteStage);
+      if (sansCapacite.length > 0 && sansCapacite.length < enseignants.length) {
+        result.push({
+          id: 'enseignants-no-capacity',
+          type: 'info',
+          message: `${sansCapacite.length} enseignant(s) utilisent la capacité par défaut`,
+        });
+      }
+    }
+
+    // Élèves sans matière oral (pour oral_dnb)
+    if (activeScenario?.type === 'oral_dnb' && eleves.length > 0) {
+      const sansMatiere = eleves.filter(e => !e.matieresOral || e.matieresOral.length === 0);
+      if (sansMatiere.length > 0) {
+        result.push({
+          id: 'eleves-no-matiere-oral',
+          type: 'warning',
+          message: `${sansMatiere.length} élève(s) sans matière d'oral définie`,
+          action: {
+            label: 'Importer',
+            onClick: () => openModal('importMatiereOral')
+          }
+        });
+      }
+    }
+
+    return result;
+  }, [eleves, enseignants, stages, activeScenario, navigate, openModal]);
+
+  // Handlers
   const handleViewDetail = useCallback((archive: ScenarioArchive) => {
     setSelectedArchive(archive);
     setIsDrawerOpen(true);
@@ -65,7 +190,6 @@ export const DashboardPage: React.FC = () => {
     setSelectedArchive(null);
   }, []);
 
-  // Export handlers
   const handleExportPdf = useCallback(async (archive: ScenarioArchive) => {
     try {
       const exportData = mapArchiveToExportData(archive);
@@ -88,182 +212,243 @@ export const DashboardPage: React.FC = () => {
     }
   }, []);
 
+  // Quick actions
+  const handleImport = () => openModal('import');
+  const handleCreateScenario = () => openModal('editScenario');
+  const handleLaunchMatching = () => navigate('/board');
+
   // Sort archives by date (most recent first)
   const sortedArchives = [...archives].sort((a, b) =>
     new Date(b.archivedAt).getTime() - new Date(a.archivedAt).getTime()
   );
 
+  // Check if map should be shown (only for suivi_stage with stages)
+  const showMapCard = dashboardPrefs.showStagesMap && stages.length > 0;
+
   return (
     <div className="dashboard-page">
       <div className="dashboard-header">
-        <h1>Tableau de bord</h1>
-        <p>Vue d'ensemble de vos données et affectations</p>
+        <div className="header-content">
+          <h1>Tableau de bord</h1>
+          <p>Préparez vos données et lancez les affectations</p>
+        </div>
+        <button
+          className="config-btn"
+          onClick={() => setShowConfigPanel(!showConfigPanel)}
+          title="Personnaliser le tableau de bord"
+        >
+          <Settings size={18} />
+        </button>
       </div>
 
-      {/* Stats cards */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon eleves">
-            <Users size={24} />
+      {/* Config Panel */}
+      {showConfigPanel && (
+        <div className="config-panel">
+          <div className="config-panel-header">
+            <h3>Personnaliser l'affichage</h3>
+            <button className="config-close" onClick={() => setShowConfigPanel(false)}>
+              <X size={16} />
+            </button>
           </div>
-          <div className="stat-content">
-            <span className="stat-value">{eleves.length}</span>
-            <span className="stat-label">Élèves</span>
+          <div className="config-options">
+            <ConfigToggle
+              label="Checklist de préparation"
+              enabled={dashboardPrefs.showChecklist}
+              onToggle={() => toggleDashboardPref('showChecklist')}
+            />
+            <ConfigToggle
+              label="Alertes et problèmes"
+              enabled={dashboardPrefs.showAlerts}
+              onToggle={() => toggleDashboardPref('showAlerts')}
+            />
+            <ConfigToggle
+              label="Carte des stages"
+              enabled={dashboardPrefs.showStagesMap}
+              onToggle={() => toggleDashboardPref('showStagesMap')}
+              disabled={stages.length === 0}
+              hint={stages.length === 0 ? 'Importez des stages pour activer' : undefined}
+            />
+            <ConfigToggle
+              label="Historique des affectations"
+              enabled={dashboardPrefs.showHistory}
+              onToggle={() => toggleDashboardPref('showHistory')}
+            />
           </div>
         </div>
+      )}
 
-        <div className="stat-card">
-          <div className="stat-icon enseignants">
-            <GraduationCap size={24} />
-          </div>
-          <div className="stat-content">
-            <span className="stat-value">{enseignants.length}</span>
-            <span className="stat-label">Enseignants</span>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon affectations">
-            <Link2 size={24} />
-          </div>
-          <div className="stat-content">
-            <span className="stat-value">{affectations.length}</span>
-            <span className="stat-label">Affectations</span>
-          </div>
-        </div>
-
-        <div className="stat-card">
-          <div className="stat-icon validated">
-            <Archive size={24} />
-          </div>
-          <div className="stat-content">
-            <span className="stat-value">{archives.length}</span>
-            <span className="stat-label">Validées</span>
-          </div>
+      {/* Quick Actions */}
+      <div className="quick-actions">
+        <button className="quick-action-btn" onClick={handleImport}>
+          <Upload size={20} />
+          <span>Importer des données</span>
+        </button>
+        <button className="quick-action-btn" onClick={handleCreateScenario}>
+          <Plus size={20} />
+          <span>Créer un scénario</span>
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <button
+            className={`quick-action-btn primary ${!checklist.allReady ? 'disabled' : ''}`}
+            onClick={handleLaunchMatching}
+            disabled={!checklist.allReady}
+          >
+            <Play size={20} />
+            <span>Lancer le matching</span>
+          </button>
+          <HelpTooltip content={HELP_TEXTS.dashboard.launchMatching} position="right" />
         </div>
       </div>
 
-      <div className="dashboard-content">
-        {/* Validated Assignments Section - NEW */}
-        <div className="dashboard-card full-width">
-          <div className="card-header-with-count">
-            <h2>
-              <CheckCircle size={20} />
-              Affectations validées
-            </h2>
-            <span className="count-badge">{archives.length}</span>
-          </div>
+      <div className="dashboard-grid">
+        {/* Checklist de démarrage */}
+        {dashboardPrefs.showChecklist && (
+          <div className="dashboard-card checklist-card">
+            <div className="card-header-with-icon">
+              <Sparkles size={20} />
+              <h2>Préparation</h2>
+              <HelpTooltip content={HELP_TEXTS.dashboard.checklist} />
+            </div>
 
-          {isLoadingArchives ? (
-            <div className="loading-state">Chargement...</div>
-          ) : sortedArchives.length > 0 ? (
-            <div className="validated-assignments-grid">
-              {sortedArchives.slice(0, 6).map(archive => (
-                <ValidatedAssignmentCard
-                  key={archive.id}
-                  archive={archive}
-                  onViewDetail={() => handleViewDetail(archive)}
-                  onExportPdf={() => handleExportPdf(archive)}
-                  onExportCsv={() => handleExportCsv(archive)}
+            <div className="checklist">
+              <ChecklistItem
+                done={checklist.hasEleves}
+                label="Importer des élèves"
+                count={eleves.length}
+                action={!checklist.hasEleves ? { label: 'Importer', onClick: handleImport } : undefined}
+              />
+              <ChecklistItem
+                done={checklist.hasEnseignants}
+                label="Importer des enseignants"
+                count={enseignants.length}
+                action={!checklist.hasEnseignants ? { label: 'Importer', onClick: handleImport } : undefined}
+              />
+              <ChecklistItem
+                done={checklist.hasScenario}
+                label="Créer un scénario"
+                count={scenarios.length}
+                action={!checklist.hasScenario ? { label: 'Créer', onClick: handleCreateScenario } : undefined}
+              />
+              {checklist.isStageScenario && (
+                <ChecklistItem
+                  done={checklist.hasStages}
+                  label="Importer les stages"
+                  count={stages.length}
+                  action={!checklist.hasStages ? { label: 'Importer', onClick: () => navigate('/donnees') } : undefined}
                 />
-              ))}
-            </div>
-          ) : (
-            <div className="validated-empty-state">
-              <ClipboardList size={48} />
-              <h3>Aucune affectation validée</h3>
-              <p>
-                Les affectations validées apparaîtront ici.
-                Lancez un matching puis cliquez sur "Valider" pour créer un historique.
-              </p>
-            </div>
-          )}
-
-          {sortedArchives.length > 6 && (
-            <div className="see-more-link">
-              {sortedArchives.length - 6} autres affectations validées...
-            </div>
-          )}
-        </div>
-
-        {/* Affectation status */}
-        <div className="dashboard-card">
-          <h2>État des affectations en cours</h2>
-          <div className="affectation-status">
-            <div className="status-item success">
-              <CheckCircle size={20} />
-              <span className="status-count">{highScoreCount}</span>
-              <span className="status-label">Score élevé (≥70)</span>
-            </div>
-            <div className="status-item warning">
-              <AlertTriangle size={20} />
-              <span className="status-count">{mediumScoreCount}</span>
-              <span className="status-label">Score moyen (40-69)</span>
-            </div>
-            <div className="status-item info">
-              <Users size={20} />
-              <span className="status-count">{lowScoreCount}</span>
-              <span className="status-label">Score faible (&lt;40)</span>
-            </div>
-          </div>
-
-          {affectations.length > 0 && (
-            <div className="score-summary">
-              <TrendingUp size={18} />
-              <span>Score moyen: <strong>{averageScore}/100</strong></span>
-            </div>
-          )}
-        </div>
-
-        {/* Classes breakdown */}
-        <div className="dashboard-card">
-          <h2>Élèves par classe</h2>
-          <div className="classes-list">
-            {Object.entries(classeStats)
-              .sort(([a], [b]) => a.localeCompare(b))
-              .map(([classe, count]) => (
-                <div key={classe} className="class-item">
-                  <span className="class-name">{classe}</span>
-                  <div className="class-bar">
-                    <div
-                      className="class-bar-fill"
-                      style={{ width: `${(count / eleves.length) * 100}%` }}
-                    />
-                  </div>
-                  <span className="class-count">{count}</span>
-                </div>
-              ))}
-          </div>
-        </div>
-
-        {/* Active scenario */}
-        <div className="dashboard-card">
-          <h2>Scénario actif</h2>
-          {activeScenario ? (
-            <div className="active-scenario">
-              <h3>{activeScenario.nom}</h3>
-              {activeScenario.description && (
-                <p>{activeScenario.description}</p>
               )}
-              <div className="scenario-params">
-                <h4>Critères configurés:</h4>
-                <ul>
-                  {activeScenario.parametres.criteres.map((c, i) => (
-                    <li key={i}>
-                      <span className="param-name">{c.nom}</span>
-                      <span className="param-weight">×{c.poids}</span>
-                    </li>
-                  ))}
-                </ul>
+              <ChecklistItem
+                done={checklist.hasActiveScenario}
+                label="Activer un scénario"
+                subtitle={activeScenario?.nom}
+                action={!checklist.hasActiveScenario && checklist.hasScenario ? { label: 'Choisir', onClick: () => navigate('/scenarios') } : undefined}
+              />
+            </div>
+
+            {checklist.allReady && (
+              <div className="checklist-ready">
+                <CheckCircle size={18} />
+                <span>Prêt à lancer les affectations</span>
+                <button className="btn-go" onClick={handleLaunchMatching}>
+                  Lancer <ArrowRight size={16} />
+                </button>
               </div>
+            )}
+          </div>
+        )}
+
+        {/* Alertes et problèmes */}
+        {dashboardPrefs.showAlerts && (
+          <div className="dashboard-card alerts-card">
+            <div className="card-header-with-icon">
+              <AlertTriangle size={20} />
+              <h2>Alertes</h2>
+              <HelpTooltip content={HELP_TEXTS.dashboard.alerts} />
+              {alerts.length > 0 && <span className="alert-count">{alerts.length}</span>}
             </div>
-          ) : (
-            <div className="no-scenario">
-              <p>Aucun scénario actif</p>
-              <span>Créez ou sélectionnez un scénario pour commencer les affectations</span>
+
+            {alerts.length > 0 ? (
+              <div className="alerts-list">
+                {alerts.map(alert => (
+                  <div key={alert.id} className={`alert-item ${alert.type}`}>
+                    <div className="alert-icon">
+                      {alert.type === 'warning' && <AlertTriangle size={16} />}
+                      {alert.type === 'error' && <AlertTriangle size={16} />}
+                      {alert.type === 'info' && <MapPin size={16} />}
+                    </div>
+                    <span className="alert-message">{alert.message}</span>
+                    {alert.action && (
+                      <button className="alert-action" onClick={alert.action.onClick}>
+                        {alert.action.label}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="alerts-empty">
+                <CheckCircle size={32} />
+                <p>Aucun problème détecté</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Carte des stages */}
+        {showMapCard && (
+          <div className="dashboard-card full-width map-card-wrapper">
+            <StagesMapCard
+              stages={stages}
+              eleves={eleves}
+              collegeGeo={COLLEGE_GEO}
+            />
+          </div>
+        )}
+
+        {/* Historique des affectations validées */}
+        {dashboardPrefs.showHistory && (
+          <div className="dashboard-card full-width">
+            <div className="card-header-with-count">
+              <h2>
+                <CheckCircle size={20} />
+                Historique des affectations
+                <HelpTooltip content={HELP_TEXTS.dashboard.history} />
+              </h2>
+              <span className="count-badge">{archives.length}</span>
             </div>
-          )}
-        </div>
+
+            {isLoadingArchives ? (
+              <div className="loading-state">Chargement...</div>
+            ) : sortedArchives.length > 0 ? (
+              <div className="validated-assignments-grid">
+                {sortedArchives.slice(0, 6).map(archive => (
+                  <ValidatedAssignmentCard
+                    key={archive.id}
+                    archive={archive}
+                    onViewDetail={() => handleViewDetail(archive)}
+                    onExportPdf={() => handleExportPdf(archive)}
+                    onExportCsv={() => handleExportCsv(archive)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="validated-empty-state">
+                <ClipboardList size={48} />
+                <h3>Aucune affectation validée</h3>
+                <p>
+                  Les affectations validées apparaîtront ici.
+                  Lancez un matching puis cliquez sur "Valider" pour créer un historique.
+                </p>
+              </div>
+            )}
+
+            {sortedArchives.length > 6 && (
+              <div className="see-more-link">
+                {sortedArchives.length - 6} autres affectations validées...
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Validated Assignment Drawer */}
@@ -279,3 +464,60 @@ export const DashboardPage: React.FC = () => {
     </div>
   );
 };
+
+// Composant ChecklistItem
+interface ChecklistItemProps {
+  done: boolean;
+  label: string;
+  count?: number;
+  subtitle?: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+}
+
+const ChecklistItem: React.FC<ChecklistItemProps> = ({ done, label, count, subtitle, action }) => (
+  <div className={`checklist-item ${done ? 'done' : ''}`}>
+    <div className="checklist-icon">
+      {done ? <CheckCircle size={18} /> : <Circle size={18} />}
+    </div>
+    <div className="checklist-content">
+      <span className="checklist-label">{label}</span>
+      {count !== undefined && count > 0 && (
+        <span className="checklist-count">{count}</span>
+      )}
+      {subtitle && <span className="checklist-subtitle">{subtitle}</span>}
+    </div>
+    {action && !done && (
+      <button className="checklist-action" onClick={action.onClick}>
+        {action.label}
+      </button>
+    )}
+  </div>
+);
+
+// Composant ConfigToggle
+interface ConfigToggleProps {
+  label: string;
+  enabled: boolean;
+  onToggle: () => void;
+  disabled?: boolean;
+  hint?: string;
+}
+
+const ConfigToggle: React.FC<ConfigToggleProps> = ({ label, enabled, onToggle, disabled, hint }) => (
+  <div className={`config-toggle ${disabled ? 'disabled' : ''}`}>
+    <div className="config-toggle-info">
+      <span className="config-toggle-label">{label}</span>
+      {hint && <span className="config-toggle-hint">{hint}</span>}
+    </div>
+    <button
+      className={`toggle-btn ${enabled ? 'active' : ''}`}
+      onClick={onToggle}
+      disabled={disabled}
+    >
+      {enabled ? <Eye size={16} /> : <EyeOff size={16} />}
+    </button>
+  </div>
+);

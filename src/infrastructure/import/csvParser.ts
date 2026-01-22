@@ -81,44 +81,47 @@ export const IGNORED_COLUMNS = [
 
 /**
  * Détecte l'encodage d'un fichier
- * Priorité: UTF-8 BOM > UTF-8 > ISO-8859-1
+ * Priorité: UTF-8 BOM > UTF-16 LE/BE > UTF-8 > ISO-8859-1
+ * Version unifiée pour tout le projet
  */
 export function detectEncoding(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer);
-  
+  const bytes = new Uint8Array(buffer.slice(0, Math.min(4, buffer.byteLength)));
+
   // Check for UTF-8 BOM
   if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
     return 'utf-8-sig';
   }
-  
-  // Check if valid UTF-8
-  if (isValidUTF8(bytes)) {
-    return 'utf-8';
+
+  // Check for UTF-16 LE BOM
+  if (bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE) {
+    return 'utf-16le';
   }
-  
-  // Fallback to ISO-8859-1 (Latin-1)
-  return 'iso-8859-1';
+
+  // Check for UTF-16 BE BOM
+  if (bytes.length >= 2 && bytes[0] === 0xFE && bytes[1] === 0xFF) {
+    return 'utf-16be';
+  }
+
+  // Try UTF-8 decoding with fatal mode
+  try {
+    const decoder = new TextDecoder('utf-8', { fatal: true });
+    decoder.decode(buffer);
+    return 'utf-8';
+  } catch {
+    // Fallback to ISO-8859-1 (Latin-1)
+    return 'iso-8859-1';
+  }
 }
 
-function isValidUTF8(bytes: Uint8Array): boolean {
-  let i = 0;
-  while (i < bytes.length) {
-    if (bytes[i] <= 0x7F) {
-      i++;
-    } else if ((bytes[i] & 0xE0) === 0xC0) {
-      if (i + 1 >= bytes.length || (bytes[i + 1] & 0xC0) !== 0x80) return false;
-      i += 2;
-    } else if ((bytes[i] & 0xF0) === 0xE0) {
-      if (i + 2 >= bytes.length || (bytes[i + 1] & 0xC0) !== 0x80 || (bytes[i + 2] & 0xC0) !== 0x80) return false;
-      i += 3;
-    } else if ((bytes[i] & 0xF8) === 0xF0) {
-      if (i + 3 >= bytes.length || (bytes[i + 1] & 0xC0) !== 0x80 || (bytes[i + 2] & 0xC0) !== 0x80 || (bytes[i + 3] & 0xC0) !== 0x80) return false;
-      i += 4;
-    } else {
-      return false;
-    }
-  }
-  return true;
+/**
+ * Décode un buffer selon l'encodage détecté
+ * Gère automatiquement le BOM UTF-8
+ */
+export function decodeBuffer(buffer: ArrayBuffer, encoding: string): string {
+  const actualEncoding = encoding === 'utf-8-sig' ? 'utf-8' : encoding;
+  const bufferToUse = encoding === 'utf-8-sig' ? buffer.slice(3) : buffer;
+  const decoder = new TextDecoder(actualEncoding, { fatal: false });
+  return decoder.decode(bufferToUse);
 }
 
 // ============ SEPARATOR DETECTION ============
@@ -149,35 +152,67 @@ export function detectSeparator(content: string): string {
 // ============ DATE PARSING ============
 
 /**
+ * Valide qu'une date existe vraiment (jour/mois/année cohérents)
+ */
+function isValidDate(day: number, month: number, year: number): boolean {
+  // Vérifications de base
+  if (month < 1 || month > 12) return false;
+  if (day < 1 || day > 31) return false;
+  if (year < 1900 || year > 2100) return false;
+
+  // Créer un objet Date et vérifier que les valeurs correspondent
+  const date = new Date(year, month - 1, day);
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  );
+}
+
+/**
  * Parse une date au format français (jj/mm/aaaa) ou ISO
+ * Retourne undefined si le format n'est pas reconnu ou si la date est invalide
  */
 export function parseDate(value: string): string | undefined {
   if (!value || value.trim() === '') return undefined;
-  
+
   const trimmed = value.trim();
-  
+
   // Format jj/mm/aaaa
   const frenchMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (frenchMatch) {
-    const [, day, month, year] = frenchMatch;
-    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    const [, dayStr, monthStr, yearStr] = frenchMatch;
+    const day = parseInt(dayStr, 10);
+    const month = parseInt(monthStr, 10);
+    const year = parseInt(yearStr, 10);
+    if (!isValidDate(day, month, year)) return undefined;
+    return `${year}-${monthStr.padStart(2, '0')}-${dayStr.padStart(2, '0')}`;
   }
-  
+
   // Format jj-mm-aaaa
   const dashMatch = trimmed.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
   if (dashMatch) {
-    const [, day, month, year] = dashMatch;
-    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    const [, dayStr, monthStr, yearStr] = dashMatch;
+    const day = parseInt(dayStr, 10);
+    const month = parseInt(monthStr, 10);
+    const year = parseInt(yearStr, 10);
+    if (!isValidDate(day, month, year)) return undefined;
+    return `${year}-${monthStr.padStart(2, '0')}-${dayStr.padStart(2, '0')}`;
   }
-  
+
   // Format ISO yyyy-mm-dd
   const isoMatch = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (isoMatch) {
+    const [, yearStr, monthStr, dayStr] = isoMatch;
+    const day = parseInt(dayStr, 10);
+    const month = parseInt(monthStr, 10);
+    const year = parseInt(yearStr, 10);
+    if (!isValidDate(day, month, year)) return undefined;
     return trimmed;
   }
-  
-  // Retourner tel quel si format non reconnu
-  return trimmed;
+
+  // Format non reconnu
+  return undefined;
 }
 
 // ============ NAME PARSING ============

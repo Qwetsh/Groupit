@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Users, 
-  GraduationCap, 
+import {
+  LayoutDashboard,
+  Users,
+  GraduationCap,
   Settings,
   FileSpreadsheet,
   ChevronLeft,
   ChevronRight,
   Database,
   HelpCircle,
-  Shuffle
+  Shuffle,
+  Keyboard
 } from 'lucide-react';
+import { useUIStore } from '../../stores/uiStore';
 import './Sidebar.css';
 
 interface NavItem {
@@ -36,6 +38,7 @@ const secondaryItems: NavItem[] = [
 
 export const Sidebar: React.FC = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const toggleShortcutsHelp = useUIStore(state => state.toggleShortcutsHelp);
 
   return (
     <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
@@ -90,6 +93,14 @@ export const Sidebar: React.FC = () => {
       </nav>
 
       <div className="sidebar-footer">
+        <button
+          className="shortcuts-btn"
+          onClick={toggleShortcutsHelp}
+          title="Raccourcis clavier (Maj + ?)"
+        >
+          <Keyboard size={16} />
+          {!collapsed && <span>Raccourcis</span>}
+        </button>
         {!collapsed && (
           <div className="version-info">
             <span>v1.0.0</span>

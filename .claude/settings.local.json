@@ -9,7 +9,10 @@
       "mcp__chrome-devtools__hover",
       "Bash(npm run build:*)",
       "Bash(npm install:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nRelease v1.1.0 - Import stages amélioré & Filtres enseignants\n\n## Import des stages \\(Élèves > Stage\\)\n- Support Excel \\(.xlsx\\) et CSV avec la librairie xlsx\n- Matching souple multi-étapes pour retrouver les élèves :\n  - Normalisation des accents, casse, tirets, apostrophes\n  - Correspondance exacte avec/sans classe\n  - Inversion prénom/nom automatique\n  - Matching approximatif Levenshtein \\(seuil 88%\\)\n- Interface de résolution des cas ambigus\n- Indexation O\\(1\\) pour performance\n\n## Filtres enseignants \\(Scénarios\\)\n- Nouveau filtre par niveau enseigné \\(6e, 5e, 4e, 3e\\)\n- Sélection individuelle des enseignants avec recherche\n- Conversion filtres vers sélection individuelle\n- Application correcte du filtre classesEnCharge\n\n## Suivi Stage - Filtrage 3ème\n- Board : affiche uniquement les 3ème par défaut\n- StageTab : filtre niveau avec stats recalculées\n- Correction du taux d''affectation \\(stages globaux\\)\n\n## Corrections\n- Capacité tuteur utilise maintenant suiviStage.capaciteTuteurDefaut\n- Taux d''affectation validées corrigé \\(plus de 13000%\\)\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push:*)",
+      "Bash(git tag:*)"
     ]
   }
 }

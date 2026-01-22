@@ -2,15 +2,15 @@
 // STAGE MATCHING SOLVER - Algorithme d'affectation de stages
 // ============================================================
 
-import type { 
-  StageGeoInfo, 
-  EnseignantGeoInfo, 
+import type {
+  StageGeoInfo,
+  EnseignantGeoInfo,
   TeacherStagePair,
   StageAffectationResult,
   StageMatchingResult,
   StageMatchingOptions,
 } from '../infrastructure/geo/types';
-import { DEFAULT_STAGE_MATCHING_OPTIONS } from '../infrastructure/geo/types';
+import { DEFAULT_STAGE_MATCHING_OPTIONS, toGeoStatus, toExclusionType } from '../infrastructure/geo/types';
 import { buildRoutePairsMap, getRoutePair } from '../infrastructure/geo';
 
 // ============================================================
@@ -204,13 +204,23 @@ function localSearch(
   pairsMap: Map<string, TeacherStagePair>,
   options: StageMatchingOptions
 ): SolverState {
-  const maxIterations = options.maxIterations || 100;
+  const maxIterations = options.maxIterations || 50;
+  const timeoutMs = options.localSearchTimeoutMs || 3000;
+  const startTime = performance.now();
   let improved = true;
   let iterations = 0;
-  
+
   const avgLoad = stages.length / enseignants.length;
-  
+
   while (improved && iterations < maxIterations) {
+    // Vérifier timeout pour éviter freeze UI
+    if (performance.now() - startTime > timeoutMs) {
+      if (options.verbose) {
+        console.log(`[StageSolver] Local search timeout après ${iterations} itérations`);
+      }
+      break;
+    }
+
     improved = false;
     iterations++;
     
@@ -431,7 +441,7 @@ export function toStageGeoInfo(stage: {
     eleveId: stage.eleveId || '',
     address: stage.adresse,
     geo: stage.lat && stage.lon ? { lat: stage.lat, lon: stage.lon } : undefined,
-    geoStatus: stage.geoStatus as any,
+    geoStatus: toGeoStatus(stage.geoStatus),
     geoErrorMessage: stage.geoErrorMessage,
     nomEntreprise: stage.nomEntreprise,
     tuteur: stage.tuteur,
@@ -461,11 +471,11 @@ export function toEnseignantGeoInfo(ens: {
     prenom: ens.prenom,
     homeAddress: ens.adresse,
     homeGeo: ens.lat && ens.lon ? { lat: ens.lat, lon: ens.lon } : undefined,
-    homeGeoStatus: (ens.geoStatus as any) || 'pending',
+    homeGeoStatus: toGeoStatus(ens.geoStatus),
     homeGeoErrorMessage: ens.geoErrorMessage,
     capacityMax: ens.capaciteStage || 10,
     exclusions: ens.stageExclusions?.map(e => ({
-      type: e.type as any,
+      type: toExclusionType(e.type),
       value: e.value,
       reason: e.reason,
     })),

@@ -78,7 +78,7 @@ export {
   geocodeAddress,
   geocodeAddressWithFallback,
   geocodeBatch,
-  geocodeBatchWithFallback,
+  // Note: geocodeBatchWithFallback retiré - utiliser celui de geocodeFallback.ts
   geocodeStagesAndTeachers,
   geocodeStagesAndTeachersWithFallback,
   getRouteMetrics,
@@ -92,10 +92,10 @@ export {
   type StageGeoInfoExtended,
 } from './stageGeoWorkflow';
 
-// Geocode with fallback
+// Geocode with fallback (version unifiée)
 export {
   geocodeWithFallback,
-  geocodeBatchWithFallback as geocodeFallbackBatch,
+  geocodeBatchWithFallback,
   toGeoStatus,
   type GeocodeFallbackResult,
   type GeocodeFallbackOptions,

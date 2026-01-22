@@ -895,7 +895,7 @@ export const StageTab: React.FC = () => {
 
         <div className="filter-group">
           <label>Statut:</label>
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)}>
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as typeof filterStatus)}>
             <option value="all">Tous</option>
             <option value="with">Avec stage</option>
             <option value="without">Sans stage</option>

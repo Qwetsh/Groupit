@@ -11,6 +11,7 @@ export {
   parseFullName,
   detectSeparator,
   detectEncoding,
+  decodeBuffer,
   KNOWN_HEADERS_MAP,
   IGNORED_COLUMNS,
   type ParsedCSVData,

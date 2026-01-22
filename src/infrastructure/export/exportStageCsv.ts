@@ -4,6 +4,7 @@
 
 import type { StageExportResultData, StageCsvExportOptions } from './stageTypes';
 import { flattenStageDataForCsv, flattenUnassignedForCsv } from './stageDataMapper';
+import { downloadCsvContent } from '../utils/download';
 
 // ============================================================
 // HELPERS
@@ -263,16 +264,10 @@ function sanitizeFilename(name: string): string {
 
 /**
  * Télécharge un fichier CSV
+ * @deprecated Utiliser downloadCsvContent de '../utils/download' directement
  */
 export function downloadCsv(content: string, filename: string): void {
-  // Ajouter BOM UTF-8 pour Excel
-  const bom = '\uFEFF';
-  const blob = new Blob([bom + content], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(link.href);
+  downloadCsvContent(content, filename);
 }
 
 /**

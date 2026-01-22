@@ -146,7 +146,8 @@ describe('Balancing Utilities', () => {
       const result = calculateBalancingPenalty(entityA, allEntities, weightedOptions);
       
       expect(result.penalty).toBe(0);
-      expect(result.isOverloaded).toBe(false);
+      expect(result.isOverloaded).toB
+      e(false);
     });
   });
   

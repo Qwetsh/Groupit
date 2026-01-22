@@ -8,6 +8,21 @@ import type { ConstraintViolation } from '../domain/models';
 type Tab = 'matching' | 'groupes';
 type Modal = 'import' | 'importMatiereOral' | 'editEleve' | 'editEnseignant' | 'editAffectation' | 'editGroupe' | 'editScenario' | 'confirmDelete' | null;
 
+// Dashboard card visibility preferences
+export interface DashboardPreferences {
+  showChecklist: boolean;
+  showAlerts: boolean;
+  showHistory: boolean;
+  showStagesMap: boolean;
+}
+
+const DEFAULT_DASHBOARD_PREFS: DashboardPreferences = {
+  showChecklist: true,
+  showAlerts: true,
+  showHistory: true,
+  showStagesMap: true,
+};
+
 interface Notification {
   id: string;
   type: 'success' | 'error' | 'warning' | 'info';
@@ -61,6 +76,17 @@ interface UIState {
   addNotification: (notification: Omit<Notification, 'id'>) => void;
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
+
+  // Dashboard preferences
+  dashboardPrefs: DashboardPreferences;
+  setDashboardPref: <K extends keyof DashboardPreferences>(key: K, value: DashboardPreferences[K]) => void;
+  toggleDashboardPref: (key: keyof DashboardPreferences) => void;
+  resetDashboardPrefs: () => void;
+
+  // Keyboard shortcuts help
+  showShortcutsHelp: boolean;
+  toggleShortcutsHelp: () => void;
+  setShowShortcutsHelp: (show: boolean) => void;
 }
 
 let notificationId = 0;
@@ -116,7 +142,7 @@ export const useUIStore = create<UIState>((set, get) => ({
     set(state => ({
       notifications: [...state.notifications, { ...notification, id, read: false }],
     }));
-    
+
     // Auto-remove après duration (défaut 5s)
     const duration = notification.duration ?? 5000;
     if (duration > 0) {
@@ -131,6 +157,32 @@ export const useUIStore = create<UIState>((set, get) => ({
     }));
   },
   clearNotifications: () => set({ notifications: [] }),
+
+  // Dashboard preferences
+  dashboardPrefs: DEFAULT_DASHBOARD_PREFS,
+  setDashboardPref: (key, value) => {
+    set(state => {
+      const newPrefs = { ...state.dashboardPrefs, [key]: value };
+      localStorage.setItem('groupit_dashboardPrefs', JSON.stringify(newPrefs));
+      return { dashboardPrefs: newPrefs };
+    });
+  },
+  toggleDashboardPref: (key) => {
+    set(state => {
+      const newPrefs = { ...state.dashboardPrefs, [key]: !state.dashboardPrefs[key] };
+      localStorage.setItem('groupit_dashboardPrefs', JSON.stringify(newPrefs));
+      return { dashboardPrefs: newPrefs };
+    });
+  },
+  resetDashboardPrefs: () => {
+    localStorage.removeItem('groupit_dashboardPrefs');
+    set({ dashboardPrefs: DEFAULT_DASHBOARD_PREFS });
+  },
+
+  // Keyboard shortcuts help
+  showShortcutsHelp: false,
+  toggleShortcutsHelp: () => set(state => ({ showShortcutsHelp: !state.showShortcutsHelp })),
+  setShowShortcutsHelp: (show) => set({ showShortcutsHelp: show }),
 }));
 
 // Charger le mode expert depuis localStorage au démarrage
@@ -138,5 +190,16 @@ if (typeof window !== 'undefined') {
   const stored = localStorage.getItem('groupit_expertMode');
   if (stored === 'true') {
     useUIStore.setState({ expertMode: true });
+  }
+
+  // Charger les préférences du dashboard
+  const dashboardPrefsStored = localStorage.getItem('groupit_dashboardPrefs');
+  if (dashboardPrefsStored) {
+    try {
+      const prefs = JSON.parse(dashboardPrefsStored);
+      useUIStore.setState({ dashboardPrefs: { ...DEFAULT_DASHBOARD_PREFS, ...prefs } });
+    } catch {
+      // Ignore parsing errors
+    }
   }
 }

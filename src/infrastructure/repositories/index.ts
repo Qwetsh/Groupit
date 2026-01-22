@@ -7,7 +7,7 @@ export { enseignantRepository, EnseignantRepository } from './enseignantReposito
 export { affectationRepository, AffectationRepository } from './affectationRepository';
 export { scenarioRepository, ScenarioRepository, getDefaultParametres } from './scenarioRepository';
 export { groupeRepository, GroupeRepository } from './groupeRepository';
-export { historiqueRunRepository, HistoriqueRunRepository } from './historiqueRunRepository';
+// historiqueRunRepository supprimé - code mort jamais utilisé
 export { juryRepository } from './juryRepository';
 export { fieldDefinitionRepository, FieldDefinitionRepository } from './fieldDefinitionRepository';
 export { scenarioArchiveRepository } from './scenarioArchiveRepository';

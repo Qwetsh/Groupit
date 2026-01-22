@@ -4,6 +4,7 @@
 
 import type { ExportResultData, CsvExportOptions } from './types';
 import { DEFAULT_CSV_OPTIONS } from './types';
+import { downloadBlob } from '../utils/download';
 
 /**
  * Échappe une valeur pour CSV (gère les guillemets et séparateurs)
@@ -177,16 +178,10 @@ export function createCsvBlob(csvContent: string, options: Partial<CsvExportOpti
 
 /**
  * Télécharge un fichier CSV
+ * @deprecated Utiliser downloadBlob de '../utils/download' directement
  */
 export function downloadCsv(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  downloadBlob(blob, filename);
 }
 
 /**

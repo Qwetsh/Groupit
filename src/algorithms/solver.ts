@@ -19,12 +19,14 @@ import { validateHardConstraints, scorePair, evaluateAllPairs, type ScoringConte
 interface SolverConfig {
   maxIterations: number;
   localSearchIterations: number;
+  localSearchTimeoutMs: number; // Limite de temps pour éviter les freezes UI
   verbose: boolean;
 }
 
 const DEFAULT_CONFIG: SolverConfig = {
   maxIterations: 1000,
-  localSearchIterations: 100,
+  localSearchIterations: 50, // Réduit de 100 à 50 pour de meilleures performances
+  localSearchTimeoutMs: 3000, // 3 secondes max pour la recherche locale
   verbose: false,
 };
 
@@ -120,7 +122,7 @@ export function solveGreedy(
       nonAffectes.push(eleve.id);
       
       if (cfg.verbose) {
-        console.log(`Aucun enseignant disponible pour ${eleve.prenom} ${eleve.nom}`);
+        console.log(`Aucun enseignant disponible pour élève ID: ${eleve.id}`);
       }
     }
   }
@@ -182,6 +184,14 @@ export function improveWithLocalSearch(
   const context = createScoringContext(scenario, enseignants, eleveToEnseignant);
   
   while (improved && iterations < cfg.localSearchIterations) {
+    // Vérifier la limite de temps pour éviter les freezes UI
+    if (performance.now() - startTime > cfg.localSearchTimeoutMs) {
+      if (cfg.verbose) {
+        console.log(`[Solver] Local search timeout après ${iterations} itérations`);
+      }
+      break;
+    }
+
     improved = false;
     iterations++;
     
