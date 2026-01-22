@@ -9,7 +9,6 @@ import {
   UserX,
   CheckCircle,
   AlertTriangle,
-  TrendingUp,
   MapPin,
   Clock,
   BookOpen,
@@ -59,9 +58,9 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
   scenario,
   affectations,
   eleves,
-  enseignants,
+  enseignants: _enseignants,
   jurys = [],
-  stages = [],
+  stages: _stages = [],
   stageDistances,
 }) => {
   // Determine scenario type
@@ -77,7 +76,7 @@ export const ValidationSummary: React.FC<ValidationSummaryProps> = ({
     const tauxAffectation = totalEleves > 0 ? Math.round((totalAffectes / totalEleves) * 100) : 0;
 
     // Calculate average score
-    const scores = affectations.filter(a => a.score !== undefined).map(a => a.score!);
+    const scores = affectations.filter(a => a.scoreTotal !== undefined).map(a => a.scoreTotal!);
     const avgScore = scores.length > 0
       ? Math.round((scores.reduce((sum, s) => sum + s, 0) / scores.length) * 100) / 100
       : null;
