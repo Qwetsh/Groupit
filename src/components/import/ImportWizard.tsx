@@ -13,6 +13,7 @@ import {
   extractClassFromFilename,
   type ParsedCSVData,
 } from '../../infrastructure/import';
+import { ProgressIndicator, MultiStepProgress, type ProgressStep } from '../ui/ProgressIndicator';
 import './ImportWizard.css';
 
 interface ImportWizardProps {
@@ -330,8 +331,15 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
       case 'importing':
         return (
           <div className="importing-step">
-            <div className="spinner"></div>
-            <p>Import en cours...</p>
+            <ProgressIndicator
+              indeterminate
+              status="loading"
+              label="Import en cours..."
+              subtitle={`${previewEleves.length} élèves à importer`}
+              size="lg"
+              variant="circular"
+              showElapsedTime
+            />
           </div>
         );
     }
@@ -389,24 +397,15 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
         
         {/* Progress Steps */}
         <div className="wizard-steps">
-          {['upload', 'mapping', 'classe', 'preview'].map((s, i) => (
-            <div 
-              key={s} 
-              className={clsx(
-                'step-indicator',
-                step === s && 'active',
-                ['mapping', 'classe', 'preview', 'importing'].indexOf(step) > i && 'completed'
-              )}
-            >
-              <span className="step-number">{i + 1}</span>
-              <span className="step-label">
-                {s === 'upload' && 'Fichier'}
-                {s === 'mapping' && 'Colonnes'}
-                {s === 'classe' && 'Classe'}
-                {s === 'preview' && 'Vérification'}
-              </span>
-            </div>
-          ))}
+          <MultiStepProgress
+            steps={[
+              { id: 'upload', label: 'Fichier', status: ['mapping', 'classe', 'preview', 'importing'].includes(step) ? 'success' : step === 'upload' ? 'loading' : 'idle' },
+              { id: 'mapping', label: 'Colonnes', status: ['classe', 'preview', 'importing'].includes(step) ? 'success' : step === 'mapping' ? 'loading' : 'idle' },
+              { id: 'classe', label: 'Classe', status: ['preview', 'importing'].includes(step) ? 'success' : step === 'classe' ? 'loading' : 'idle' },
+              { id: 'preview', label: 'Vérification', status: step === 'importing' ? 'success' : step === 'preview' ? 'loading' : 'idle' },
+            ] as ProgressStep[]}
+            currentStepIndex={['upload', 'mapping', 'classe', 'preview', 'importing'].indexOf(step)}
+          />
         </div>
         
         {/* Content */}

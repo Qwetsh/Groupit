@@ -6,6 +6,7 @@
 import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import type { Eleve, Stage } from '../domain/models';
+import { detectEncoding, decodeBuffer } from '../infrastructure/import';
 
 // ============================================================
 // TYPES
@@ -873,39 +874,8 @@ export function resolveAmbiguousMatch(
 // HELPER FUNCTIONS
 // ============================================================
 
-function detectEncoding(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer.slice(0, 4));
-
-  if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
-    return 'utf-8-sig';
-  }
-  if (bytes[0] === 0xFF && bytes[1] === 0xFE) {
-    return 'utf-16le';
-  }
-  if (bytes[0] === 0xFE && bytes[1] === 0xFF) {
-    return 'utf-16be';
-  }
-
-  const sample = new Uint8Array(buffer.slice(0, Math.min(1000, buffer.byteLength)));
-  const hasHighBytes = sample.some(b => b > 127);
-
-  if (!hasHighBytes) {
-    return 'utf-8';
-  }
-
-  try {
-    const decoder = new TextDecoder('utf-8', { fatal: true });
-    decoder.decode(buffer);
-    return 'utf-8';
-  } catch {
-    return 'iso-8859-1';
-  }
-}
-
-function decodeBuffer(buffer: ArrayBuffer, encoding: string): string {
-  const decoder = new TextDecoder(encoding === 'utf-8-sig' ? 'utf-8' : encoding, { fatal: false });
-  return decoder.decode(encoding === 'utf-8-sig' ? buffer.slice(3) : buffer);
-}
+// Note: detectEncoding et decodeBuffer sont maintenant importés
+// depuis '../infrastructure/import' pour unification du code
 
 function normalizeContent(value: string): string {
   return value

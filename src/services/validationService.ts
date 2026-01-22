@@ -15,6 +15,7 @@ import type {
   ArchiveEleve,
   Stage,
 } from '../domain/models';
+import { extractNiveau } from '../domain/models';
 
 // ============================================================
 // TYPES
@@ -303,8 +304,8 @@ function buildStageArchive(
 
   const eligibleElevesWithStage = eleves.filter(e => {
     // Filtrer par niveau
-    const niveau = e.classe?.replace(/[^0-9]/g, '')[0] + 'e';
-    const matchNiveau = niveauxFiltres.includes(niveau as any);
+    const niveau = e.classe ? extractNiveau(e.classe) : null;
+    const matchNiveau = niveau !== null && niveauxFiltres.includes(niveau);
     const matchClasse = classesFiltres.length === 0 || classesFiltres.includes(e.classe || '');
     if (!matchNiveau || !matchClasse) return false;
 

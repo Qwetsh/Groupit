@@ -30,6 +30,21 @@ export {
   downloadExportCsv,
 } from './exportCsv';
 
+// Excel Export
+export {
+  exportExcelResults,
+  downloadExcel,
+  downloadExportExcel,
+  exportStageExcelResults,
+  downloadStageExportExcel,
+  DEFAULT_EXCEL_OPTIONS,
+  DEFAULT_STAGE_EXCEL_OPTIONS,
+} from './exportExcel';
+export type {
+  ExcelExportOptions,
+  StageExcelExportOptions,
+} from './exportExcel';
+
 // PDF Export
 export {
   exportPdfJuries,

@@ -6,11 +6,11 @@ import type { Scenario } from '../domain/models';
 import { JuryManager } from '../components/jury';
 import { ImportMatiereOralModal } from '../components/import';
 import { StageScenarioManager } from '../components/scenario-stage';
-import { 
-  Plus, 
-  Play, 
-  Edit2, 
-  Trash2, 
+import {
+  Plus,
+  Play,
+  Edit2,
+  Trash2,
   Copy,
   Check,
   Settings,
@@ -21,6 +21,7 @@ import {
   Upload,
   Briefcase
 } from 'lucide-react';
+import { HelpTooltip, HELP_TEXTS } from '../components/ui/Tooltip';
 import './ScenariosPage.css';
 
 export const ScenariosPage: React.FC = () => {
@@ -127,6 +128,7 @@ export const ScenariosPage: React.FC = () => {
                     {scenario.type === 'suivi_stage' && <Briefcase size={12} />}
                     {getTypeLabel(scenario.type)}
                   </span>
+                  <HelpTooltip content={HELP_TEXTS.scenarios.type} size={14} />
                   {currentScenarioId === scenario.id && (
                     <span className="active-badge">
                       <Check size={12} />
@@ -211,21 +213,31 @@ export const ScenariosPage: React.FC = () => {
                   <h4>
                     <Settings size={16} />
                     Configuration du scoring
+                    <HelpTooltip content={HELP_TEXTS.scenarios.criteria} />
                   </h4>
                   <div className="scoring-grid">
                     <div className="scoring-item">
-                      <span className="scoring-label">Capacité par défaut</span>
+                      <span className="scoring-label">
+                        Capacité par défaut
+                        <HelpTooltip content={HELP_TEXTS.scenarios.capacity} size={14} />
+                      </span>
                       <span className="scoring-value">{scenario.parametres.capaciteConfig.capaciteBaseDefaut} élèves</span>
                     </div>
                     <div className="scoring-item">
-                      <span className="scoring-label">Équilibrage automatique</span>
+                      <span className="scoring-label">
+                        Équilibrage automatique
+                        <HelpTooltip content={HELP_TEXTS.scenarios.equilibrage} size={14} />
+                      </span>
                       <span className={`scoring-value ${scenario.parametres.equilibrageActif ? 'active' : ''}`}>
                         {scenario.parametres.equilibrageActif ? 'Activé' : 'Désactivé'}
                       </span>
                     </div>
                     {scenario.parametres.criteres.filter(c => c.estContrainteDure).length > 0 && (
                       <div className="scoring-item constraints">
-                        <span className="scoring-label">Contraintes</span>
+                        <span className="scoring-label">
+                          Contraintes
+                          <HelpTooltip content={HELP_TEXTS.scenarios.hardConstraint} size={14} />
+                        </span>
                         <div className="constraints-inline">
                           {scenario.parametres.criteres.filter(c => c.estContrainteDure).map((c, i) => (
                             <span key={i} className="constraint-tag-mini">{getCritereLabel(c.id)}</span>

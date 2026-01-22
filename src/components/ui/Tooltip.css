@@ -1,0 +1,156 @@
+/* ============================================================ */
+/* TOOLTIP STYLES */
+/* ============================================================ */
+
+.tooltip-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.tooltip {
+  position: absolute;
+  z-index: 9999;
+  padding: 8px 12px;
+  background: #1e293b;
+  color: white;
+  font-size: 13px;
+  line-height: 1.5;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  animation: tooltipFadeIn 0.15s ease-out;
+  white-space: normal;
+  word-wrap: break-word;
+}
+
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.tooltip-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* Arrow */
+.tooltip-arrow {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #1e293b;
+  transform: rotate(45deg);
+}
+
+/* Positions */
+.tooltip-top {
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.tooltip-top .tooltip-arrow {
+  bottom: -4px;
+  left: 50%;
+  margin-left: -4px;
+}
+
+.tooltip-bottom {
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.tooltip-bottom .tooltip-arrow {
+  top: -4px;
+  left: 50%;
+  margin-left: -4px;
+}
+
+.tooltip-left {
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.tooltip-left .tooltip-arrow {
+  right: -4px;
+  top: 50%;
+  margin-top: -4px;
+}
+
+.tooltip-right {
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.tooltip-right .tooltip-arrow {
+  left: -4px;
+  top: 50%;
+  margin-top: -4px;
+}
+
+/* ============================================================ */
+/* HELP TOOLTIP ICON */
+/* ============================================================ */
+
+.help-tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  cursor: help;
+  transition: color 0.15s ease;
+  margin-left: 4px;
+}
+
+.help-tooltip-icon:hover {
+  color: #3b82f6;
+}
+
+/* ============================================================ */
+/* TOOLTIP CONTENT STYLES */
+/* ============================================================ */
+
+.tooltip strong {
+  color: #93c5fd;
+  font-weight: 600;
+}
+
+.tooltip em {
+  color: #fbbf24;
+  font-style: normal;
+}
+
+.tooltip code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+/* Liste dans tooltip */
+.tooltip ul {
+  margin: 4px 0 0;
+  padding-left: 16px;
+}
+
+.tooltip li {
+  margin: 2px 0;
+}
+
+/* Titre dans tooltip */
+.tooltip-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: #93c5fd;
+}

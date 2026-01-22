@@ -60,64 +60,12 @@
 
 /* Steps */
 .wizard-steps {
-  display: flex;
-  padding: 16px 24px;
+  padding: 16px 24px 32px;
   background: #f8fafc;
-  gap: 8px;
 }
 
-.step-indicator {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 6px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  opacity: 0.6;
-  transition: all 0.2s;
-}
-
-.step-indicator.active {
-  opacity: 1;
-  border-color: #3b82f6;
-  background: #eff6ff;
-}
-
-.step-indicator.completed {
-  opacity: 1;
-  background: #f0fdf4;
-  border-color: #bbf7d0;
-}
-
-.step-number {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #e2e8f0;
-  display: flex;
-  align-items: center;
+.wizard-steps .multi-step-progress {
   justify-content: center;
-  font-size: 12px;
-  font-weight: 600;
-  color: #64748b;
-}
-
-.step-indicator.active .step-number {
-  background: #3b82f6;
-  color: white;
-}
-
-.step-indicator.completed .step-number {
-  background: #22c55e;
-  color: white;
-}
-
-.step-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #475569;
 }
 
 /* Content */
@@ -440,22 +388,11 @@
 
 /* Importing */
 .importing-step {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 48px;
-}
-
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid #e2e8f0;
-  border-top-color: #3b82f6;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 16px;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
+  min-height: 200px;
 }
 
 /* Footer */

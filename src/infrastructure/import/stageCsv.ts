@@ -1,5 +1,5 @@
 import Papa from 'papaparse';
-import { detectEncoding, detectSeparator } from './csvParser';
+import { detectEncoding, detectSeparator, decodeBuffer } from './csvParser';
 
 const REQUIRED_HEADERS = ['nom', 'prenom', 'adresse', 'classe', 'entreprise'] as const;
 const REQUIRED_VALUE_FIELDS = ['nom', 'prenom', 'adresse', 'classe'] as const;
@@ -101,10 +101,7 @@ export async function importStagesCsv(file: File): Promise<ImportResult> {
   };
 }
 
-function decodeBuffer(buffer: ArrayBuffer, encoding: string): string {
-  const decoder = new TextDecoder(encoding === 'utf-8-sig' ? 'utf-8' : encoding, { fatal: false });
-  return decoder.decode(encoding === 'utf-8-sig' ? buffer.slice(3) : buffer);
-}
+// decodeBuffer importé depuis csvParser
 
 function normalizeContent(value: string): string {
   return value

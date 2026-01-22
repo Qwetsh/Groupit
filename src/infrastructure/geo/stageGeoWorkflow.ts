@@ -245,8 +245,11 @@ export async function geocodeBatch(
 /**
  * Géocode un lot d'adresses avec stratégie de fallback et progression
  * Tente: adresse complète → ville+CP → "Mairie de Ville" → erreur
+ *
+ * @deprecated Utiliser geocodeBatchWithFallback de './geocodeFallback' à la place.
+ * Cette fonction n'est plus exportée depuis l'index et sera supprimée dans une version future.
  */
-export async function geocodeBatchWithFallback(
+async function _geocodeBatchWithFallbackLegacy(
   addresses: string[],
   options?: {
     onProgress?: (state: GeoProgressState) => void;

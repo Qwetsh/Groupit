@@ -3,13 +3,14 @@
 // ============================================================
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { 
-  FileText, 
-  FileSpreadsheet, 
+import {
+  FileText,
+  FileSpreadsheet,
   ChevronDown,
-  Loader2,
-  AlertCircle
+  AlertCircle,
+  Check
 } from 'lucide-react';
+import { ProgressIndicator } from '../ui/ProgressIndicator';
 import { useEleveStore } from '../../stores/eleveStore';
 import { useEnseignantStore } from '../../stores/enseignantStore';
 import { useAffectationStore } from '../../stores/affectationStore';
@@ -20,8 +21,11 @@ import {
   mapToExportData,
   downloadExportCsv,
   downloadExportPdf,
+  downloadExportExcel,
+  downloadStageExportExcel,
   type CsvExportOptions,
   type PdfExportOptions,
+  type ExportResultData,
   DEFAULT_CSV_OPTIONS,
   DEFAULT_PDF_OPTIONS,
   // Stage export
@@ -56,6 +60,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
 
   // State
   const [csvStatus, setCsvStatus] = useState<ExportStatus>('idle');
+  const [excelStatus, setExcelStatus] = useState<ExportStatus>('idle');
   const [pdfStatus, setPdfStatus] = useState<ExportStatus>('idle');
   const [showMenu, setShowMenu] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -150,7 +155,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
       if (stageMode) {
         exportAndDownloadStageCsv(exportData as StageExportResultData, stageCsvOptions);
       } else {
-        downloadExportCsv(exportData as any, baseFilename, csvOptions);
+        downloadExportCsv(exportData as ExportResultData, baseFilename, csvOptions);
       }
       setCsvStatus('success');
       setTimeout(() => setCsvStatus('idle'), 2000);
@@ -161,6 +166,25 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
     }
   }, [exportData, baseFilename, csvOptions, hasData, stageMode, stageCsvOptions]);
 
+  const handleExportExcel = useCallback(async () => {
+    if (!hasData) return;
+    setExcelStatus('loading');
+    setErrorMessage(null);
+    try {
+      if (stageMode) {
+        downloadStageExportExcel(exportData as StageExportResultData, baseFilename);
+      } else {
+        downloadExportExcel(exportData as ExportResultData, baseFilename);
+      }
+      setExcelStatus('success');
+      setTimeout(() => setExcelStatus('idle'), 2000);
+    } catch (error) {
+      console.error('[ExportButtons] Erreur Excel:', error);
+      setExcelStatus('error');
+      setErrorMessage('Erreur Excel');
+    }
+  }, [exportData, baseFilename, hasData, stageMode]);
+
   const handleExportPdf = useCallback(async () => {
     if (!hasData) return;
     setPdfStatus('loading');
@@ -169,7 +193,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
       if (stageMode) {
         await exportStagePdf(exportData as StageExportResultData, stagePdfOptions);
       } else {
-        await downloadExportPdf(exportData as any, `${baseFilename}.pdf`, {
+        await downloadExportPdf(exportData as ExportResultData, `${baseFilename}.pdf`, {
           ...pdfOptions,
           headerScenarioName: scenario.nom,
         });
@@ -194,10 +218,29 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
         title="Exporter en CSV"
       >
         {csvStatus === 'loading' ? (
-          <Loader2 size={14} className="spin" />
+          <ProgressIndicator status="loading" variant="inline" size="sm" indeterminate />
+        ) : csvStatus === 'success' ? (
+          <Check size={14} className="success-icon" />
         ) : (
           <FileSpreadsheet size={14} />
         )}
+        <span className="btn-label">CSV</span>
+      </button>
+
+      <button
+        className={`export-btn excel-btn ${excelStatus}`}
+        onClick={handleExportExcel}
+        disabled={excelStatus === 'loading'}
+        title="Exporter en Excel (.xlsx)"
+      >
+        {excelStatus === 'loading' ? (
+          <ProgressIndicator status="loading" variant="inline" size="sm" indeterminate />
+        ) : excelStatus === 'success' ? (
+          <Check size={14} className="success-icon" />
+        ) : (
+          <FileSpreadsheet size={14} />
+        )}
+        <span className="btn-label">Excel</span>
       </button>
 
       <button
@@ -207,10 +250,13 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
         title="Exporter en PDF"
       >
         {pdfStatus === 'loading' ? (
-          <Loader2 size={14} className="spin" />
+          <ProgressIndicator status="loading" variant="inline" size="sm" indeterminate />
+        ) : pdfStatus === 'success' ? (
+          <Check size={14} className="success-icon" />
         ) : (
           <FileText size={14} />
         )}
+        <span className="btn-label">PDF</span>
       </button>
 
       <div className="export-menu-wrapper">

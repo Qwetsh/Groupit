@@ -988,6 +988,23 @@
   animation: slideUp 0.3s ease;
 }
 
+/* Enhanced validation modal with ValidationSummary */
+.validation-modal.validation-modal-enhanced {
+  max-width: 640px;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.validation-modal.validation-modal-enhanced .modal-description {
+  margin-bottom: 16px;
+}
+
+.validation-modal.validation-modal-enhanced .modal-actions {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
 @keyframes slideUp {
   from { transform: translateY(20px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }

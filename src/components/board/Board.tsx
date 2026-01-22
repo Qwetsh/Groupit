@@ -24,12 +24,56 @@ import { buildArchiveFromCurrentState, formatArchiveDate } from '../../services'
 import { solveMatching, convertToAffectations, solveOralDnbComplete, solveStageMatching, toStageGeoInfo, toEnseignantGeoInfo } from '../../algorithms';
 import { getEffectiveCriteres, criteresToStageOptions } from '../../domain/criteriaConfig';
 import type { Eleve, Enseignant, Affectation, Jury, MatchingResultDNB } from '../../domain/models';
+import { filterEleves, filterEnseignants } from '../../utils/filteringUtils';
 import { Wand2, RefreshCw, AlertCircle, GripVertical, Info, UserX, Users, CheckCircle, RotateCcw, MapPin, Save, Loader2, CheckCheck } from 'lucide-react';
+import { OverlayProgress } from '../ui/ProgressIndicator';
+import { HelpTooltip, HELP_TEXTS } from '../ui/Tooltip';
 import { ContextMenu, type ContextMenuItem } from '../context-menu';
 import { EleveInfoModal } from '../modals/EleveInfoModal';
 import { ExportButtons } from '../export';
+import { ValidationSummary } from '../validation';
 import { StageAssignmentMapDrawer, COLLEGE_GEO } from './StageAssignmentMapDrawer';
 import './Board.css';
+
+// ============================================================
+// DRAG & DROP DATA TYPES
+// ============================================================
+interface DragDataEleve {
+  type: 'eleve';
+  eleveId: string;
+  eleve: Eleve;
+}
+
+interface DragDataAffectation {
+  type: 'affectation';
+  affectationId: string;
+  eleveId: string;
+  eleve: Eleve;
+}
+
+interface DragDataJuryAffectation {
+  type: 'jury-affectation';
+  affectationId: string;
+  eleveId: string;
+  eleve: Eleve;
+}
+
+interface DropDataUnassigned {
+  type: 'unassigned';
+}
+
+interface DropDataEnseignant {
+  type: 'enseignant';
+  enseignantId: string;
+}
+
+interface DropDataJury {
+  type: 'jury';
+  juryId: string;
+}
+
+type DragData = DragDataEleve | DragDataAffectation | DragDataJuryAffectation;
+type DropData = DropDataUnassigned | DropDataEnseignant | DropDataJury;
 
 // ============================================================
 // CONTEXT MENU STATE TYPE
@@ -379,7 +423,9 @@ export const Board: React.FC = () => {
   const scenarios = useScenarioStore(state => state.scenarios);
   const currentScenarioId = useScenarioStore(state => state.currentScenarioId);
   const jurys = useJuryStore(state => state.jurys);
-  const { stages, loadGlobalStages } = useStageStore();
+  // Sélecteurs granulaires pour éviter les re-renders inutiles
+  const stages = useStageStore(state => state.stages);
+  const loadGlobalStages = useStageStore(state => state.loadGlobalStages);
 
   const activeScenario = useMemo(() => {
     return scenarios.find(s => s.id === currentScenarioId) || scenarios[0];
@@ -400,6 +446,19 @@ export const Board: React.FC = () => {
     if (!isJuryMode || !activeScenario) return [];
     return jurys.filter(j => j.scenarioId === activeScenario.id);
   }, [jurys, activeScenario, isJuryMode]);
+
+  // ========== INDEX MAPS pour lookups O(1) ==========
+  const elevesById = useMemo(() => {
+    return new Map(eleves.map(e => [e.id, e]));
+  }, [eleves]);
+
+  const enseignantsById = useMemo(() => {
+    return new Map(enseignants.map(e => [e.id, e]));
+  }, [enseignants]);
+
+  const jurysById = useMemo(() => {
+    return new Map(scenarioJurys.map(j => [j.id, j]));
+  }, [scenarioJurys]);
 
   // State
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -447,10 +506,10 @@ export const Board: React.FC = () => {
     return stages
       .filter(s => s.eleveId && assignedEleveIds.has(s.eleveId))
       .map(stage => {
-        const eleve = eleves.find(e => e.id === stage.eleveId);
+        const eleve = elevesById.get(stage.eleveId!);
         return { ...stage, eleve };
       });
-  }, [selectedTeacherForMap, isStageScenario, affectations, stages, activeScenario?.id, eleves]);
+  }, [selectedTeacherForMap, isStageScenario, affectations, stages, activeScenario?.id, elevesById]);
 
   // Handle teacher card click (for stage scenarios)
   const handleTeacherCardClick = useCallback((enseignant: Enseignant) => {
@@ -478,58 +537,12 @@ export const Board: React.FC = () => {
   // Filter eleves/enseignants based on scenario
   const scenarioEleves = useMemo(() => {
     const filters = activeScenario?.parametres?.filtresEleves;
-
-    // Pour les scénarios Suivi Stage, filtrer par défaut sur les 3ème
-    if (isStageScenario) {
-      const niveauxFiltres = filters?.niveaux?.length ? filters.niveaux : ['3e'];
-      const classesFiltres = filters?.classes || [];
-
-      return eleves.filter(e => {
-        const niveau = e.classe.replace(/[^0-9]/g, '')[0] + 'e';
-        const matchNiveau = niveauxFiltres.includes(niveau as any);
-        const matchClasse = classesFiltres.length === 0 || classesFiltres.includes(e.classe);
-        return matchNiveau && matchClasse;
-      });
-    }
-
-    // Pour les autres scénarios, comportement normal
-    if (!filters) return eleves;
-    return eleves.filter(e => {
-      if (filters.classes && filters.classes.length > 0 && !filters.classes.includes(e.classe)) return false;
-      if (filters.niveaux && filters.niveaux.length > 0) {
-        const niveau = e.classe.replace(/[^0-9]/g, '')[0] + 'e';
-        if (!filters.niveaux.includes(niveau as any)) return false;
-      }
-      return true;
-    });
+    const defaultNiveaux = isStageScenario ? ['3e'] as const : [];
+    return filterEleves(eleves, filters, [...defaultNiveaux]);
   }, [eleves, activeScenario, isStageScenario]);
 
   const scenarioEnseignants = useMemo(() => {
-    if (!activeScenario?.parametres?.filtresEnseignants) return enseignants;
-    const filters = activeScenario.parametres.filtresEnseignants;
-
-    // Si sélection individuelle active, elle prend le dessus
-    if (filters.enseignantIds && filters.enseignantIds.length > 0) {
-      return enseignants.filter(e => filters.enseignantIds!.includes(e.id!));
-    }
-
-    // Sinon, appliquer les filtres
-    return enseignants.filter(e => {
-      if (filters.ppOnly && !e.estProfPrincipal) return false;
-      if (filters.matieres && filters.matieres.length > 0 && !filters.matieres.includes(e.matierePrincipale)) return false;
-      if (filters.classesEnCharge && filters.classesEnCharge.length > 0) {
-        const hasMatchingClass = e.classesEnCharge?.some(c => filters.classesEnCharge!.includes(c));
-        if (!hasMatchingClass) return false;
-      }
-      if (filters.niveauxEnCharge && filters.niveauxEnCharge.length > 0) {
-        const hasMatchingNiveau = e.classesEnCharge?.some(c => {
-          const niveau = c.replace(/[^0-9]/g, '')[0] + 'e';
-          return filters.niveauxEnCharge!.includes(niveau as any);
-        });
-        if (!hasMatchingNiveau) return false;
-      }
-      return true;
-    });
+    return filterEnseignants(enseignants, activeScenario?.parametres?.filtresEnseignants);
   }, [enseignants, activeScenario]);
 
   // Liste d'enseignants à afficher dans le Board
@@ -587,7 +600,7 @@ export const Board: React.FC = () => {
       .filter(a => a.scenarioId === activeScenario?.id && a.juryId)
       .forEach(a => {
         const list = map.get(a.juryId!);
-        const eleve = eleves.find(e => e.id === a.eleveId);
+        const eleve = elevesById.get(a.eleveId);
         if (list && eleve) {
           // Get DNB result info if available
           const dnbResult = dnbResults.get(a.eleveId);
@@ -601,7 +614,7 @@ export const Board: React.FC = () => {
         }
       });
     return map;
-  }, [scenarioJurys, affectations, activeScenario, eleves, dnbResults]);
+  }, [scenarioJurys, affectations, activeScenario, elevesById, dnbResults]);
 
   // Unassigned élèves
   const assignedEleveIds = useMemo(() => {
@@ -716,15 +729,15 @@ export const Board: React.FC = () => {
       return;
     }
 
-    const activeDataCurrent = active.data.current as any;
-    const overDataCurrent = over.data.current as any;
+    const activeDataCurrent = active.data.current as DragData | undefined;
+    const overDataCurrent = over.data.current as DropData | DragData | undefined;
 
     // Get target enseignant ID
-    const targetEnseignantId = overDataCurrent?.enseignantId || 
+    const targetEnseignantId = (overDataCurrent && 'enseignantId' in overDataCurrent ? overDataCurrent.enseignantId : null) ||
       (String(over.id).startsWith('enseignant:') ? String(over.id).split(':')[1] : null);
 
     // Get target jury ID (for Oral DNB mode)
-    const targetJuryId = overDataCurrent?.juryId || 
+    const targetJuryId = (overDataCurrent && 'juryId' in overDataCurrent ? overDataCurrent.juryId : null) ||
       (String(over.id).startsWith('jury:') ? String(over.id).split(':')[1] : null);
 
     const isDropOnUnassigned = overDataCurrent?.type === 'unassigned' || over.id === 'unassigned-zone';
@@ -753,16 +766,16 @@ export const Board: React.FC = () => {
     // Case 1b: Dropping an unassigned élève on a jury (DNB mode)
     if (activeDataCurrent?.type === 'eleve' && targetJuryId) {
       const eleveId = activeDataCurrent.eleveId;
-      const eleve = activeDataCurrent.eleve as Eleve;
-      const jury = scenarioJurys.find(j => j.id === targetJuryId);
-      
+      const eleve = activeDataCurrent.eleve;
+      const jury = jurysById.get(targetJuryId);
+
       if (jury) {
         console.log('Creating jury affectation:', { eleveId, juryId: targetJuryId });
-        
-        // Check matière match
+
+        // Check matière match (lookup O(1))
         const juryMatieres = [...new Set(
           jury.enseignantIds
-            .map(id => enseignants.find(e => e.id === id)?.matierePrincipale)
+            .map(id => enseignantsById.get(id)?.matierePrincipale)
             .filter(Boolean)
         )] as string[];
         const matiereMatch = eleve.matieresOral?.some(m => juryMatieres.includes(m)) ?? false;
@@ -810,14 +823,14 @@ export const Board: React.FC = () => {
     if (activeDataCurrent?.type === 'jury-affectation' && targetJuryId) {
       const affectationId = activeDataCurrent.affectationId;
       const eleve = activeDataCurrent.eleve as Eleve;
-      const jury = scenarioJurys.find(j => j.id === targetJuryId);
-      
+      const jury = jurysById.get(targetJuryId);
+
       if (jury) {
         console.log('Reassigning jury affectation:', { affectationId, newJuryId: targetJuryId });
-        
+
         const juryMatieres = [...new Set(
           jury.enseignantIds
-            .map(id => enseignants.find(e => e.id === id)?.matierePrincipale)
+            .map(id => enseignantsById.get(id)?.matierePrincipale)
             .filter(Boolean)
         )] as string[];
         const matiereMatch = eleve.matieresOral?.some(m => juryMatieres.includes(m)) ?? false;
@@ -1324,42 +1337,48 @@ export const Board: React.FC = () => {
           >
             <RotateCcw size={18} />
           </button>
-          <button
-            className="btn-action"
-            onClick={runMatching}
-            disabled={runButtonDisabled}
-            title={runButtonTitle}
-          >
-            {isRunning ? (
-              <>
-                <RefreshCw size={18} className="spinning" />
-                En cours...
-              </>
-            ) : (
-              <>
-                <Wand2 size={18} />
-                Lancer le matching
-              </>
-            )}
-          </button>
-          <button
-            className="btn-action validate"
-            onClick={handleValidateClick}
-            disabled={!activeScenario || isRunning || isValidating || scenarioAffectations.length === 0}
-            title={scenarioAffectations.length === 0 ? 'Lancez d\'abord le matching' : 'Valider et archiver les affectations'}
-          >
-            {isValidating ? (
-              <>
-                <Loader2 size={18} className="spinning" />
-                Validation...
-              </>
-            ) : (
-              <>
-                <Save size={18} />
-                Valider
-              </>
-            )}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <button
+              className="btn-action"
+              onClick={runMatching}
+              disabled={runButtonDisabled}
+              title={runButtonTitle}
+            >
+              {isRunning ? (
+                <>
+                  <RefreshCw size={18} className="spinning" />
+                  En cours...
+                </>
+              ) : (
+                <>
+                  <Wand2 size={18} />
+                  Lancer le matching
+                </>
+              )}
+            </button>
+            <HelpTooltip content={HELP_TEXTS.board.autoMatch} />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <button
+              className="btn-action validate"
+              onClick={handleValidateClick}
+              disabled={!activeScenario || isRunning || isValidating || scenarioAffectations.length === 0}
+              title={scenarioAffectations.length === 0 ? 'Lancez d\'abord le matching' : 'Valider et archiver les affectations'}
+            >
+              {isValidating ? (
+                <>
+                  <Loader2 size={18} className="spinning" />
+                  Validation...
+                </>
+              ) : (
+                <>
+                  <Save size={18} />
+                  Valider
+                </>
+              )}
+            </button>
+            <HelpTooltip content={HELP_TEXTS.board.validate} />
+          </div>
         </div>
       </div>
 
@@ -1435,6 +1454,7 @@ export const Board: React.FC = () => {
           <div className="board-column eleves-column">
             <div className="column-header">
               <h2>Élèves à affecter</h2>
+              <HelpTooltip content={HELP_TEXTS.board.dragDrop} />
               <span className="count-badge">{unassignedEleves.length}</span>
             </div>
             <UnassignedDropZone>
@@ -1546,40 +1566,39 @@ export const Board: React.FC = () => {
         />
       )}
 
+      {/* Matching Progress Overlay */}
+      <OverlayProgress
+        visible={isRunning}
+        label="Algorithme en cours..."
+        subtitle={isJuryMode
+          ? `Matching ${scenarioEleves.length} élèves vers ${scenarioJurys.length} jurys`
+          : isStageScenario
+            ? `Matching ${geocodedStagesCount} stages vers ${geocodedEnseignantsCount} enseignants`
+            : `Matching ${scenarioEleves.length} élèves vers ${scenarioEnseignants.length} enseignants`
+        }
+        indeterminate
+        showElapsedTime
+      />
+
       {/* Validation Confirmation Modal */}
-      {showValidationModal && (
+      {showValidationModal && activeScenario && (
         <div className="validation-modal-overlay" onClick={() => setShowValidationModal(false)}>
-          <div className="validation-modal" onClick={e => e.stopPropagation()}>
-            <h2>Valider l'affectation</h2>
+          <div className="validation-modal validation-modal-enhanced" onClick={e => e.stopPropagation()}>
+            <h2>Valider les affectations</h2>
             <p className="modal-description">
               Cette action va créer un snapshot immuable des affectations actuelles.
               Il sera consultable dans le tableau de bord et l'historique des enseignants.
             </p>
-            <div className="modal-summary">
-              <div className="summary-item">
-                <span className="label">Scénario</span>
-                <span className="value">{activeScenario?.nom}</span>
-              </div>
-              <div className="summary-item">
-                <span className="label">Type</span>
-                <span className="value">
-                  {activeScenario?.type === 'oral_dnb' ? 'Oral du DNB' :
-                   activeScenario?.type === 'suivi_stage' ? 'Suivi de stage' : 'Standard'}
-                </span>
-              </div>
-              <div className="summary-item">
-                <span className="label">Affectations</span>
-                <span className="value">{scenarioAffectations.length}</span>
-              </div>
-              <div className="summary-item">
-                <span className="label">Enseignants</span>
-                <span className="value">
-                  {isJuryMode
-                    ? scenarioJurys.reduce((sum, j) => sum + j.enseignantIds.length, 0)
-                    : new Set(scenarioAffectations.map(a => a.enseignantId)).size}
-                </span>
-              </div>
-            </div>
+
+            <ValidationSummary
+              scenario={activeScenario}
+              affectations={scenarioAffectations}
+              eleves={scenarioEleves}
+              enseignants={displayedEnseignants}
+              jurys={scenarioJurys}
+              stages={stages}
+            />
+
             <div className="modal-actions">
               <button
                 className="btn-cancel"

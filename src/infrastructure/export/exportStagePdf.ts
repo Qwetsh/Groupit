@@ -7,6 +7,7 @@ import React from 'react';
 import type { StageExportResultData, StagePdfExportOptions } from './stageTypes';
 import { DEFAULT_STAGE_PDF_OPTIONS } from './stageTypes';
 import { StageExportDocument } from './stagePdfComponents';
+import { downloadBlob } from '../utils/download';
 
 // ============================================================
 // GÉNÉRATION DU PDF
@@ -53,14 +54,10 @@ function sanitizeFilename(name: string): string {
 
 /**
  * Télécharge un blob PDF
+ * @deprecated Utiliser downloadBlob de '../utils/download' directement
  */
 export function downloadPdfBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
+  downloadBlob(blob, filename);
 }
 
 /**

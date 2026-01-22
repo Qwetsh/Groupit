@@ -7,6 +7,7 @@ import React from 'react';
 import { PdfJuryDocument } from './PdfComponents';
 import type { ExportResultData, PdfExportOptions } from './types';
 import { DEFAULT_PDF_OPTIONS } from './types';
+import { downloadBlob } from '../utils/download';
 
 /**
  * Génère un Blob PDF à partir des données d'export
@@ -19,8 +20,9 @@ export async function exportPdfJuries(
   
   // Créer le document React PDF
   const document = React.createElement(PdfJuryDocument, { data, options: opts });
-  
-  // Générer le PDF en Blob (cast pour contourner les types strictes de @react-pdf/renderer)
+
+  // Générer le PDF en Blob
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const blob = await pdf(document as any).toBlob();
   
   return blob;
@@ -28,16 +30,10 @@ export async function exportPdfJuries(
 
 /**
  * Télécharge le PDF généré
+ * @deprecated Utiliser downloadBlob de '../utils/download' directement
  */
 export function downloadPdf(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  downloadBlob(blob, filename);
 }
 
 /**

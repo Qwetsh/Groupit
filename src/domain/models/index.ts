@@ -33,6 +33,17 @@ export type Sexe = 'M' | 'F' | 'Autre';
 
 export type Niveau = '6e' | '5e' | '4e' | '3e';
 
+export const NIVEAUX: readonly Niveau[] = ['6e', '5e', '4e', '3e'] as const;
+
+export function isNiveau(value: string): value is Niveau {
+  return NIVEAUX.includes(value as Niveau);
+}
+
+export function extractNiveau(classe: string): Niveau | null {
+  const niveau = classe.replace(/[^0-9]/g, '')[0] + 'e';
+  return isNiveau(niveau) ? niveau : null;
+}
+
 export type ScenarioMode = 'groupes' | 'matching';
 
 // Types de scénarios supportés
@@ -178,10 +189,10 @@ export interface Enseignant {
   geoStatus?: 'pending' | 'ok' | 'error' | 'manual' | 'not_found';
   geoErrorMessage?: string;
   
-  // Capacité
+  // Capacité selon le type de scénario
   heuresParNiveau?: HeuresParNiveau;
-  capaciteBase?: number; // si on veut forcer une capacité
-  capaciteStage?: number; // capacité max de stages à suivre
+  capaciteBase?: number;  // Oral DNB: nb max d'élèves par enseignant/jury
+  capaciteStage?: number; // Suivi Stage: nb max de stages à encadrer
   
   // Exclusions pour suivi de stage
   stageExclusions?: Array<{
@@ -220,6 +231,7 @@ export interface MetadataOralDNB {
   theme?: string;
   matiereOralChoisieParEleve?: string;
   dateCreneau?: string;
+  heureCreneau?: string;
   salle?: string;
 }
 
@@ -389,6 +401,24 @@ export interface CapaciteConfig {
     '4e': number;
     '3e': number;
   };
+}
+
+/**
+ * Retourne la capacité effective d'un enseignant selon le type de scénario
+ * @param enseignant L'enseignant
+ * @param scenarioType Le type de scénario ('oral_dnb' ou 'suivi_stage')
+ * @param defaultValue Valeur par défaut si non définie
+ */
+export function getEnseignantCapacite(
+  enseignant: { capaciteBase?: number; capaciteStage?: number },
+  scenarioType: ScenarioType,
+  defaultValue = 5
+): number {
+  if (scenarioType === 'suivi_stage') {
+    return enseignant.capaciteStage ?? defaultValue;
+  }
+  // oral_dnb et autres
+  return enseignant.capaciteBase ?? defaultValue;
 }
 
 // @deprecated - Utiliser CritereInstance à la place

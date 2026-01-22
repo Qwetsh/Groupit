@@ -115,9 +115,6 @@ export async function geocodeWithFallback(
   address: string,
   options: GeocodeFallbackOptions = {}
 ): Promise<GeocodeFallbackResult> {
-  // DEBUG - Ce log doit TOUJOURS apparaître
-  console.log('🚀 geocodeWithFallback APPELÉ avec:', address);
-  
   const { 
     delayBetweenAttempts = 300, 
     forceRefresh = false,
@@ -137,14 +134,11 @@ export async function geocodeWithFallback(
   };
 
   if (!address || address.trim() === '') {
-    console.log('⚠️ Adresse vide!');
     return failResult;
   }
 
   const trimmedAddress = address.trim();
   const provider = getGeoProvider();
-
-  console.log(`[Geocode] Début géocodage: "${trimmedAddress}"`);
 
   // ============================================================
   // VÉRIFICATION DU CACHE (adresse complète)
@@ -179,7 +173,6 @@ export async function geocodeWithFallback(
   const fullResult = await provider.geocode(trimmedAddress);
   
   if (fullResult.success && fullResult.point) {
-    console.log(`[Geocode] ✅ Succès adresse complète: (${fullResult.point.lat}, ${fullResult.point.lon})`);
     // Succès avec adresse complète
     await upsertGeoCache(trimmedAddress, {
       lat: fullResult.point.lat,
@@ -204,7 +197,7 @@ export async function geocodeWithFallback(
     };
   }
 
-  console.log(`[Geocode] ⚠️ Adresse exacte non trouvée, tentative fallback...`);
+  // Fallback: tentative avec ville/code postal
 
   // ============================================================
   // PARSING POUR EXTRAIRE VILLE/CP
@@ -214,9 +207,6 @@ export async function geocodeWithFallback(
   // Override avec les champs fournis séparément
   if (codePostal) parsed.codePostal = codePostal;
   if (ville) parsed.ville = ville;
-
-  // Debug: afficher ce qui a été extrait
-  console.log(`[Geocode] Parsing: ville="${parsed.ville || 'N/A'}", CP="${parsed.codePostal || 'N/A'}", hasCityInfo=${parsed.hasCityInfo}`);
 
   if (!parsed.hasCityInfo && !parsed.ville) {
     // Impossible d'extraire la ville, échec
@@ -236,11 +226,9 @@ export async function geocodeWithFallback(
   
   const cityQuery = buildCityQuery(parsed);
   if (cityQuery) {
-    console.log(`[Geocode] Tentative 2: Ville "${cityQuery}"`);
     const cityResult = await provider.geocode(cityQuery);
-    
+
     if (cityResult.success && cityResult.point) {
-      console.log(`[Geocode] ✅ Succès fallback CITY: (${cityResult.point.lat}, ${cityResult.point.lon})`);
       // Succès avec fallback ville
       await upsertGeoCache(trimmedAddress, {
         lat: cityResult.point.lat,
@@ -274,11 +262,9 @@ export async function geocodeWithFallback(
   
   const townhallQuery = buildTownhallQuery(parsed);
   if (townhallQuery) {
-    console.log(`[Geocode] Tentative 3: Mairie "${townhallQuery}"`);
     const townhallResult = await provider.geocode(townhallQuery);
-    
+
     if (townhallResult.success && townhallResult.point) {
-      console.log(`[Geocode] ✅ Succès fallback TOWNHALL: (${townhallResult.point.lat}, ${townhallResult.point.lon})`);
       // Succès avec fallback mairie
       await upsertGeoCache(trimmedAddress, {
         lat: townhallResult.point.lat,
@@ -307,8 +293,6 @@ export async function geocodeWithFallback(
   // ============================================================
   // ÉCHEC TOTAL
   // ============================================================
-  
-  console.log(`[Geocode] ❌ Échec total pour "${trimmedAddress}"`);
   
   return {
     success: false,

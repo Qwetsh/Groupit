@@ -9,6 +9,7 @@ import type {
   Affectation,
   Scenario,
   ScenarioArchive,
+  MetadataOralDNB,
 } from '../../domain/models';
 import type {
   ExportResultData,
@@ -58,7 +59,7 @@ function mapEleveAffecte(
   affectation: Affectation,
   juryEnseignants: Enseignant[]
 ): ExportEleveData {
-  const metadata = affectation.metadata as any;
+  const metadata = affectation.metadata as MetadataOralDNB;
   
   return {
     eleveId: eleve.id!,

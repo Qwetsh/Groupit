@@ -301,9 +301,9 @@ export const ElevesPage: React.FC = () => {
 
             <div className="filter-group">
               <label>Trier par:</label>
-              <select 
-                value={sortBy} 
-                onChange={e => setSortBy(e.target.value as any)}
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value as typeof sortBy)}
               >
                 <option value="nom">Nom</option>
                 <option value="classe">Classe</option>
@@ -440,9 +440,9 @@ export const ElevesPage: React.FC = () => {
 
             <div className="filter-group">
               <label>Matière oral:</label>
-              <select 
-                value={filterMatiere} 
-                onChange={e => setFilterMatiere(e.target.value as any)}
+              <select
+                value={filterMatiere}
+                onChange={e => setFilterMatiere(e.target.value as typeof filterMatiere)}
               >
                 <option value="all">Tous</option>
                 <option value="with">Avec matière</option>
@@ -452,9 +452,9 @@ export const ElevesPage: React.FC = () => {
 
             <div className="filter-group">
               <label>Trier par:</label>
-              <select 
-                value={sortBy} 
-                onChange={e => setSortBy(e.target.value as any)}
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value as typeof sortBy)}
               >
                 <option value="nom">Nom</option>
                 <option value="classe">Classe</option>

@@ -360,11 +360,9 @@ export function JuryManager({ scenario }: JuryManagerProps) {
   };
 
   const handleGenerateAuto = async () => {
-    console.log('[JuryManager] === GÉNÉRATION AUTOMATIQUE ===');
-    console.log('[JuryManager] Nombre jurys demandés:', nbJurysToGenerate);
-    console.log('[JuryManager] Enseignants par jury:', nbEnseignantsParJury);
-    console.log('[JuryManager] Enseignants source:', enseignantsSource.length);
-    console.log('[JuryManager] Enseignants source détail:', enseignantsSource.map(e => `${e.nom} (${e.matierePrincipale})`));
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[JuryManager] Génération auto:', nbJurysToGenerate, 'jurys,', enseignantsSource.length, 'enseignants');
+    }
     
     if (jurys.length > 0) {
       const confirmed = confirm(
