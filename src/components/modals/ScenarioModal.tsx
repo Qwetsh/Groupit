@@ -109,17 +109,31 @@ function EnseignantsFilterTab({
   };
 
   return (
-    <div className="form-section enseignants-filter-tab">
-      <p className="section-description">
-        Sélectionnez les enseignants qui pourront recevoir des élèves.
-        {!isIndividualMode && ' Si aucun filtre n\'est défini, tous les enseignants seront inclus.'}
-      </p>
+    <div className="form-section enseignants-filter-config">
+      {/* Header avec compteur */}
+      <div className="filter-header enseignants">
+        <div className="header-info">
+          <GraduationCap size={20} />
+          <div>
+            <strong>Filtrer les enseignants</strong>
+            <span className="header-hint">
+              {isIndividualMode
+                ? 'Mode sélection individuelle'
+                : 'Aucun filtre = tous les enseignants inclus'}
+            </span>
+          </div>
+        </div>
+        <div className="enseignants-count-badge">
+          <span className="count">{filteredEnseignantsCount}</span>
+          <span className="label">enseignants</span>
+        </div>
+      </div>
 
-      {/* Mode indicator */}
+      {/* Mode indicator pour sélection individuelle */}
       {isIndividualMode && (
-        <div className="mode-indicator individual">
+        <div className="individual-mode-banner">
           <UserCheck size={16} />
-          <span>Mode sélection individuelle : {filtresEnseignants.enseignantIds.length} enseignant(s) sélectionné(s)</span>
+          <span>{filtresEnseignants.enseignantIds.length} enseignant(s) sélectionné(s) manuellement</span>
           <button type="button" className="btn-link" onClick={clearIndividualSelection}>
             Revenir aux filtres
           </button>
@@ -129,94 +143,117 @@ function EnseignantsFilterTab({
       {/* Filtres rapides (masqués en mode sélection individuelle) */}
       {!isIndividualMode && (
         <>
-          <div className="form-group">
-            <label className="checkbox-item highlight">
-              <input
-                type="checkbox"
-                checked={filtresEnseignants.ppOnly}
-                onChange={e => onUpdateFilters({ ppOnly: e.target.checked })}
-              />
-              Uniquement les professeurs principaux
-            </label>
-          </div>
-
-          <div className="form-group">
-            <label>Filtrer par niveau enseigné</label>
-            <div className="checkbox-grid compact">
-              {distinctNiveaux.map(niveau => (
-                <label key={niveau} className="checkbox-item">
-                  <input
-                    type="checkbox"
-                    checked={filtresEnseignants.niveauxEnCharge.includes(niveau)}
-                    onChange={e => {
-                      const niveauxEnCharge = e.target.checked
-                        ? [...filtresEnseignants.niveauxEnCharge, niveau]
-                        : filtresEnseignants.niveauxEnCharge.filter(n => n !== niveau);
-                      onUpdateFilters({ niveauxEnCharge });
-                    }}
-                  />
-                  {niveau}
-                </label>
-              ))}
+          {/* Option PP Only */}
+          <div
+            className={`pp-toggle-card ${filtresEnseignants.ppOnly ? 'active' : ''}`}
+            onClick={() => onUpdateFilters({ ppOnly: !filtresEnseignants.ppOnly })}
+          >
+            <div className="toggle-icon">
+              <Star size={18} />
+            </div>
+            <div className="toggle-content">
+              <span className="toggle-label">Professeurs principaux uniquement</span>
+              <span className="toggle-hint">Restreindre aux PP</span>
+            </div>
+            <div className={`toggle-switch ${filtresEnseignants.ppOnly ? 'on' : ''}`}>
+              <div className="toggle-knob" />
             </div>
           </div>
 
-          <div className="form-group">
-            <label>Filtrer par matière</label>
-            <div className="checkbox-grid">
-              {distinctMatieres.map(matiere => (
-                <label key={matiere} className="checkbox-item">
-                  <input
-                    type="checkbox"
-                    checked={filtresEnseignants.matieres.includes(matiere)}
-                    onChange={e => {
-                      const matieres = e.target.checked
-                        ? [...filtresEnseignants.matieres, matiere]
-                        : filtresEnseignants.matieres.filter(m => m !== matiere);
-                      onUpdateFilters({ matieres });
-                    }}
-                  />
-                  {matiere}
-                </label>
-              ))}
+          {/* Section Niveaux */}
+          {distinctNiveaux.length > 0 && (
+            <div className="filter-section">
+              <label className="section-label">Par niveau enseigné</label>
+              <div className="chips-row">
+                {distinctNiveaux.map(niveau => {
+                  const isSelected = filtresEnseignants.niveauxEnCharge.includes(niveau);
+                  return (
+                    <button
+                      key={niveau}
+                      type="button"
+                      className={`filter-chip orange ${isSelected ? 'selected' : ''}`}
+                      onClick={() => {
+                        const niveauxEnCharge = isSelected
+                          ? filtresEnseignants.niveauxEnCharge.filter(n => n !== niveau)
+                          : [...filtresEnseignants.niveauxEnCharge, niveau];
+                        onUpdateFilters({ niveauxEnCharge });
+                      }}
+                    >
+                      <span className="chip-check"><Check size={12} /></span>
+                      {niveau}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="form-group">
-            <label>Filtrer par classe en charge</label>
-            <div className="checkbox-grid">
-              {distinctClasses.map(classe => (
-                <label key={classe} className="checkbox-item">
-                  <input
-                    type="checkbox"
-                    checked={filtresEnseignants.classesEnCharge.includes(classe)}
-                    onChange={e => {
-                      const classesEnCharge = e.target.checked
-                        ? [...filtresEnseignants.classesEnCharge, classe]
-                        : filtresEnseignants.classesEnCharge.filter(c => c !== classe);
-                      onUpdateFilters({ classesEnCharge });
-                    }}
-                  />
-                  {classe}
-                </label>
-              ))}
+          {/* Section Matières */}
+          {distinctMatieres.length > 0 && (
+            <div className="filter-section">
+              <label className="section-label">Par matière</label>
+              <div className="chips-wrap">
+                {distinctMatieres.map(matiere => {
+                  const isSelected = filtresEnseignants.matieres.includes(matiere);
+                  return (
+                    <button
+                      key={matiere}
+                      type="button"
+                      className={`filter-chip orange ${isSelected ? 'selected' : ''}`}
+                      onClick={() => {
+                        const matieres = isSelected
+                          ? filtresEnseignants.matieres.filter(m => m !== matiere)
+                          : [...filtresEnseignants.matieres, matiere];
+                        onUpdateFilters({ matieres });
+                      }}
+                    >
+                      <span className="chip-check"><Check size={12} /></span>
+                      {matiere}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Section Classes */}
+          {distinctClasses.length > 0 && (
+            <div className="filter-section">
+              <label className="section-label">Par classe en charge</label>
+              <div className="chips-wrap">
+                {distinctClasses.map(classe => {
+                  const isSelected = filtresEnseignants.classesEnCharge.includes(classe);
+                  return (
+                    <button
+                      key={classe}
+                      type="button"
+                      className={`filter-chip orange ${isSelected ? 'selected' : ''}`}
+                      onClick={() => {
+                        const classesEnCharge = isSelected
+                          ? filtresEnseignants.classesEnCharge.filter(c => c !== classe)
+                          : [...filtresEnseignants.classesEnCharge, classe];
+                        onUpdateFilters({ classesEnCharge });
+                      }}
+                    >
+                      <span className="chip-check"><Check size={12} /></span>
+                      {classe}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Action convertir en sélection */}
+          {filteredEnseignantsCount > 0 && filteredEnseignantsCount < enseignants.length && (
+            <div className="convert-action">
+              <button type="button" className="btn-link" onClick={selectAllFromFilter}>
+                Convertir en sélection individuelle ({filteredEnseignantsCount})
+              </button>
+            </div>
+          )}
         </>
       )}
-
-      {/* Aperçu et sélection fine */}
-      <div className="filter-preview-section">
-        <div className="filter-preview">
-          <strong>{filteredEnseignantsCount}</strong> enseignants {isIndividualMode ? 'sélectionnés' : 'correspondent aux filtres'}
-        </div>
-
-        {!isIndividualMode && filteredEnseignantsCount > 0 && filteredEnseignantsCount < enseignants.length && (
-          <button type="button" className="btn-link small" onClick={selectAllFromFilter}>
-            Convertir en sélection individuelle
-          </button>
-        )}
-      </div>
 
       {/* Section sélection individuelle (repliable) */}
       <div className="collapsible-section">
@@ -245,20 +282,27 @@ function EnseignantsFilterTab({
             </div>
 
             <div className="enseignants-list">
-              {searchedEnseignants.map(ens => (
-                <label key={ens.id} className={`enseignant-item ${filtresEnseignants.enseignantIds.includes(ens.id!) ? 'selected' : ''}`}>
-                  <input
-                    type="checkbox"
-                    checked={filtresEnseignants.enseignantIds.includes(ens.id!)}
-                    onChange={() => toggleEnseignant(ens.id!)}
-                  />
-                  <span className="ens-name">{ens.nom} {ens.prenom}</span>
-                  <span className="ens-matiere">{ens.matierePrincipale}</span>
-                  {ens.classesEnCharge && ens.classesEnCharge.length > 0 && (
-                    <span className="ens-classes">{ens.classesEnCharge.slice(0, 3).join(', ')}{ens.classesEnCharge.length > 3 ? '...' : ''}</span>
-                  )}
-                </label>
-              ))}
+              {searchedEnseignants.map(ens => {
+                const isSelected = filtresEnseignants.enseignantIds.includes(ens.id!);
+                return (
+                  <div
+                    key={ens.id}
+                    className={`enseignant-card ${isSelected ? 'selected' : ''}`}
+                    onClick={() => toggleEnseignant(ens.id!)}
+                  >
+                    <div className="ens-check">
+                      <Check size={14} />
+                    </div>
+                    <div className="ens-info">
+                      <span className="ens-name">{ens.prenom} {ens.nom}</span>
+                      <span className="ens-matiere">{ens.matierePrincipale}</span>
+                    </div>
+                    {ens.classesEnCharge && ens.classesEnCharge.length > 0 && (
+                      <span className="ens-classes">{ens.classesEnCharge.slice(0, 2).join(', ')}</span>
+                    )}
+                  </div>
+                );
+              })}
               {searchedEnseignants.length === 0 && (
                 <div className="no-results">Aucun enseignant trouvé</div>
               )}
