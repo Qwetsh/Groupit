@@ -820,79 +820,103 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
 
             {/* TAB: Filtres Élèves - Masqué pour suivi_stage */}
             {activeTab === 'eleves' && formData.type !== 'suivi_stage' && (
-              <div className="form-section">
-                <p className="section-description">
-                  Sélectionnez les élèves à inclure dans ce scénario. Si aucun filtre n'est défini, tous les élèves seront inclus.
-                </p>
+              <div className="form-section eleves-filter-config">
+                {/* Header avec compteur */}
+                <div className="filter-header">
+                  <div className="header-info">
+                    <Users size={20} />
+                    <div>
+                      <strong>Filtrer les élèves</strong>
+                      <span className="header-hint">Aucun filtre = tous les élèves inclus</span>
+                    </div>
+                  </div>
+                  <div className="eleves-count-badge">
+                    <span className="count">{filteredElevesCount}</span>
+                    <span className="label">élèves</span>
+                  </div>
+                </div>
 
-                <div className="form-group">
-                  <label>Filtrer par niveau</label>
-                  <div className="checkbox-grid">
-                    {(['6e', '5e', '4e', '3e'] as Niveau[]).map(niveau => (
-                      <label key={niveau} className="checkbox-item">
-                        <input
-                          type="checkbox"
-                          checked={formData.filtresEleves.niveaux.includes(niveau)}
-                          onChange={e => {
-                            const niveaux = e.target.checked
-                              ? [...formData.filtresEleves.niveaux, niveau]
-                              : formData.filtresEleves.niveaux.filter(n => n !== niveau);
+                {/* Section Niveaux */}
+                <div className="filter-section">
+                  <label className="section-label">Par niveau</label>
+                  <div className="chips-row">
+                    {(['6e', '5e', '4e', '3e'] as Niveau[]).map(niveau => {
+                      const isSelected = formData.filtresEleves.niveaux.includes(niveau);
+                      return (
+                        <button
+                          key={niveau}
+                          type="button"
+                          className={`filter-chip ${isSelected ? 'selected' : ''}`}
+                          onClick={() => {
+                            const niveaux = isSelected
+                              ? formData.filtresEleves.niveaux.filter(n => n !== niveau)
+                              : [...formData.filtresEleves.niveaux, niveau];
                             setFormData(prev => ({ ...prev, filtresEleves: { ...prev.filtresEleves, niveaux } }));
                           }}
-                        />
-                        {niveau}
-                      </label>
-                    ))}
+                        >
+                          <span className="chip-check"><Check size={12} /></span>
+                          {niveau}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label>Filtrer par classe</label>
-                  <div className="checkbox-grid">
-                    {distinctClasses.map(classe => (
-                      <label key={classe} className="checkbox-item">
-                        <input
-                          type="checkbox"
-                          checked={formData.filtresEleves.classes.includes(classe)}
-                          onChange={e => {
-                            const classes = e.target.checked
-                              ? [...formData.filtresEleves.classes, classe]
-                              : formData.filtresEleves.classes.filter(c => c !== classe);
-                            setFormData(prev => ({ ...prev, filtresEleves: { ...prev.filtresEleves, classes } }));
-                          }}
-                        />
-                        {classe}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {distinctOptions.length > 0 && (
-                  <div className="form-group">
-                    <label>Filtrer par option</label>
-                    <div className="checkbox-grid">
-                      {distinctOptions.map(option => (
-                        <label key={option} className="checkbox-item">
-                          <input
-                            type="checkbox"
-                            checked={formData.filtresEleves.options.includes(option)}
-                            onChange={e => {
-                              const options = e.target.checked
-                                ? [...formData.filtresEleves.options, option]
-                                : formData.filtresEleves.options.filter(o => o !== option);
-                              setFormData(prev => ({ ...prev, filtresEleves: { ...prev.filtresEleves, options } }));
+                {/* Section Classes */}
+                {distinctClasses.length > 0 && (
+                  <div className="filter-section">
+                    <label className="section-label">Par classe</label>
+                    <div className="chips-wrap">
+                      {distinctClasses.map(classe => {
+                        const isSelected = formData.filtresEleves.classes.includes(classe);
+                        return (
+                          <button
+                            key={classe}
+                            type="button"
+                            className={`filter-chip ${isSelected ? 'selected' : ''}`}
+                            onClick={() => {
+                              const classes = isSelected
+                                ? formData.filtresEleves.classes.filter(c => c !== classe)
+                                : [...formData.filtresEleves.classes, classe];
+                              setFormData(prev => ({ ...prev, filtresEleves: { ...prev.filtresEleves, classes } }));
                             }}
-                          />
-                          {option}
-                        </label>
-                      ))}
+                          >
+                            <span className="chip-check"><Check size={12} /></span>
+                            {classe}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
 
-                <div className="filter-preview">
-                  <strong>{filteredElevesCount}</strong> élèves seront inclus dans ce scénario
-                </div>
+                {/* Section Options */}
+                {distinctOptions.length > 0 && (
+                  <div className="filter-section">
+                    <label className="section-label">Par option</label>
+                    <div className="chips-wrap">
+                      {distinctOptions.map(option => {
+                        const isSelected = formData.filtresEleves.options.includes(option);
+                        return (
+                          <button
+                            key={option}
+                            type="button"
+                            className={`filter-chip ${isSelected ? 'selected' : ''}`}
+                            onClick={() => {
+                              const options = isSelected
+                                ? formData.filtresEleves.options.filter(o => o !== option)
+                                : [...formData.filtresEleves.options, option];
+                              setFormData(prev => ({ ...prev, filtresEleves: { ...prev.filtresEleves, options } }));
+                            }}
+                          >
+                            <span className="chip-check"><Check size={12} /></span>
+                            {option}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
