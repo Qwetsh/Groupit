@@ -1086,3 +1086,201 @@
   font-size: 12px;
   color: #64748b;
 }
+
+/* ============================================================
+   ORAL DNB - Modern Chips UI
+   ============================================================ */
+
+.oral-dnb-config {
+  border-bottom: none !important;
+}
+
+.oral-dnb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+.oral-dnb-header .header-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.oral-dnb-header .header-info svg {
+  color: #3b82f6;
+}
+
+.oral-dnb-header .header-info strong {
+  display: block;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.oral-dnb-header .header-hint {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.oral-dnb-header .capacity-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.oral-dnb-header .capacity-inline label {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.oral-dnb-header .capacity-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.oral-dnb-header .capacity-input-wrapper input {
+  width: 50px;
+  padding: 4px 6px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.oral-dnb-header .capacity-input-wrapper input:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.oral-dnb-header .capacity-input-wrapper span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Matières Chips Grid */
+.matieres-chips-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.matiere-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 20px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.matiere-chip:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+  transform: translateY(-1px);
+}
+
+.matiere-chip .chip-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: transparent;
+  transition: all 0.2s ease;
+}
+
+.matiere-chip.selected {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.matiere-chip.selected:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  transform: translateY(-1px);
+}
+
+.matiere-chip.selected .chip-check {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+}
+
+.matiere-chip .chip-label {
+  line-height: 1;
+}
+
+/* Matières Actions */
+.matieres-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 4px;
+}
+
+.matieres-actions .selection-count {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.matieres-actions .action-buttons {
+  display: flex;
+  gap: 12px;
+}
+
+.matieres-actions .btn-link {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.matieres-actions .btn-link:hover {
+  background: #eff6ff;
+}
+
+/* Config note */
+.config-note {
+  margin: 16px 0 0 0;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #64748b;
+  text-align: center;
+}
+
+.config-note strong {
+  color: #475569;
+}
