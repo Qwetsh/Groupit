@@ -261,47 +261,59 @@ export function JuryManager({ scenario }: JuryManagerProps) {
   // ============================================================
   // FILTRAGE DES ENSEIGNANTS SELON LES FILTRES DU SCÉNARIO
   // ============================================================
-  // Utilise scenario.parametres.filtresEnseignants pour filtrer
-  // (classesEnCharge, matieres, ppOnly) comme dans Board.tsx
   const enseignantsSource = useMemo(() => {
     const filters = scenario.parametres?.filtresEnseignants;
-    
+
     // Si pas de filtres, retourner tous les enseignants
     if (!filters) {
-      console.log('[JuryManager] Pas de filtres, tous enseignants:', enseignants.length);
       return enseignants;
     }
 
+    // MODE SÉLECTION INDIVIDUELLE : prioritaire sur les autres filtres
+    if (filters.enseignantIds && filters.enseignantIds.length > 0) {
+      return enseignants.filter(e => filters.enseignantIds!.includes(e.id!));
+    }
+
+    // MODE FILTRES CLASSIQUES
     const filtered = enseignants.filter(e => {
       // Filtre prof principal only
       if (filters.ppOnly && !e.estProfPrincipal) {
         return false;
       }
-      
+
+      // Filtre par niveaux en charge
+      if (filters.niveauxEnCharge && filters.niveauxEnCharge.length > 0) {
+        const ensClasses = e.classesEnCharge || [];
+        const hasMatchingNiveau = ensClasses.some(c => {
+          const niveau = c.replace(/[^0-9]/g, '')[0] + 'e';
+          return filters.niveauxEnCharge!.includes(niveau as never);
+        });
+        if (!hasMatchingNiveau) {
+          return false;
+        }
+      }
+
       // Filtre par matières
       if (filters.matieres && filters.matieres.length > 0) {
         if (!e.matierePrincipale || !filters.matieres.includes(e.matierePrincipale)) {
           return false;
         }
       }
-      
-      // Filtre par classes en charge (ex: avoir une classe de 3ème)
+
+      // Filtre par classes en charge
       if (filters.classesEnCharge && filters.classesEnCharge.length > 0) {
         const ensClasses = e.classesEnCharge || [];
-        const hasMatchingClass = filters.classesEnCharge.some(fc => 
+        const hasMatchingClass = filters.classesEnCharge.some(fc =>
           ensClasses.some(ec => ec.toLowerCase().includes(fc.toLowerCase()))
         );
         if (!hasMatchingClass) {
           return false;
         }
       }
-      
+
       return true;
     });
 
-    console.log('[JuryManager] Filtres scénario:', filters);
-    console.log('[JuryManager] Enseignants après filtrage:', filtered.length, '/', enseignants.length);
-    
     return filtered;
   }, [enseignants, scenario.parametres?.filtresEnseignants]);
 
