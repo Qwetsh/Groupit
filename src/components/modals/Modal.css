@@ -911,3 +911,173 @@
   color: #9ca3af;
   font-size: 0.875rem;
 }
+
+/* ============================================================
+   SUIVI STAGE - Parameter Cards
+   ============================================================ */
+
+.stage-params-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 768px) {
+  .stage-params-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stage-param-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.stage-param-card:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.stage-param-card:focus-within {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.stage-param-card .param-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.stage-param-card .param-content {
+  text-align: center;
+}
+
+.stage-param-card .param-content label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.stage-param-card .param-hint {
+  font-size: 11px;
+  color: #64748b;
+  margin: 0;
+}
+
+.stage-param-card .param-input-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 2px;
+  margin-top: 4px;
+}
+
+.stage-param-card .param-input-group input {
+  width: 60px;
+  border: none;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  padding: 6px 4px;
+  background: transparent;
+}
+
+.stage-param-card .param-input-group input:focus {
+  outline: none;
+}
+
+.stage-param-card .param-input-group input::-webkit-inner-spin-button,
+.stage-param-card .param-input-group input::-webkit-outer-spin-button {
+  opacity: 1;
+}
+
+.stage-param-card .param-unit {
+  font-size: 12px;
+  color: #64748b;
+  padding: 6px 8px;
+  background: #f1f5f9;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+/* Option card (checkbox toggle) */
+.stage-option-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.stage-option-card.active {
+  background: #eff6ff;
+  border-color: #3b82f6;
+}
+
+.stage-option-card .option-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.stage-option-card .option-toggle input[type="checkbox"] {
+  display: none;
+}
+
+.stage-option-card .option-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.stage-option-card.active .option-icon {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: white;
+}
+
+.stage-option-card .option-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stage-option-card .option-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.stage-option-card .option-hint {
+  font-size: 12px;
+  color: #64748b;
+}

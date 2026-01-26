@@ -3,7 +3,7 @@
 // ============================================================
 
 import { useState, useEffect, useMemo } from 'react';
-import { X, Save, Settings, Users, GraduationCap, Filter, Mic, Briefcase, AlertCircle, Search, ChevronDown, ChevronUp, UserCheck } from 'lucide-react';
+import { X, Save, Settings, Users, GraduationCap, Filter, Mic, Briefcase, AlertCircle, Search, ChevronDown, ChevronUp, UserCheck, MapPin, Clock, UserPlus, Star } from 'lucide-react';
 import { useScenarioStore } from '../../stores/scenarioStore';
 import { useEleveStore } from '../../stores/eleveStore';
 import { useEnseignantStore } from '../../stores/enseignantStore';
@@ -702,60 +702,91 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
                   <AlertCircle size={18} />
                   <div>
                     <strong>Configuration du suivi de stage</strong>
-                    <p>Définissez les paramètres d'affectation des élèves stagiaires aux enseignants tuteurs, avec optimisation géographique.</p>
+                    <p>Définissez les paramètres d'affectation des élèves stagiaires aux enseignants tuteurs.</p>
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="distanceMaxKm">Distance maximale (km)</label>
-                  <p className="form-hint">Distance maximale entre l'enseignant et le lieu de stage de l'élève.</p>
-                  <input
-                    id="distanceMaxKm"
-                    type="number"
-                    min={1}
-                    max={200}
-                    value={formData.suiviStage.distanceMaxKm}
-                    onChange={e => setFormData(prev => ({
-                      ...prev,
-                      suiviStage: { ...prev.suiviStage, distanceMaxKm: parseInt(e.target.value) || 50 }
-                    }))}
-                  />
+                {/* Paramètres en grille de cartes */}
+                <div className="stage-params-grid">
+                  {/* Distance maximale */}
+                  <div className="stage-param-card">
+                    <div className="param-icon">
+                      <MapPin size={20} />
+                    </div>
+                    <div className="param-content">
+                      <label htmlFor="distanceMaxKm">Distance maximale</label>
+                      <p className="param-hint">Rayon autour de l'enseignant</p>
+                    </div>
+                    <div className="param-input-group">
+                      <input
+                        id="distanceMaxKm"
+                        type="number"
+                        min={1}
+                        max={200}
+                        value={formData.suiviStage.distanceMaxKm}
+                        onChange={e => setFormData(prev => ({
+                          ...prev,
+                          suiviStage: { ...prev.suiviStage, distanceMaxKm: parseInt(e.target.value) || 50 }
+                        }))}
+                      />
+                      <span className="param-unit">km</span>
+                    </div>
+                  </div>
+
+                  {/* Durée maximale */}
+                  <div className="stage-param-card">
+                    <div className="param-icon">
+                      <Clock size={20} />
+                    </div>
+                    <div className="param-content">
+                      <label htmlFor="dureeMaxMin">Durée de trajet max</label>
+                      <p className="param-hint">Temps en voiture estimé</p>
+                    </div>
+                    <div className="param-input-group">
+                      <input
+                        id="dureeMaxMin"
+                        type="number"
+                        min={5}
+                        max={180}
+                        value={formData.suiviStage.dureeMaxMin}
+                        onChange={e => setFormData(prev => ({
+                          ...prev,
+                          suiviStage: { ...prev.suiviStage, dureeMaxMin: parseInt(e.target.value) || 60 }
+                        }))}
+                      />
+                      <span className="param-unit">min</span>
+                    </div>
+                  </div>
+
+                  {/* Capacité tuteur */}
+                  <div className="stage-param-card">
+                    <div className="param-icon">
+                      <UserPlus size={20} />
+                    </div>
+                    <div className="param-content">
+                      <label htmlFor="capaciteTuteurDefaut">Capacité par tuteur</label>
+                      <p className="param-hint">Élèves max par enseignant</p>
+                    </div>
+                    <div className="param-input-group">
+                      <input
+                        id="capaciteTuteurDefaut"
+                        type="number"
+                        min={1}
+                        max={20}
+                        value={formData.suiviStage.capaciteTuteurDefaut}
+                        onChange={e => setFormData(prev => ({
+                          ...prev,
+                          suiviStage: { ...prev.suiviStage, capaciteTuteurDefaut: parseInt(e.target.value) || 5 }
+                        }))}
+                      />
+                      <span className="param-unit">élèves</span>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="dureeMaxMin">Durée maximale de trajet (min)</label>
-                  <p className="form-hint">Temps de trajet maximal en voiture pour rejoindre le lieu de stage.</p>
-                  <input
-                    id="dureeMaxMin"
-                    type="number"
-                    min={5}
-                    max={180}
-                    value={formData.suiviStage.dureeMaxMin}
-                    onChange={e => setFormData(prev => ({
-                      ...prev,
-                      suiviStage: { ...prev.suiviStage, dureeMaxMin: parseInt(e.target.value) || 60 }
-                    }))}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="capaciteTuteurDefaut">Capacité tuteur par défaut</label>
-                  <p className="form-hint">Nombre maximum d'élèves qu'un tuteur peut suivre par défaut.</p>
-                  <input
-                    id="capaciteTuteurDefaut"
-                    type="number"
-                    min={1}
-                    max={20}
-                    value={formData.suiviStage.capaciteTuteurDefaut}
-                    onChange={e => setFormData(prev => ({
-                      ...prev,
-                      suiviStage: { ...prev.suiviStage, capaciteTuteurDefaut: parseInt(e.target.value) || 5 }
-                    }))}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="checkbox-item standalone">
+                {/* Option priorité PP */}
+                <div className={`stage-option-card ${formData.suiviStage.prioriserPP ? 'active' : ''}`}>
+                  <label className="option-toggle">
                     <input
                       type="checkbox"
                       checked={formData.suiviStage.prioriserPP}
@@ -764,9 +795,14 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
                         suiviStage: { ...prev.suiviStage, prioriserPP: e.target.checked }
                       }))}
                     />
-                    Prioriser le professeur principal
+                    <div className="option-icon">
+                      <Star size={20} />
+                    </div>
+                    <div className="option-content">
+                      <span className="option-label">Prioriser le professeur principal</span>
+                      <span className="option-hint">Les élèves seront préférentiellement affectés à leur PP si disponible géographiquement</span>
+                    </div>
                   </label>
-                  <p className="form-hint">Si activé, les élèves seront préférentiellement affectés à leur professeur principal (si disponible géographiquement).</p>
                 </div>
               </div>
             )}
