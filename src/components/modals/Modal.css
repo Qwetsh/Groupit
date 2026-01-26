@@ -1427,3 +1427,262 @@
   background: rgba(255, 255, 255, 0.25);
   color: white;
 }
+
+/* Orange variant for enseignants */
+.filter-chip.orange.selected {
+  background: #f59e0b;
+  border-color: #f59e0b;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+}
+
+.filter-chip.orange.selected:hover {
+  background: #d97706;
+  border-color: #d97706;
+}
+
+/* ============================================================
+   ENSEIGNANTS FILTER - Modern UI
+   ============================================================ */
+
+.enseignants-filter-config {
+  border-bottom: none !important;
+}
+
+.filter-header.enseignants {
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+}
+
+.filter-header.enseignants .header-info svg {
+  color: #f59e0b;
+}
+
+.enseignants-count-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid #fde68a;
+  min-width: 80px;
+}
+
+.enseignants-count-badge .count {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f59e0b;
+  line-height: 1;
+}
+
+.enseignants-count-badge .label {
+  font-size: 10px;
+  color: #64748b;
+}
+
+/* Individual mode banner */
+.individual-mode-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #92400e;
+}
+
+.individual-mode-banner svg {
+  flex-shrink: 0;
+}
+
+.individual-mode-banner .btn-link {
+  margin-left: auto;
+  color: #d97706;
+  background: none;
+  border: none;
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* PP Toggle Card */
+.pp-toggle-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 16px;
+}
+
+.pp-toggle-card:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.pp-toggle-card.active {
+  background: #fffbeb;
+  border-color: #f59e0b;
+}
+
+.pp-toggle-card .toggle-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.pp-toggle-card.active .toggle-icon {
+  background: #f59e0b;
+  color: white;
+}
+
+.pp-toggle-card .toggle-content {
+  flex: 1;
+}
+
+.pp-toggle-card .toggle-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.pp-toggle-card .toggle-hint {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.pp-toggle-card .toggle-switch {
+  width: 44px;
+  height: 24px;
+  background: #cbd5e1;
+  border-radius: 12px;
+  position: relative;
+  transition: background 0.2s ease;
+}
+
+.pp-toggle-card .toggle-switch.on {
+  background: #f59e0b;
+}
+
+.pp-toggle-card .toggle-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  transition: transform 0.2s ease;
+}
+
+.pp-toggle-card .toggle-switch.on .toggle-knob {
+  transform: translateX(20px);
+}
+
+/* Convert action */
+.convert-action {
+  text-align: center;
+  padding: 8px 0;
+  margin-top: 8px;
+}
+
+.convert-action .btn-link {
+  background: none;
+  border: none;
+  color: #f59e0b;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.convert-action .btn-link:hover {
+  background: #fffbeb;
+}
+
+/* Enseignant cards in individual selection */
+.enseignant-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.enseignant-card:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.enseignant-card.selected {
+  background: #fffbeb;
+  border-color: #f59e0b;
+}
+
+.enseignant-card .ens-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: transparent;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.enseignant-card.selected .ens-check {
+  background: #f59e0b;
+  color: white;
+}
+
+.enseignant-card .ens-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.enseignant-card .ens-name {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.enseignant-card .ens-matiere {
+  display: block;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.enseignant-card .ens-classes {
+  font-size: 11px;
+  color: #94a3b8;
+  background: #f1f5f9;
+  padding: 2px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
