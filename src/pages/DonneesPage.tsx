@@ -758,12 +758,12 @@ export const DonneesPage: React.FC = () => {
           </div>
         )}
 
-        {/* DEV ONLY - Bouton génération adresses */}
-        {activeTab === 'enseignants' && import.meta.env.DEV && (
-          <button 
+        {/* Bouton génération adresses (pour démo) */}
+        {activeTab === 'enseignants' && (
+          <button
             className="btn-dev-generate"
             onClick={handleGenerateAddresses}
-            title="Générer des adresses aléatoires (DEV)"
+            title="Générer des adresses aléatoires pour les enseignants"
           >
             <MapPinPlus size={16} />
             Générer adresses
