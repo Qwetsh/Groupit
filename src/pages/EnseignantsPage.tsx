@@ -15,10 +15,6 @@ import {
   Edit2,
   Trash2,
   Copy,
-  MapPin,
-  CheckCircle,
-  AlertCircle,
-  BookOpen,
   Users,
   Award,
   ChevronDown
@@ -91,89 +87,51 @@ function EnseignantCard({ enseignant, onClick, onEdit, onDelete, onDuplicate }: 
   }, [showMenu]);
 
   return (
-    <div className="enseignant-card-v2" onClick={onClick}>
-      {/* Header avec avatar et nom */}
-      <div className="card-v2-header">
-        <div className="avatar-v2">
-          {enseignant.prenom?.[0]}{enseignant.nom[0]}
-        </div>
-        <div className="identity">
-          <h3>{enseignant.prenom} <span className="nom-upper">{enseignant.nom.toUpperCase()}</span></h3>
-          <div className="identity-badges">
-            {enseignant.matierePrincipale && (
-              <span className="matiere-badge">
-                <BookOpen size={12} />
-                {enseignant.matierePrincipale}
-              </span>
-            )}
-            {enseignant.estProfPrincipal && (
-              <span className="pp-badge-inline">
-                <Award size={10} />
-                PP {enseignant.classePP}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="menu-trigger" onClick={handleMenuClick}>
-          <MoreVertical size={18} />
-        </div>
-        {showMenu && (
-          <ContextMenu
-            enseignant={enseignant}
-            onEdit={onEdit}
-            onDelete={onDelete}
-            onDuplicate={onDuplicate}
-            onClose={() => setShowMenu(false)}
-          />
-        )}
+    <div className="enseignant-mini-card" onClick={onClick}>
+      {/* Menu button */}
+      <div className="mini-card-menu" onClick={handleMenuClick}>
+        <MoreVertical size={14} />
+      </div>
+      {showMenu && (
+        <ContextMenu
+          enseignant={enseignant}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onDuplicate={onDuplicate}
+          onClose={() => setShowMenu(false)}
+        />
+      )}
+
+      {/* Avatar centré */}
+      <div className="mini-avatar">
+        {enseignant.prenom?.[0]}{enseignant.nom[0]}
       </div>
 
-      {/* Body avec infos clés */}
-      <div className="card-v2-body">
-        {/* Classes en charge */}
-        {enseignant.classesEnCharge && enseignant.classesEnCharge.length > 0 && (
-          <div className="info-row">
-            <Users size={14} />
-            <span className="classes-list">
-              {enseignant.classesEnCharge.slice(0, 4).join(', ')}
-              {enseignant.classesEnCharge.length > 4 && ` +${enseignant.classesEnCharge.length - 4}`}
-            </span>
-          </div>
-        )}
-
-
-        {/* Adresse avec statut géocodage */}
-        {(enseignant.adresse || enseignant.commune) && (
-          <div className="info-row geo-row">
-            <MapPin size={14} />
-            <span className="address-text">
-              {enseignant.commune || enseignant.adresse}
-            </span>
-            {enseignant.geoStatus === 'ok' && (
-              <CheckCircle size={12} className="geo-ok" />
-            )}
-            {enseignant.geoStatus === 'error' && (
-              <AlertCircle size={12} className="geo-error" />
-            )}
-          </div>
-        )}
+      {/* Nom */}
+      <div className="mini-name">
+        <span className="prenom">{enseignant.prenom}</span>
+        <span className="nom">{enseignant.nom.toUpperCase()}</span>
       </div>
 
-      {/* Footer avec tags */}
-      <div className="card-v2-footer">
-        {enseignant.tags && enseignant.tags.length > 0 ? (
-          <div className="tags-row">
-            {enseignant.tags.slice(0, 3).map((tag, i) => (
-              <span key={i} className="tag-badge">{tag}</span>
-            ))}
-            {enseignant.tags.length > 3 && (
-              <span className="tags-more">+{enseignant.tags.length - 3}</span>
-            )}
-          </div>
-        ) : (
-          <div className="footer-spacer" />
-        )}
-        <span className="view-profile">Voir profil →</span>
+      {/* Séparateur */}
+      <div className="mini-divider" />
+
+      {/* Badge PP - positionné en haut gauche */}
+      {enseignant.estProfPrincipal && (
+        <span className="mini-pp-badge">
+          <Award size={10} />
+          PP {enseignant.classePP}
+        </span>
+      )}
+
+      {/* Matière */}
+      {enseignant.matierePrincipale && (
+        <span className="mini-matiere">{enseignant.matierePrincipale}</span>
+      )}
+
+      {/* Hover overlay */}
+      <div className="mini-hover-overlay">
+        <span>Voir profil</span>
       </div>
     </div>
   );
