@@ -69,14 +69,6 @@
   color: #64748b;
 }
 
-.eleve-sexe.male {
-  color: #3b82f6;
-}
-
-.eleve-sexe.female {
-  color: #ec4899;
-}
-
 /* Info sections */
 .info-section {
   margin-bottom: 20px;
