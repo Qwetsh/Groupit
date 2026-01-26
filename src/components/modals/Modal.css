@@ -1284,3 +1284,146 @@
 .config-note strong {
   color: #475569;
 }
+
+/* ============================================================
+   ELEVES FILTER - Modern Chips UI
+   ============================================================ */
+
+.eleves-filter-config {
+  border-bottom: none !important;
+}
+
+.filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.filter-header .header-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-header .header-info svg {
+  color: #16a34a;
+}
+
+.filter-header .header-info strong {
+  display: block;
+  font-size: 14px;
+  color: #1e293b;
+}
+
+.filter-header .header-hint {
+  display: block;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.eleves-count-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: white;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid #bbf7d0;
+  min-width: 70px;
+}
+
+.eleves-count-badge .count {
+  font-size: 20px;
+  font-weight: 700;
+  color: #16a34a;
+  line-height: 1;
+}
+
+.eleves-count-badge .label {
+  font-size: 11px;
+  color: #64748b;
+}
+
+/* Filter Sections */
+.filter-section {
+  margin-bottom: 16px;
+}
+
+.filter-section .section-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.chips-row {
+  display: flex;
+  gap: 8px;
+}
+
+.chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Filter Chips (shared style) */
+.filter-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 18px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.filter-chip:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+  transform: translateY(-1px);
+}
+
+.filter-chip .chip-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: transparent;
+  transition: all 0.2s ease;
+}
+
+.filter-chip.selected {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: white;
+  box-shadow: 0 2px 8px rgba(22, 163, 74, 0.3);
+}
+
+.filter-chip.selected:hover {
+  background: #15803d;
+  border-color: #15803d;
+  transform: translateY(-1px);
+}
+
+.filter-chip.selected .chip-check {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+}
