@@ -3,7 +3,7 @@
 // ============================================================
 
 import { useState, useEffect, useMemo } from 'react';
-import { X, Save, Settings, Users, GraduationCap, Filter, Mic, Briefcase, AlertCircle, Search, ChevronDown, ChevronUp, UserCheck, MapPin, Clock, UserPlus, Star } from 'lucide-react';
+import { X, Save, Settings, Users, GraduationCap, Filter, Mic, Briefcase, AlertCircle, Search, ChevronDown, ChevronUp, UserCheck, MapPin, Clock, UserPlus, Star, Check } from 'lucide-react';
 import { useScenarioStore } from '../../stores/scenarioStore';
 import { useEleveStore } from '../../stores/eleveStore';
 import { useEnseignantStore } from '../../stores/enseignantStore';
@@ -613,55 +613,85 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
 
             {/* TAB: Configuration Oral DNB */}
             {activeTab === 'oral_dnb' && formData.type === 'oral_dnb' && (
-              <div className="form-section">
-                <div className="info-box">
-                  <AlertCircle size={18} />
-                  <div>
-                    <strong>Configuration de l'oral du DNB</strong>
-                    <p>Définissez les matières autorisées et les paramètres d'affectation. Les jurys seront créés après la création du scénario.</p>
+              <div className="form-section oral-dnb-config">
+                {/* Header compact avec capacité inline */}
+                <div className="oral-dnb-header">
+                  <div className="header-info">
+                    <Mic size={20} />
+                    <div>
+                      <strong>Matières autorisées</strong>
+                      <span className="header-hint">Sélectionnez les matières pour l'oral</span>
+                    </div>
+                  </div>
+                  <div className="capacity-inline">
+                    <label htmlFor="capaciteJury">Capacité/jury</label>
+                    <div className="capacity-input-wrapper">
+                      <input
+                        id="capaciteJury"
+                        type="number"
+                        min="1"
+                        max="30"
+                        value={formData.oralDnb.capaciteJuryDefaut}
+                        onChange={e => setFormData(prev => ({
+                          ...prev,
+                          oralDnb: { ...prev.oralDnb, capaciteJuryDefaut: parseInt(e.target.value) || 8 }
+                        }))}
+                      />
+                      <span>élèves</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label>Matières autorisées pour l'oral</label>
-                  <p className="form-hint">Les élèves pourront choisir parmi ces matières pour leur sujet d'oral.</p>
-                  <div className="checkbox-grid matiere-grid">
-                    {MATIERES_ORAL_DISPONIBLES.map(matiere => (
-                      <label key={matiere} className="checkbox-item">
-                        <input
-                          type="checkbox"
-                          checked={formData.oralDnb.matieresAutorisees.includes(matiere)}
-                          onChange={e => {
-                            const matieresAutorisees = e.target.checked
-                              ? [...formData.oralDnb.matieresAutorisees, matiere]
-                              : formData.oralDnb.matieresAutorisees.filter(m => m !== matiere);
-                            setFormData(prev => ({ 
-                              ...prev, 
-                              oralDnb: { ...prev.oralDnb, matieresAutorisees } 
-                            }));
-                          }}
-                        />
-                        {matiere}
-                      </label>
-                    ))}
-                  </div>
-                  <div className="selection-actions">
-                    <button 
-                      type="button" 
-                      className="btn-text"
-                      onClick={() => setFormData(prev => ({ 
-                        ...prev, 
-                        oralDnb: { ...prev.oralDnb, matieresAutorisees: [...MATIERES_ORAL_DISPONIBLES] } 
+                {/* Grille de chips matières */}
+                <div className="matieres-chips-grid">
+                  {MATIERES_ORAL_DISPONIBLES.map(matiere => {
+                    const isSelected = formData.oralDnb.matieresAutorisees.includes(matiere);
+                    return (
+                      <button
+                        key={matiere}
+                        type="button"
+                        className={`matiere-chip ${isSelected ? 'selected' : ''}`}
+                        onClick={() => {
+                          const matieresAutorisees = isSelected
+                            ? formData.oralDnb.matieresAutorisees.filter(m => m !== matiere)
+                            : [...formData.oralDnb.matieresAutorisees, matiere];
+                          setFormData(prev => ({
+                            ...prev,
+                            oralDnb: { ...prev.oralDnb, matieresAutorisees }
+                          }));
+                        }}
+                      >
+                        <span className="chip-check">
+                          <Check size={14} />
+                        </span>
+                        <span className="chip-label">{matiere}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Actions rapides */}
+                <div className="matieres-actions">
+                  <span className="selection-count">
+                    {formData.oralDnb.matieresAutorisees.length}/{MATIERES_ORAL_DISPONIBLES.length} sélectionnées
+                  </span>
+                  <div className="action-buttons">
+                    <button
+                      type="button"
+                      className="btn-link"
+                      onClick={() => setFormData(prev => ({
+                        ...prev,
+                        oralDnb: { ...prev.oralDnb, matieresAutorisees: [...MATIERES_ORAL_DISPONIBLES] }
                       }))}
                     >
                       Tout sélectionner
                     </button>
-                    <button 
-                      type="button" 
-                      className="btn-text"
-                      onClick={() => setFormData(prev => ({ 
-                        ...prev, 
-                        oralDnb: { ...prev.oralDnb, matieresAutorisees: [] } 
+                    <button
+                      type="button"
+                      className="btn-link"
+                      onClick={() => setFormData(prev => ({
+                        ...prev,
+                        oralDnb: { ...prev.oralDnb, matieresAutorisees: [] }
                       }))}
                     >
                       Tout désélectionner
@@ -669,29 +699,10 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="capaciteJury">Capacité par jury (défaut)</label>
-                  <input
-                    id="capaciteJury"
-                    type="number"
-                    min="1"
-                    max="30"
-                    value={formData.oralDnb.capaciteJuryDefaut}
-                    onChange={e => setFormData(prev => ({ 
-                      ...prev, 
-                      oralDnb: { ...prev.oralDnb, capaciteJuryDefaut: parseInt(e.target.value) || 8 } 
-                    }))}
-                  />
-                  <span className="form-hint">Nombre d'élèves max par jury (modifiable individuellement par jury)</span>
-                </div>
-
-                <div className="info-box info">
-                  <AlertCircle size={18} />
-                  <div>
-                    <strong>Critères d'affectation</strong>
-                    <p>Les critères d'affectation (correspondance matière, équilibrage, parité...) sont configurables dans l'onglet <strong>Critères</strong>.</p>
-                  </div>
-                </div>
+                {/* Note subtile */}
+                <p className="config-note">
+                  Les critères d'affectation sont configurables dans l'onglet <strong>Critères</strong>.
+                </p>
               </div>
             )}
 
