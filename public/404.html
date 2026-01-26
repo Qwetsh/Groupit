@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Groupit</title>
+    <script>
+      // GitHub Pages SPA redirect
+      // Encode the path and redirect to index.html
+      const path = window.location.pathname;
+      const search = window.location.search;
+      const hash = window.location.hash;
+
+      // Store the intended path
+      sessionStorage.setItem('spa-redirect', path + search + hash);
+
+      // Redirect to the base URL
+      window.location.replace('/groupit/');
+    </script>
+  </head>
+  <body>
+    <p>Redirection...</p>
+  </body>
+</html>

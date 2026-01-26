@@ -8,6 +8,20 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // GitHub Pages SPA redirect handler
+      (function() {
+        const redirect = sessionStorage.getItem('spa-redirect');
+        if (redirect) {
+          sessionStorage.removeItem('spa-redirect');
+          const base = '/groupit';
+          const path = redirect.startsWith(base) ? redirect.slice(base.length) : redirect;
+          if (path && path !== '/') {
+            window.history.replaceState(null, '', base + path);
+          }
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
