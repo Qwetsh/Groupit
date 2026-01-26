@@ -7,13 +7,13 @@ import { useEleveStore } from '../stores/eleveStore';
 import { useEnseignantStore } from '../stores/enseignantStore';
 import { useFieldDefinitionStore } from '../stores/fieldDefinitionStore';
 import type { Eleve, Enseignant, FieldType, EntityType } from '../domain/models';
-import { 
+import {
   X,
-  Users, 
-  GraduationCap, 
-  Search, 
-  Plus, 
-  ChevronUp, 
+  Users,
+  GraduationCap,
+  Search,
+  Plus,
+  ChevronUp,
   ChevronDown,
   Loader2,
   Check,
@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import { FAKE_ADDRESSES_ENSEIGNANTS } from '../data/fakeAddresses';
 import { geocodeAddressWithFallback } from '../infrastructure/geo/stageGeoWorkflow';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { useConfirm } from '../hooks/useConfirm';
 import './DonneesPage.css';
 
 // ============================================================
@@ -338,6 +340,9 @@ export const DonneesPage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [showAddFieldModal, setShowAddFieldModal] = useState(false);
 
+  // Confirm modal
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirm();
+
   // Stores
   const eleves = useEleveStore(s => s.eleves);
   const loadEleves = useEleveStore(s => s.loadEleves);
@@ -526,25 +531,27 @@ export const DonneesPage: React.FC = () => {
   const handleDeleteRow = useCallback(async (item: Eleve | Enseignant) => {
     const isEleve = activeTab === 'eleves';
     const label = `${item.prenom} ${item.nom}`;
-    const confirmed = confirm(`Supprimer ${isEleve ? "l'élève" : "l'enseignant"} "${label}" ?\n\nCette action est irréversible.`);
+    const confirmed = await confirm({
+      title: 'Confirmer la suppression',
+      message: `Supprimer ${isEleve ? "l'élève" : "l'enseignant"} "${label}" ?\n\nCette action est irréversible.`,
+      variant: 'danger',
+      confirmLabel: 'Supprimer',
+    });
     if (!confirmed) return;
 
     setIsSaving(true);
     try {
       if (isEleve) {
         await deleteEleve(item.id);
-        console.log(`✅ Élève supprimé: ${label}`);
       } else {
         await deleteEnseignant(item.id);
-        console.log(`✅ Enseignant supprimé: ${label}`);
       }
     } catch (err) {
       console.error('Erreur suppression:', err);
-      alert(`Erreur lors de la suppression: ${err}`);
     } finally {
       setIsSaving(false);
     }
-  }, [activeTab, deleteEleve, deleteEnseignant]);
+  }, [activeTab, deleteEleve, deleteEnseignant, confirm]);
 
   // Handle add field
   const handleAddField = async (field: {
@@ -559,8 +566,14 @@ export const DonneesPage: React.FC = () => {
 
   // DEV ONLY - Générer des adresses aléatoires pour les enseignants
   const handleGenerateAddresses = useCallback(async () => {
-    if (!confirm('Générer des adresses aléatoires pour tous les enseignants sans adresse et lancer le géocodage ?')) return;
-    
+    const confirmed = await confirm({
+      title: 'Générer des adresses',
+      message: 'Générer des adresses aléatoires pour tous les enseignants sans adresse et lancer le géocodage ?',
+      variant: 'warning',
+      confirmLabel: 'Générer',
+    });
+    if (!confirmed) return;
+
     setIsSaving(true);
     try {
       const enseignantsSansAdresse = enseignants.filter(e => !e.adresse || !e.commune);
@@ -602,13 +615,12 @@ export const DonneesPage: React.FC = () => {
         }
       }
       
-      console.log(`✅ Adresses générées et géocodées pour ${enseignantsSansAdresse.length} enseignants`);
     } catch (error) {
       console.error('Erreur génération adresses:', error);
     } finally {
       setIsSaving(false);
     }
-  }, [enseignants, updateEnseignant]);
+  }, [enseignants, updateEnseignant, confirm]);
 
   // Render cell value
   const renderCellValue = (item: Eleve | Enseignant, column: ColumnDef) => {
@@ -815,6 +827,18 @@ export const DonneesPage: React.FC = () => {
         onClose={() => setShowAddFieldModal(false)}
         onSubmit={handleAddField}
         defaultEntityType={activeTab === 'eleves' ? 'eleve' : 'enseignant'}
+      />
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        variant={confirmState.variant}
+        confirmLabel={confirmState.confirmLabel}
+        cancelLabel={confirmState.cancelLabel}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
       />
     </div>
   );

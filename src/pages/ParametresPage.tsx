@@ -1,14 +1,25 @@
 import React from 'react';
 import { Settings, SlidersHorizontal, Eye, Database, Trash2 } from 'lucide-react';
 import { useUIStore } from '../stores/uiStore';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { useConfirm } from '../hooks/useConfirm';
 import './InfoPage.css';
 
 export const ParametresPage: React.FC = () => {
   const expertMode = useUIStore(state => state.expertMode);
   const setExpertMode = useUIStore(state => state.setExpertMode);
 
-  const handleClearData = () => {
-    if (window.confirm('⚠️ Êtes-vous sûr de vouloir supprimer toutes les données locales ? Cette action est irréversible.')) {
+  // Confirm modal
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirm();
+
+  const handleClearData = async () => {
+    const confirmed = await confirm({
+      title: 'Supprimer toutes les données',
+      message: 'Êtes-vous sûr de vouloir supprimer toutes les données locales ?\n\nCette action est irréversible.',
+      variant: 'danger',
+      confirmLabel: 'Tout supprimer',
+    });
+    if (confirmed) {
       // Clear IndexedDB
       indexedDB.deleteDatabase('GroupitDB');
       localStorage.clear();
@@ -76,6 +87,18 @@ export const ParametresPage: React.FC = () => {
           Supprimer toutes les données
         </button>
       </div>
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        variant={confirmState.variant}
+        confirmLabel={confirmState.confirmLabel}
+        cancelLabel={confirmState.cancelLabel}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
     </div>
   );
 };

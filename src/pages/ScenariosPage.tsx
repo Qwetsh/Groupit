@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useScenarioStore } from '../stores/scenarioStore';
 import { useUIStore } from '../stores/uiStore';
@@ -6,6 +6,8 @@ import type { Scenario } from '../domain/models';
 import { JuryManager } from '../components/jury';
 import { ImportMatiereOralModal } from '../components/import';
 import { StageScenarioManager } from '../components/scenario-stage';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { useConfirmDelete } from '../hooks/useConfirm';
 import {
   Plus,
   Play,
@@ -35,6 +37,9 @@ export const ScenariosPage: React.FC = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [importMatiereScenarioId, setImportMatiereScenarioId] = useState<string | null>(null);
 
+  // Confirm modal
+  const { confirmState, confirmDelete, handleConfirm, handleCancel } = useConfirmDelete();
+
   const handleCreateNew = () => {
     openModal('editScenario');
   };
@@ -52,11 +57,13 @@ export const ScenariosPage: React.FC = () => {
     navigate('/board');
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce scénario ?')) {
+  const handleDelete = useCallback(async (id: string) => {
+    const scenario = scenarios.find(s => s.id === id);
+    const confirmed = await confirmDelete(scenario?.nom || 'ce scénario');
+    if (confirmed) {
       await deleteScenario(id);
     }
-  };
+  }, [scenarios, confirmDelete, deleteScenario]);
 
   const handleDuplicate = async (scenario: Scenario) => {
     const addScenario = useScenarioStore.getState().addScenario;
@@ -315,6 +322,18 @@ export const ScenariosPage: React.FC = () => {
           }
         />
       )}
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        variant={confirmState.variant}
+        confirmLabel={confirmState.confirmLabel}
+        cancelLabel={confirmState.cancelLabel}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
     </div>
   );
 };

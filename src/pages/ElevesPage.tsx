@@ -5,6 +5,8 @@ import { useUIStore } from '../stores/uiStore';
 import { MATIERES_HEURES_3E } from '../domain/models';
 import { ImportMatiereOralModal } from '../components/import';
 import { StageTab } from '../components/eleves';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { useConfirm } from '../hooks/useConfirm';
 import {
   Search,
   Download,
@@ -30,7 +32,10 @@ export const ElevesPage: React.FC = () => {
   const eleves = useEleveStore(state => state.eleves);
   const updateEleve = useEleveStore(state => state.updateEleve);
   const openModal = useUIStore(state => state.openModal);
-  
+
+  // Confirm modal
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirm();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClasse, setSelectedClasse] = useState<string>('');
   const [sortBy, setSortBy] = useState<'nom' | 'classe' | 'dateNaissance' | 'matiere'>('nom');
@@ -198,11 +203,15 @@ export const ElevesPage: React.FC = () => {
   // Attribution aléatoire de matières (pour tests)
   const assignRandomMatieres = useCallback(async () => {
     if (eleves.length === 0) return;
-    
-    const confirmed = window.confirm(
-      `Assigner une matière aléatoire à ${eleves.filter(e => !e.matieresOral || e.matieresOral.length === 0).length} élève(s) sans matière ?`
-    );
-    
+
+    const elevesSansMatiere = eleves.filter(e => !e.matieresOral || e.matieresOral.length === 0).length;
+    const confirmed = await confirm({
+      title: 'Attribution aléatoire',
+      message: `Assigner une matière aléatoire à ${elevesSansMatiere} élève(s) sans matière ?`,
+      variant: 'warning',
+      confirmLabel: 'Attribuer',
+    });
+
     if (!confirmed) return;
     
     let count = 0;
@@ -217,9 +226,7 @@ export const ElevesPage: React.FC = () => {
         }
       }
     }
-    
-    alert(`${count} élève(s) ont reçu une matière aléatoire`);
-  }, [eleves, updateEleve]);
+  }, [eleves, updateEleve, confirm]);
 
   return (
     <div className="eleves-page">
@@ -625,6 +632,18 @@ export const ElevesPage: React.FC = () => {
           onClose={() => setShowImportMatiereModal(false)}
         />
       )}
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        variant={confirmState.variant}
+        confirmLabel={confirmState.confirmLabel}
+        cancelLabel={confirmState.cancelLabel}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
     </div>
   );
 };

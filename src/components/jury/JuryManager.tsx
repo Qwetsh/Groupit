@@ -25,6 +25,8 @@ import { useEnseignantStore } from '../../stores/enseignantStore';
 import { useAffectationStore } from '../../stores/affectationStore';
 import { useEleveStore } from '../../stores/eleveStore';
 import { useScenarioStore } from '../../stores/scenarioStore';
+import { ConfirmModal } from '../ui/ConfirmModal';
+import { useConfirm } from '../../hooks/useConfirm';
 import type { Jury, Enseignant, Scenario } from '../../domain/models';
 import { getHeuresMatiere, MATIERES_HEURES_3E } from '../../domain/models';
 import './JuryManager.css';
@@ -303,6 +305,9 @@ export function JuryManager({ scenario }: JuryManagerProps) {
     return filtered;
   }, [enseignants, scenario.parametres?.filtresEnseignants]);
 
+  // Confirm modal
+  const { confirmState, confirm, handleConfirm, handleCancel } = useConfirm();
+
   // Local state
   const [editingJuryId, setEditingJuryId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
@@ -363,11 +368,14 @@ export function JuryManager({ scenario }: JuryManagerProps) {
     if (process.env.NODE_ENV === 'development') {
       console.log('[JuryManager] Génération auto:', nbJurysToGenerate, 'jurys,', enseignantsSource.length, 'enseignants');
     }
-    
+
     if (jurys.length > 0) {
-      const confirmed = confirm(
-        'Cette action va remplacer tous les jurys existants. Continuer ?'
-      );
+      const confirmed = await confirm({
+        title: 'Remplacer les jurys existants',
+        message: 'Cette action va remplacer tous les jurys existants. Continuer ?',
+        variant: 'warning',
+        confirmLabel: 'Remplacer',
+      });
       if (!confirmed) return;
     }
 
@@ -408,7 +416,14 @@ export function JuryManager({ scenario }: JuryManagerProps) {
   };
 
   const handleDeleteJury = async (juryId: string) => {
-    if (confirm('Supprimer ce jury ? Les affectations seront perdues.')) {
+    const jury = jurys.find(j => j.id === juryId);
+    const confirmed = await confirm({
+      title: 'Supprimer le jury',
+      message: `Supprimer "${jury?.nom || 'ce jury'}" ?\n\nLes affectations seront perdues.`,
+      variant: 'danger',
+      confirmLabel: 'Supprimer',
+    });
+    if (confirmed) {
       await deleteJury(juryId);
     }
   };
@@ -685,6 +700,18 @@ export function JuryManager({ scenario }: JuryManagerProps) {
           </button>
         </div>
       )}
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        variant={confirmState.variant}
+        confirmLabel={confirmState.confirmLabel}
+        cancelLabel={confirmState.cancelLabel}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
     </DndContext>
   );
 }
