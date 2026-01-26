@@ -6,8 +6,8 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useEnseignantStore } from '../stores/enseignantStore';
 import { useUIStore } from '../stores/uiStore';
-import { 
-  Search, 
+import {
+  Search,
   Plus,
   Filter,
   X,
@@ -24,6 +24,8 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { EnseignantProfileDrawer } from '../components/enseignant/EnseignantProfileDrawer';
+import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { useConfirmDelete } from '../hooks/useConfirm';
 import type { Enseignant } from '../domain/models';
 import './EnseignantsPage.css';
 
@@ -190,6 +192,9 @@ export const EnseignantsPage: React.FC = () => {
   const [selectedEnseignantId, setSelectedEnseignantId] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
+  // Confirm modal
+  const { confirmState, confirmDelete, handleConfirm, handleCancel } = useConfirmDelete();
+
   // Stores
   const enseignants = useEnseignantStore(s => s.enseignants);
   const loading = useEnseignantStore(s => s.loading);
@@ -258,14 +263,15 @@ export const EnseignantsPage: React.FC = () => {
 
   const handleDelete = useCallback(async (enseignant: Enseignant) => {
     const fullName = `${enseignant.prenom} ${enseignant.nom}`;
-    if (confirm(`Êtes-vous sûr de vouloir supprimer ${fullName} ?\n\nCette action est irréversible.`)) {
+    const confirmed = await confirmDelete(fullName);
+    if (confirmed) {
       await deleteEnseignant(enseignant.id!);
       if (selectedEnseignantId === enseignant.id) {
         setIsDrawerOpen(false);
         setSelectedEnseignantId(null);
       }
     }
-  }, [deleteEnseignant, selectedEnseignantId]);
+  }, [deleteEnseignant, selectedEnseignantId, confirmDelete]);
 
   const handleDuplicate = useCallback(async (enseignant: Enseignant) => {
     const { id, createdAt, updatedAt, ...data } = enseignant;
@@ -427,6 +433,18 @@ export const EnseignantsPage: React.FC = () => {
           onDelete={() => handleDelete(selectedEnseignant)}
         />
       )}
+
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmState.isOpen}
+        title={confirmState.title}
+        message={confirmState.message}
+        variant={confirmState.variant}
+        confirmLabel={confirmState.confirmLabel}
+        cancelLabel={confirmState.cancelLabel}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
     </div>
   );
 };
