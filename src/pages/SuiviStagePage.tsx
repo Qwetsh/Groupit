@@ -20,9 +20,8 @@ import {
   toEnseignantGeoInfo,
 } from '../algorithms/stageSolver';
 // Test data generation
-import { applyFakeAddressesToEnseignants } from '../data/seed';
-import { 
-  generateFakeStages, 
+import {
+  generateFakeStages,
   isFakeStage,
 } from '../data/testDataGenerator';
 import './SuiviStagePage.css';
@@ -110,14 +109,13 @@ interface UIProgressState {
 }
 
 // ----- Tab: Addresses & Geocoding -----
-function AddressesTab({ 
-  stages, 
+function AddressesTab({
+  stages,
   enseignants,
   onGeocodeAll,
   isGeocoding,
   progress,
   // Test data functions
-  onGenerateFakeEnseignantAddresses,
   onGenerateFakeStages,
   onDeleteFakeStages,
   isGenerating,
@@ -128,7 +126,6 @@ function AddressesTab({
   isGeocoding: boolean;
   progress: UIProgressState;
   // Test data functions
-  onGenerateFakeEnseignantAddresses: () => void;
   onGenerateFakeStages: () => void;
   onDeleteFakeStages: () => void;
   isGenerating: boolean;
@@ -182,15 +179,7 @@ function AddressesTab({
           <span className="test-description">Génération de données fictives autour de Woippy (57140)</span>
         </div>
         <div className="test-data-actions">
-          <button 
-            className="test-action"
-            onClick={onGenerateFakeEnseignantAddresses}
-            disabled={isGenerating || isGeocoding}
-            title="Attribue des adresses fictives autour de Woippy (±50km) à tous les enseignants"
-          >
-            🏠 Adresses enseignants
-          </button>
-          <button 
+          <button
             className="test-action"
             onClick={onGenerateFakeStages}
             disabled={isGenerating || isGeocoding}
@@ -198,7 +187,7 @@ function AddressesTab({
           >
             📋 Générer stages fictifs
           </button>
-          <button 
+          <button
             className="test-action danger"
             onClick={onDeleteFakeStages}
             disabled={isGenerating || isGeocoding || fakeStagesCount === 0}
@@ -890,20 +879,6 @@ export function SuiviStagePage() {
   }, [stages, enseignants, pairs]);
 
   // ----- Test Data Handlers -----
-  
-  // Générer des adresses fictives pour les enseignants
-  const handleGenerateFakeEnseignantAddresses = useCallback(async () => {
-    setIsGenerating(true);
-    try {
-      const result = await applyFakeAddressesToEnseignants();
-      console.log(`Applied fake addresses: ${result.updated}/${result.total}`);
-      await loadEnseignants();
-    } catch (err) {
-      console.error('Error generating enseignant addresses:', err);
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [loadEnseignants]);
 
   // Générer des stages fictifs pour les élèves de 3ème
   const handleGenerateFakeStages = useCallback(async () => {
@@ -1003,13 +978,12 @@ export function SuiviStagePage() {
 
       {/* Tab Content */}
       {activeTab === 'addresses' && (
-        <AddressesTab 
+        <AddressesTab
           stages={stages}
           enseignants={enseignants}
           onGeocodeAll={handleGeocodeAll}
           isGeocoding={isGeocoding}
           progress={progress}
-          onGenerateFakeEnseignantAddresses={handleGenerateFakeEnseignantAddresses}
           onGenerateFakeStages={handleGenerateFakeStages}
           onDeleteFakeStages={handleDeleteFakeStages}
           isGenerating={isGenerating}

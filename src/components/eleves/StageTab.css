@@ -522,7 +522,8 @@
 
 .error-list li {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 4px;
   padding: 8px 12px;
   background: #fef2f2;
   border-radius: 6px;
@@ -530,19 +531,29 @@
   font-size: 0.8rem;
 }
 
-.error-list .name {
+.error-list li > .name {
   font-weight: 500;
   color: #991b1b;
 }
 
-.error-list .reason {
+.error-list li > .reason {
   color: #b91c1c;
+  font-size: 0.75rem;
+}
+
+.error-list li > .suggestions {
+  margin-top: 4px;
+  padding: 6px 8px;
+  background: #fff7ed;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  color: #c2410c;
 }
 
 .error-list .more {
   color: #6b7280;
   font-style: italic;
-  justify-content: center;
+  text-align: center;
 }
 
 /* Geocoding step */
@@ -905,4 +916,237 @@
 
 .ambiguous-resolve-list::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+/* ============================================================
+   ADDRESS QUALITY SECTION
+   ============================================================ */
+
+.preview-section.address-quality-section {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.preview-section.address-quality-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #0369a1;
+  margin-bottom: 16px;
+}
+
+.address-quality-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.quality-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 10px;
+  min-width: 90px;
+  text-align: center;
+}
+
+.quality-stat.complete {
+  background: #dcfce7;
+}
+
+.quality-stat.complete .quality-count {
+  color: #166534;
+}
+
+.quality-stat.partial {
+  background: #fef3c7;
+}
+
+.quality-stat.partial .quality-count {
+  color: #92400e;
+}
+
+.quality-stat.minimal {
+  background: #ffedd5;
+}
+
+.quality-stat.minimal .quality-count {
+  color: #c2410c;
+}
+
+.quality-stat.invalid {
+  background: #fee2e2;
+}
+
+.quality-stat.invalid .quality-count {
+  color: #b91c1c;
+}
+
+.quality-stat.empty {
+  background: #f1f5f9;
+}
+
+.quality-stat.empty .quality-count {
+  color: #64748b;
+}
+
+.quality-stat .quality-count {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.quality-stat .quality-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #374151;
+  margin-top: 4px;
+}
+
+.quality-stat .quality-desc {
+  font-size: 0.65rem;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.address-countries {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
+
+.address-countries .country-info {
+  color: #4b5563;
+}
+
+.geocodability-estimate {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.geocodability-estimate .geocode-rate {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.geocode-rate.good {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.geocode-rate.medium {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.geocode-rate.low {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* Ambiguous section in preview */
+.preview-section.ambiguous-section {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.preview-section.ambiguous-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #92400e;
+}
+
+.ambiguous-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ambiguous-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 0;
+  border-bottom: 1px solid #fcd34d;
+}
+
+.ambiguous-list li:last-child {
+  border-bottom: none;
+}
+
+.ambiguous-list li .name {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.ambiguous-list li .candidates {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.ambiguous-list li.more {
+  color: #9ca3af;
+  font-style: italic;
+  text-align: center;
+}
+
+.resolve-btn {
+  margin-top: 12px;
+}
+
+/* Ambiguous source info */
+.ambiguous-source {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.ambiguous-source strong {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.source-class {
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  color: #4b5563;
+}
+
+.source-info {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.ambiguous-candidates {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ambiguous-candidates .candidates-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.skip-option .candidate-name.skip {
+  color: #9ca3af;
+  font-style: italic;
 }

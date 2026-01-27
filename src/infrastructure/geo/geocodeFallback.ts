@@ -14,7 +14,7 @@ import {
   getGeoCacheByAddress, 
   upsertGeoCache 
 } from './cacheRepo';
-import { parseAddress, buildCityQuery, buildTownhallQuery } from './addressParser';
+import { parseAddress, buildCityQuery, buildTownhallQuery, buildGeocodingQueries } from './addressParser';
 
 // ============================================================
 // TYPES
@@ -257,9 +257,9 @@ export async function geocodeWithFallback(
   // ============================================================
   // TENTATIVE 3: MAIRIE DE {VILLE}
   // ============================================================
-  
+
   await delay(delayBetweenAttempts);
-  
+
   const townhallQuery = buildTownhallQuery(parsed);
   if (townhallQuery) {
     const townhallResult = await provider.geocode(townhallQuery);
@@ -291,9 +291,48 @@ export async function geocodeWithFallback(
   }
 
   // ============================================================
+  // TENTATIVE 4: VARIANTES SUPPLÉMENTAIRES (rue sans numéro, etc.)
+  // ============================================================
+
+  const additionalQueries = buildGeocodingQueries(parsed).filter(
+    q => q !== trimmedAddress && q !== cityQuery && q !== townhallQuery
+  );
+
+  for (const query of additionalQueries) {
+    await delay(delayBetweenAttempts);
+
+    const variantResult = await provider.geocode(query);
+
+    if (variantResult.success && variantResult.point) {
+      // Succès avec variante
+      await upsertGeoCache(trimmedAddress, {
+        lat: variantResult.point.lat,
+        lon: variantResult.point.lon,
+        provider: variantResult.provider,
+        confidence: 'low',
+        status: 'ok',
+        normalizedAddress: variantResult.normalizedAddress,
+        precision: 'CITY', // Approximatif
+        queryUsed: query,
+      });
+
+      return {
+        success: true,
+        point: variantResult.point,
+        status: 'OK_CITY_FALLBACK',
+        precision: 'CITY',
+        queryUsed: query,
+        provider: variantResult.provider,
+        confidence: 'low',
+        fromCache: false,
+      };
+    }
+  }
+
+  // ============================================================
   // ÉCHEC TOTAL
   // ============================================================
-  
+
   return {
     success: false,
     status: 'ERROR',
