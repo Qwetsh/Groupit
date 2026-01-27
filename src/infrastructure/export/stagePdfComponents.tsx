@@ -496,8 +496,8 @@ const EleveTable: React.FC<EleveTableProps> = ({ eleves, includeContact }) => (
     
     {/* Lignes */}
     {eleves.map((eleve, index) => (
-      <View 
-        key={eleve.eleveId} 
+      <View
+        key={eleve.eleveId}
         style={[styles.tableRow, index % 2 === 1 ? styles.tableRowAlt : {}]}
         wrap={false}
       >
@@ -505,16 +505,20 @@ const EleveTable: React.FC<EleveTableProps> = ({ eleves, includeContact }) => (
           {eleve.nom} {eleve.prenom}
         </Text>
         <Text style={[styles.tableCell, styles.colClasse]}>{eleve.classe}</Text>
-        <Text style={[styles.tableCell, styles.colEntreprise]}>{eleve.entreprise}</Text>
-        <Text style={[styles.tableCell, styles.colVille]}>{eleve.ville}</Text>
+        <Text style={[styles.tableCell, styles.colEntreprise]}>
+          {eleve.entreprise && eleve.entreprise !== 'Non renseigné' ? eleve.entreprise : '-'}
+        </Text>
+        <Text style={[styles.tableCell, styles.colVille]}>
+          {eleve.ville || '-'}
+        </Text>
         <View style={[styles.colDistance, { flexDirection: 'row', justifyContent: 'flex-end' }]}>
           <Text style={styles.tableCell}>
-            {eleve.distanceKm ?? '-'} km
+            {eleve.distanceKm !== undefined ? `${eleve.distanceKm} km` : '-'}
           </Text>
           {eleve.isDistanceApprox && <Text style={styles.approxBadge}>~</Text>}
         </View>
         <Text style={[styles.tableCell, styles.colDuree]}>
-          {eleve.dureeEstimeeMin ?? '-'} min
+          {eleve.dureeEstimeeMin !== undefined ? `${eleve.dureeEstimeeMin} min` : '-'}
         </Text>
         {includeContact && (
           <>

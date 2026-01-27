@@ -88,9 +88,13 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
   // Préparer les données d'export
   const exportData = useMemo(() => {
     if (stageMode) {
+      // Pour les stages, filtrer par eleveId (stages globaux liés aux élèves du scénario)
+      const scenarioEleveIds = new Set(filteredEleveIds);
+      const scenarioStages = stages.filter(s => s.eleveId && scenarioEleveIds.has(s.eleveId));
+
       return mapToStageExportData({
         scenario,
-        stages: stages.filter(s => s.scenarioId === scenario.id),
+        stages: scenarioStages,
         eleves,
         enseignants,
         affectations: affectations.filter(a => a.scenarioId === scenario.id),
