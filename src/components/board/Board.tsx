@@ -21,7 +21,7 @@ import { useScenarioArchiveStore } from '../../stores/scenarioArchiveStore';
 import { buildArchiveFromCurrentState } from '../../services';
 import { solveMatching, convertToAffectations, solveOralDnbComplete, solveStageMatching, toStageGeoInfo, toEnseignantGeoInfo, calculateDistance } from '../../algorithms';
 import { getEffectiveCriteres, criteresToStageOptions } from '../../domain/criteriaConfig';
-import type { Eleve, Enseignant, Affectation, Jury, MatchingResultDNB } from '../../domain/models';
+import type { Eleve, Enseignant, Affectation, Jury, MatchingResultDNB, Stage } from '../../domain/models';
 import { filterEleves, filterEnseignants } from '../../utils/filteringUtils';
 import { Info, UserX, Users } from 'lucide-react';
 import { OverlayProgress } from '../ui/ProgressIndicator';
@@ -121,7 +121,7 @@ export const Board: React.FC = () => {
   const [dnbResults, setDnbResults] = useState<Map<string, MatchingResultDNB>>(new Map());
   const [nonAffectesInfo, setNonAffectesInfo] = useState<Map<string, NonAffectationInfo>>(new Map());
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
-  const [infoModalEleve, setInfoModalEleve] = useState<{ eleve: Eleve; affectation?: Affectation; enseignant?: Enseignant; jury?: Jury } | null>(null);
+  const [infoModalEleve, setInfoModalEleve] = useState<{ eleve: Eleve; affectation?: Affectation; enseignant?: Enseignant; jury?: Jury; stage?: Stage } | null>(null);
   const [mapDrawerOpen, setMapDrawerOpen] = useState(false);
   const [selectedTeacherForMap, setSelectedTeacherForMap] = useState<Enseignant | null>(null);
   const [isValidating, setIsValidating] = useState(false);
@@ -309,15 +309,35 @@ export const Board: React.FC = () => {
 
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
 
+  // Stage lookup by eleveId (pour mode stage)
+  const stageByEleveId = useMemo(() => {
+    const map = new Map<string, Stage>();
+    for (const stage of stages) {
+      if (stage.eleveId) {
+        map.set(stage.eleveId, stage);
+      }
+    }
+    return map;
+  }, [stages]);
+
   // Context menu items
   const contextMenuItems: ContextMenuItem[] = useMemo(() => {
     if (!contextMenu) return [];
+
+    // Récupérer le stage de l'élève si en mode stage
+    const eleveStage = isStageScenario ? stageByEleveId.get(contextMenu.eleve.id!) : undefined;
+
     const items: ContextMenuItem[] = [
       {
         id: 'info',
         label: 'Voir les infos',
         icon: <Info size={16} />,
-        onClick: () => setInfoModalEleve({ eleve: contextMenu.eleve, affectation: contextMenu.affectation, enseignant: contextMenu.enseignant }),
+        onClick: () => setInfoModalEleve({
+          eleve: contextMenu.eleve,
+          affectation: contextMenu.affectation,
+          enseignant: contextMenu.enseignant,
+          stage: eleveStage,
+        }),
       },
     ];
     if (contextMenu.affectation) {
@@ -330,7 +350,7 @@ export const Board: React.FC = () => {
       });
     }
     return items;
-  }, [contextMenu, deleteAffectation]);
+  }, [contextMenu, deleteAffectation, isStageScenario, stageByEleveId]);
 
   // Drag handlers
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -795,6 +815,7 @@ export const Board: React.FC = () => {
           eleve={infoModalEleve.eleve}
           affectation={infoModalEleve.affectation}
           enseignant={infoModalEleve.enseignant}
+          stage={infoModalEleve.stage}
           onClose={() => setInfoModalEleve(null)}
         />
       )}

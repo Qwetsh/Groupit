@@ -2,8 +2,8 @@
 // MODAL - INFO ÉLÈVE
 // ============================================================
 
-import { X, User, Calendar, BookOpen, Tag, AlertTriangle, Users, Clock, FileText, Settings } from 'lucide-react';
-import type { Eleve, Affectation, Enseignant } from '../../domain/models';
+import { X, User, Calendar, BookOpen, Tag, AlertTriangle, Users, Clock, FileText, Settings, Building2, MapPin, Phone, Mail, UserCircle } from 'lucide-react';
+import type { Eleve, Affectation, Enseignant, Stage } from '../../domain/models';
 import { useFieldDefinitionStore } from '../../stores/fieldDefinitionStore';
 import './Modal.css';
 import './EleveInfoModal.css';
@@ -12,10 +12,11 @@ interface EleveInfoModalProps {
   eleve: Eleve;
   affectation?: Affectation;
   enseignant?: Enseignant;
+  stage?: Stage;
   onClose: () => void;
 }
 
-export function EleveInfoModal({ eleve, affectation, enseignant, onClose }: EleveInfoModalProps) {
+export function EleveInfoModal({ eleve, affectation, enseignant, stage, onClose }: EleveInfoModalProps) {
   // Calculer l'âge si date de naissance disponible
   const age = eleve.dateNaissance 
     ? Math.floor((new Date().getTime() - new Date(eleve.dateNaissance).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
@@ -154,6 +155,94 @@ export function EleveInfoModal({ eleve, affectation, enseignant, onClose }: Elev
                     {c.raison && <span className="contrainte-raison">{c.raison}</span>}
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Informations de stage */}
+          {stage && (
+            <div className="info-section stage-section">
+              <h4><Building2 size={16} /> Stage</h4>
+              <div className="info-grid">
+                {stage.nomEntreprise && (
+                  <div className="info-item full-width">
+                    <span className="info-label">Entreprise</span>
+                    <span className="info-value highlight">{stage.nomEntreprise}</span>
+                  </div>
+                )}
+                {stage.secteurActivite && (
+                  <div className="info-item">
+                    <span className="info-label">Secteur d'activité</span>
+                    <span className="info-value">{stage.secteurActivite}</span>
+                  </div>
+                )}
+                {(stage.adresse || stage.ville || stage.codePostal) && (
+                  <div className="info-item full-width">
+                    <span className="info-label"><MapPin size={12} /> Adresse</span>
+                    <span className="info-value">
+                      {stage.adresse && <>{stage.adresse}<br /></>}
+                      {stage.codePostal && stage.ville
+                        ? `${stage.codePostal} ${stage.ville}`
+                        : stage.ville || stage.codePostal || ''}
+                    </span>
+                  </div>
+                )}
+                {stage.tuteur && (
+                  <div className="info-item">
+                    <span className="info-label"><UserCircle size={12} /> Tuteur</span>
+                    <span className="info-value">{stage.tuteur}</span>
+                  </div>
+                )}
+                {stage.tuteurTel && (
+                  <div className="info-item">
+                    <span className="info-label"><Phone size={12} /> Téléphone</span>
+                    <span className="info-value">
+                      <a href={`tel:${stage.tuteurTel.replace(/\s/g, '')}`} className="link-phone">
+                        {stage.tuteurTel}
+                      </a>
+                    </span>
+                  </div>
+                )}
+                {stage.tuteurEmail && (
+                  <div className="info-item">
+                    <span className="info-label"><Mail size={12} /> Email</span>
+                    <span className="info-value">
+                      <a href={`mailto:${stage.tuteurEmail}`} className="link-email">
+                        {stage.tuteurEmail}
+                      </a>
+                    </span>
+                  </div>
+                )}
+                {(stage.dateDebut || stage.dateFin) && (
+                  <div className="info-item">
+                    <span className="info-label"><Calendar size={12} /> Dates</span>
+                    <span className="info-value">
+                      {stage.dateDebut && new Date(stage.dateDebut).toLocaleDateString('fr-FR')}
+                      {stage.dateDebut && stage.dateFin && ' → '}
+                      {stage.dateFin && new Date(stage.dateFin).toLocaleDateString('fr-FR')}
+                    </span>
+                  </div>
+                )}
+                {/* Géolocalisation info */}
+                {stage.lat && stage.lon && (
+                  <div className="info-item">
+                    <span className="info-label">Géolocalisation</span>
+                    <span className="info-value geo-status">
+                      {stage.geoPrecision === 'FULL' && <span className="geo-badge geo-full">✓ Précise</span>}
+                      {stage.geoPrecision === 'CITY' && <span className="geo-badge geo-city">~ Ville</span>}
+                      {stage.geoPrecision === 'TOWNHALL' && <span className="geo-badge geo-townhall">~ Mairie</span>}
+                      {!stage.geoPrecision && <span className="geo-badge">Géocodé</span>}
+                    </span>
+                  </div>
+                )}
+                {!stage.lat && !stage.lon && stage.adresse && (
+                  <div className="info-item">
+                    <span className="info-label">Géolocalisation</span>
+                    <span className="info-value geo-status">
+                      <span className="geo-badge geo-error">✗ Non géocodé</span>
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )}
