@@ -10,8 +10,10 @@ import {
   importStagesFromFile,
   convertMatchedRowsToStageData,
   resolveAmbiguousMatch,
+  analyzeAddressQuality,
   type StageImportResult,
   type MatchedStageRow,
+  type AddressQualityStats,
 } from '../../services/stageImportService';
 import { geocodeAddressWithFallback } from '../../infrastructure/geo/stageGeoWorkflow';
 import {
@@ -68,6 +70,7 @@ function StageImportModal({ onClose, onImportComplete }: ImportModalProps) {
   const [result, setResult] = useState<StageImportResult | null>(null);
   const [step, setStep] = useState<'select' | 'preview' | 'resolve' | 'geocoding' | 'done'>('select');
   const [geocodeProgress, setGeocodeProgress] = useState({ current: 0, total: 0, errors: 0 });
+  const [addressQuality, setAddressQuality] = useState<AddressQualityStats | null>(null);
 
   // State for ambiguous resolution
   const [resolvedMatches, setResolvedMatches] = useState<MatchedStageRow[]>([]);
@@ -85,6 +88,15 @@ function StageImportModal({ onClose, onImportComplete }: ImportModalProps) {
       setResult(importResult);
       setResolvedMatches([]);
       setAmbiguousSelections(new Map());
+
+      // Analyser la qualité des adresses
+      if (importResult.matched.length > 0) {
+        const qualityStats = analyzeAddressQuality(importResult.matched);
+        setAddressQuality(qualityStats);
+      } else {
+        setAddressQuality(null);
+      }
+
       setStep('preview');
     } catch (error) {
       console.error('Erreur import:', error);
@@ -291,6 +303,64 @@ function StageImportModal({ onClose, onImportComplete }: ImportModalProps) {
                   </div>
                 )}
               </div>
+
+              {/* Analyse qualité des adresses */}
+              {addressQuality && (
+                <div className="preview-section address-quality-section">
+                  <h4>
+                    <MapPin size={16} />
+                    Analyse des adresses
+                  </h4>
+                  <div className="address-quality-stats">
+                    <div className="quality-stat complete">
+                      <span className="quality-count">{addressQuality.complete}</span>
+                      <span className="quality-label">Complètes</span>
+                      <span className="quality-desc">Géocodage précis</span>
+                    </div>
+                    <div className="quality-stat partial">
+                      <span className="quality-count">{addressQuality.partial}</span>
+                      <span className="quality-label">Partielles</span>
+                      <span className="quality-desc">Géocodage approximatif</span>
+                    </div>
+                    <div className="quality-stat minimal">
+                      <span className="quality-count">{addressQuality.minimal}</span>
+                      <span className="quality-label">Minimales</span>
+                      <span className="quality-desc">Niveau ville</span>
+                    </div>
+                    <div className="quality-stat invalid">
+                      <span className="quality-count">{addressQuality.invalid}</span>
+                      <span className="quality-label">Invalides</span>
+                      <span className="quality-desc">Non géocodables</span>
+                    </div>
+                    <div className="quality-stat empty">
+                      <span className="quality-count">{addressQuality.empty}</span>
+                      <span className="quality-label">Vides</span>
+                      <span className="quality-desc">Sans stage trouvé</span>
+                    </div>
+                  </div>
+                  {(addressQuality.byCountry.LU > 0 || addressQuality.byCountry.unknown > 0) && (
+                    <div className="address-countries">
+                      <span className="country-info">
+                        Pays détectés: France ({addressQuality.byCountry.FR})
+                        {addressQuality.byCountry.LU > 0 && `, Luxembourg (${addressQuality.byCountry.LU})`}
+                        {addressQuality.byCountry.unknown > 0 && `, Inconnu (${addressQuality.byCountry.unknown})`}
+                      </span>
+                    </div>
+                  )}
+                  <div className="geocodability-estimate">
+                    {(() => {
+                      const totalWithAddress = addressQuality.total - addressQuality.empty;
+                      const geocodable = addressQuality.complete + addressQuality.partial;
+                      const percent = totalWithAddress > 0 ? Math.round((geocodable / totalWithAddress) * 100) : 0;
+                      return (
+                        <span className={`geocode-rate ${percent >= 80 ? 'good' : percent >= 50 ? 'medium' : 'low'}`}>
+                          Taux de géocodabilité estimé: {percent}%
+                        </span>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
 
               {allMatched.length > 0 && (
                 <div className="preview-section">

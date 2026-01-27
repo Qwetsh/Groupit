@@ -17,9 +17,8 @@ import {
   ChevronDown,
   Loader2,
   Check,
-  MapPinPlus
+  MapPin,
 } from 'lucide-react';
-import { FAKE_ADDRESSES_ENSEIGNANTS } from '../data/fakeAddresses';
 import { geocodeAddressWithFallback } from '../infrastructure/geo/stageGeoWorkflow';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useConfirm } from '../hooks/useConfirm';
@@ -339,6 +338,8 @@ export const DonneesPage: React.FC = () => {
   const [editingCell, setEditingCell] = useState<{ id: string; key: string } | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [showAddFieldModal, setShowAddFieldModal] = useState(false);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+  const [geocodeProgress, setGeocodeProgress] = useState({ current: 0, total: 0 });
 
   // Confirm modal
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirm();
@@ -564,63 +565,67 @@ export const DonneesPage: React.FC = () => {
     await addFieldDefinition(field);
   };
 
-  // DEV ONLY - Générer des adresses aléatoires pour les enseignants
-  const handleGenerateAddresses = useCallback(async () => {
-    const confirmed = await confirm({
-      title: 'Générer des adresses',
-      message: 'Générer des adresses aléatoires pour tous les enseignants sans adresse et lancer le géocodage ?',
-      variant: 'warning',
-      confirmLabel: 'Générer',
-    });
-    if (!confirmed) return;
+  // Géocoder toutes les adresses des enseignants
+  const handleGeocodeAllEnseignants = useCallback(async () => {
+    const toGeocode = enseignants.filter(e =>
+      e.adresse && e.commune &&
+      (e.geoStatus === 'pending' || e.geoStatus === 'error' || e.geoStatus === 'not_found' || !e.geoStatus)
+    );
 
-    setIsSaving(true);
+    if (toGeocode.length === 0) {
+      alert('Tous les enseignants sont déjà géocodés !');
+      return;
+    }
+
+    setIsGeocoding(true);
+    setGeocodeProgress({ current: 0, total: toGeocode.length });
+
     try {
-      const enseignantsSansAdresse = enseignants.filter(e => !e.adresse || !e.commune);
-      
-      for (let i = 0; i < enseignantsSansAdresse.length; i++) {
-        const enseignant = enseignantsSansAdresse[i];
-        // Sélectionner une adresse aléatoire
-        const randomIndex = Math.floor(Math.random() * FAKE_ADDRESSES_ENSEIGNANTS.length);
-        const fakeAddr = FAKE_ADDRESSES_ENSEIGNANTS[randomIndex];
-        
-        const commune = `${fakeAddr.ville} ${fakeAddr.codePostal}`;
-        const fullAddress = `${fakeAddr.adresse}, ${commune}`;
-        
-        // Mettre à jour l'adresse
-        await updateEnseignant(enseignant.id, {
-          adresse: fakeAddr.adresse,
-          commune: commune,
-          geoStatus: 'pending'
-        });
-        
-        // Géocoder immédiatement
-        console.log(`🔍 [${i + 1}/${enseignantsSansAdresse.length}] Géocodage: ${fullAddress}`);
-        const result = await geocodeAddressWithFallback(fullAddress);
-        
-        if (result.point) {
-          await updateEnseignant(enseignant.id, {
-            lat: result.point.lat,
-            lon: result.point.lon,
-            geoStatus: result.status,
-            geoErrorMessage: undefined,
-          });
-          console.log(`✅ Géocodé: ${fakeAddr.ville} → (${result.point.lat}, ${result.point.lon}) [${result.precision}]`);
-        } else {
+      for (let i = 0; i < toGeocode.length; i++) {
+        const enseignant = toGeocode[i];
+        setGeocodeProgress({ current: i + 1, total: toGeocode.length });
+
+        const fullAddress = `${enseignant.adresse}, ${enseignant.commune}`;
+        console.log(`🔍 [${i + 1}/${toGeocode.length}] Géocodage: ${fullAddress}`);
+
+        try {
+          const result = await geocodeAddressWithFallback(fullAddress);
+
+          if (result.point) {
+            await updateEnseignant(enseignant.id, {
+              lat: result.point.lat,
+              lon: result.point.lon,
+              geoStatus: result.status,
+              geoErrorMessage: undefined,
+            });
+            console.log(`✅ Géocodé: ${enseignant.nom} → (${result.point.lat}, ${result.point.lon}) [${result.precision}]`);
+          } else {
+            await updateEnseignant(enseignant.id, {
+              geoStatus: 'error',
+              geoErrorMessage: result.errorMessage || 'Adresse non trouvée',
+            });
+            console.log(`❌ Échec: ${enseignant.nom} - ${result.errorMessage}`);
+          }
+        } catch (err) {
           await updateEnseignant(enseignant.id, {
             geoStatus: 'error',
-            geoErrorMessage: result.errorMessage || 'Adresse non trouvée',
+            geoErrorMessage: String(err),
           });
-          console.log(`❌ Échec: ${fullAddress}`);
         }
+
+        // Délai pour respecter les limites API Nominatim (1 req/s)
+        await new Promise(r => setTimeout(r, 1100));
       }
-      
+
+      alert(`Géocodage terminé ! ${toGeocode.length} adresses traitées.`);
     } catch (error) {
-      console.error('Erreur génération adresses:', error);
+      console.error('Erreur géocodage:', error);
+      alert('Erreur lors du géocodage: ' + String(error));
     } finally {
-      setIsSaving(false);
+      setIsGeocoding(false);
+      setGeocodeProgress({ current: 0, total: 0 });
     }
-  }, [enseignants, updateEnseignant, confirm]);
+  }, [enseignants, updateEnseignant]);
 
   // Render cell value
   const renderCellValue = (item: Eleve | Enseignant, column: ColumnDef) => {
@@ -758,15 +763,24 @@ export const DonneesPage: React.FC = () => {
           </div>
         )}
 
-        {/* Bouton génération adresses (pour démo) */}
         {activeTab === 'enseignants' && (
           <button
-            className="btn-dev-generate"
-            onClick={handleGenerateAddresses}
-            title="Générer des adresses aléatoires pour les enseignants"
+            className="btn-geocode"
+            onClick={handleGeocodeAllEnseignants}
+            disabled={isGeocoding || isSaving}
+            title="Géocoder toutes les adresses des enseignants"
           >
-            <MapPinPlus size={16} />
-            Générer adresses
+            {isGeocoding ? (
+              <>
+                <Loader2 size={16} className="spinner" />
+                {geocodeProgress.current}/{geocodeProgress.total}
+              </>
+            ) : (
+              <>
+                <MapPin size={16} />
+                Géocoder adresses
+              </>
+            )}
           </button>
         )}
 

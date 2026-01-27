@@ -7,6 +7,7 @@ import Papa from 'papaparse';
 import * as XLSX from 'xlsx';
 import type { Eleve, Stage } from '../domain/models';
 import { detectEncoding, decodeBuffer } from '../infrastructure/import';
+import { parseAddress, type ParsedAddress } from '../infrastructure/geo/addressParser';
 
 // ============================================================
 // TYPES
@@ -964,4 +965,123 @@ function normalizePhone(phone: string): string {
   }
 
   return phone;
+}
+
+// ============================================================
+// ANALYSE DE QUALITÉ DES ADRESSES
+// ============================================================
+
+export interface AddressQualityInfo {
+  original: string;
+  parsed: ParsedAddress;
+  eleveNom?: string;
+  elevePrenom?: string;
+}
+
+export interface AddressQualityStats {
+  total: number;
+  complete: number;
+  partial: number;
+  minimal: number;
+  invalid: number;
+  empty: number;
+  byCountry: {
+    FR: number;
+    LU: number;
+    unknown: number;
+  };
+  details: AddressQualityInfo[];
+}
+
+/**
+ * Analyse la qualité des adresses d'une liste de stages importés
+ * Utile pour afficher un aperçu avant validation
+ */
+export function analyzeAddressQuality(rows: MatchedStageRow[]): AddressQualityStats {
+  const stats: AddressQualityStats = {
+    total: rows.length,
+    complete: 0,
+    partial: 0,
+    minimal: 0,
+    invalid: 0,
+    empty: 0,
+    byCountry: { FR: 0, LU: 0, unknown: 0 },
+    details: [],
+  };
+
+  for (const row of rows) {
+    const address = row.adresse || '';
+
+    if (!address.trim()) {
+      stats.empty++;
+      stats.details.push({
+        original: '',
+        parsed: {
+          fullAddress: '',
+          hasCityInfo: false,
+          quality: 'invalid',
+          issues: ['Adresse vide'],
+        },
+        eleveNom: row.eleveNom,
+        elevePrenom: row.elevePrenom,
+      });
+      continue;
+    }
+
+    const parsed = parseAddress(address);
+
+    // Comptage par qualité
+    switch (parsed.quality) {
+      case 'complete':
+        stats.complete++;
+        break;
+      case 'partial':
+        stats.partial++;
+        break;
+      case 'minimal':
+        stats.minimal++;
+        break;
+      case 'invalid':
+        stats.invalid++;
+        break;
+    }
+
+    // Comptage par pays
+    if (parsed.pays === 'FR') stats.byCountry.FR++;
+    else if (parsed.pays === 'LU') stats.byCountry.LU++;
+    else stats.byCountry.unknown++;
+
+    stats.details.push({
+      original: address,
+      parsed,
+      eleveNom: row.eleveNom,
+      elevePrenom: row.elevePrenom,
+    });
+  }
+
+  return stats;
+}
+
+/**
+ * Génère un résumé textuel de la qualité des adresses
+ */
+export function formatAddressQualitySummary(stats: AddressQualityStats): string {
+  const lines: string[] = [];
+
+  const totalWithAddress = stats.total - stats.empty;
+  const geocodablePercent = totalWithAddress > 0
+    ? Math.round(((stats.complete + stats.partial) / totalWithAddress) * 100)
+    : 0;
+
+  lines.push(`📊 Analyse de ${stats.total} adresses:`);
+  lines.push(`  ✅ Complètes: ${stats.complete} (géocodage précis attendu)`);
+  lines.push(`  🟡 Partielles: ${stats.partial} (géocodage approximatif)`);
+  lines.push(`  🟠 Minimales: ${stats.minimal} (géocodage au niveau ville)`);
+  lines.push(`  ❌ Invalides: ${stats.invalid}`);
+  lines.push(`  ⚪ Vides: ${stats.empty}`);
+  lines.push('');
+  lines.push(`🌍 Par pays: France ${stats.byCountry.FR}, Luxembourg ${stats.byCountry.LU}, Inconnu ${stats.byCountry.unknown}`);
+  lines.push(`📈 Taux de géocodabilité estimé: ${geocodablePercent}%`);
+
+  return lines.join('\n');
 }
