@@ -642,15 +642,76 @@ function MatchingTab({
           {result.nonAffectes.length > 0 && (
             <div className="unassigned-section">
               <h3>⚠️ Stages non affectés ({result.nonAffectes.length})</h3>
-              {result.nonAffectes.map(item => {
-                const stage = getStageInfo(item.stageId);
-                return (
-                  <div key={item.stageId} className="unassigned-item">
-                    <span>{stage?.eleveId} - {stage?.nomEntreprise}</span>
-                    <span className="reason">{item.raisons.join(', ')}</span>
-                  </div>
-                );
-              })}
+              <p className="unassigned-hint">Survolez un élève pour voir la raison</p>
+              <div className="unassigned-list">
+                {result.nonAffectes.map(item => {
+                  const stage = getStageInfo(item.stageId);
+                  const studentName = stage?.elevePrenom && stage?.eleveNom
+                    ? `${stage.elevePrenom} ${stage.eleveNom}`
+                    : stage?.eleveId || 'Élève inconnu';
+
+                  // Déterminer l'icône et la catégorie du problème
+                  const reasons = item.raisons || [];
+                  const hasNoGeo = reasons.some(r =>
+                    r.includes('non géolocalisé') || r.includes('Aucun trajet calculé')
+                  );
+                  const hasTooFar = reasons.some(r =>
+                    r.includes('trop long') || r.includes('trop grande') || r.includes('Distance')
+                  );
+                  const hasCapacity = reasons.some(r =>
+                    r.includes('capacité') || r.includes('Capacité')
+                  );
+                  const hasNoStage = !stage?.adresse;
+
+                  // Choisir l'icône principale
+                  let icon = '❓';
+                  let problemType = 'unknown';
+                  if (hasNoStage) {
+                    icon = '📭';
+                    problemType = 'no-stage';
+                  } else if (hasNoGeo) {
+                    icon = '📍';
+                    problemType = 'no-geo';
+                  } else if (hasTooFar) {
+                    icon = '🚗';
+                    problemType = 'too-far';
+                  } else if (hasCapacity) {
+                    icon = '👥';
+                    problemType = 'capacity';
+                  }
+
+                  return (
+                    <div
+                      key={item.stageId}
+                      className={`unassigned-item problem-${problemType}`}
+                      title={reasons.join('\n')}
+                    >
+                      <div className="unassigned-student">
+                        <span className="problem-icon">{icon}</span>
+                        <span className="student-name">{studentName}</span>
+                        {stage?.eleveClasse && (
+                          <span className="student-class">{stage.eleveClasse}</span>
+                        )}
+                      </div>
+                      <div className="unassigned-details">
+                        {stage?.nomEntreprise ? (
+                          <span className="company">{stage.nomEntreprise}</span>
+                        ) : (
+                          <span className="no-company">Pas de stage renseigné</span>
+                        )}
+                      </div>
+                      <div className="unassigned-tooltip">
+                        <div className="tooltip-title">Raison(s) :</div>
+                        <ul className="tooltip-reasons">
+                          {reasons.map((reason, idx) => (
+                            <li key={idx}>{reason}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </>

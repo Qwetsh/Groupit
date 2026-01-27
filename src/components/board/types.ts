@@ -149,12 +149,25 @@ export interface ValidationModalProps {
 }
 
 // ============================================================
+// NON-AFFECTATION INFO (raisons de non-affectation après matching)
+// ============================================================
+
+export interface NonAffectationInfo {
+  eleveId: string;
+  raisons: string[];
+  /** Type de problème principal pour affichage visuel */
+  problemType: 'no-stage' | 'no-geo' | 'too-far' | 'capacity' | 'unknown';
+}
+
+// ============================================================
 // TILE PROPS
 // ============================================================
 
 export interface DraggableEleveProps {
   eleve: Eleve;
   onContextMenu: (e: React.MouseEvent, eleve: Eleve) => void;
+  /** Infos de non-affectation (si élève non placé après matching) */
+  nonAffectationInfo?: NonAffectationInfo;
 }
 
 export interface DraggableAffectationChipProps {

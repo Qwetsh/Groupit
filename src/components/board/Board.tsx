@@ -38,7 +38,7 @@ import { BoardToolbar } from './BoardToolbar';
 import { BoardMessages } from './BoardMessages';
 import { ValidationModal } from './ValidationModal';
 import { DraggableEleve, DroppableEnseignantTile, DroppableJuryTile } from './tiles';
-import type { DragData, DropData, ContextMenuState, JuryAffectationDisplay, MatchingStats, ValidationSuccess } from './types';
+import type { DragData, DropData, ContextMenuState, JuryAffectationDisplay, MatchingStats, ValidationSuccess, NonAffectationInfo } from './types';
 
 import './Board.css';
 
@@ -119,6 +119,7 @@ export const Board: React.FC = () => {
   const [matchingError, setMatchingError] = useState<string | null>(null);
   const [matchingStats, setMatchingStats] = useState<MatchingStats | null>(null);
   const [dnbResults, setDnbResults] = useState<Map<string, MatchingResultDNB>>(new Map());
+  const [nonAffectesInfo, setNonAffectesInfo] = useState<Map<string, NonAffectationInfo>>(new Map());
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [infoModalEleve, setInfoModalEleve] = useState<{ eleve: Eleve; affectation?: Affectation; enseignant?: Enseignant; jury?: Jury } | null>(null);
   const [mapDrawerOpen, setMapDrawerOpen] = useState(false);
@@ -478,6 +479,7 @@ export const Board: React.FC = () => {
     setMatchingError(null);
     setMatchingStats(null);
     setDnbResults(new Map());
+    setNonAffectesInfo(new Map());
 
     try {
       if (isStageScenario) {
@@ -536,6 +538,49 @@ export const Board: React.FC = () => {
           const reasons = result.nonAffectes.slice(0, 3).map(n => n.raisons[0]).join('; ');
           setMatchingError(`${result.nonAffectes.length} stage(s) non affecté(s): ${reasons}`);
         }
+
+        // Build non-affectation info for tooltips
+        const newNonAffectesInfo = new Map<string, NonAffectationInfo>();
+        const stageByEleveId = new Map(scenarioStagesForMatching.map(s => [s.eleveId!, s]));
+        const geocodedStageEleveIds = new Set(geocodedStages.map(s => s.eleveId!));
+        const affectedEleveIds = new Set(result.affectations.map(a => a.eleveId));
+
+        for (const eleve of scenarioEleves) {
+          if (affectedEleveIds.has(eleve.id!)) continue; // Skip affected students
+
+          const stage = stageByEleveId.get(eleve.id!);
+          const raisons: string[] = [];
+          let problemType: NonAffectationInfo['problemType'] = 'unknown';
+
+          if (!stage) {
+            raisons.push('📭 Pas de stage renseigné');
+            problemType = 'no-stage';
+          } else if (!geocodedStageEleveIds.has(eleve.id!)) {
+            raisons.push('📍 Adresse du stage non géolocalisée');
+            if (stage.adresse) raisons.push(`Adresse: ${stage.adresse}`);
+            problemType = 'no-geo';
+          } else {
+            // Student has geocoded stage but wasn't affected - check why
+            const nonAffecte = result.nonAffectes.find(n => n.eleveId === eleve.id);
+            if (nonAffecte && nonAffecte.raisons.length > 0) {
+              raisons.push(...nonAffecte.raisons.map(r =>
+                r.includes('distance') || r.includes('loin') ? `🚗 ${r}` :
+                r.includes('capacité') ? `👥 ${r}` : r
+              ));
+              problemType = nonAffecte.raisons.some(r => r.includes('distance') || r.includes('loin'))
+                ? 'too-far'
+                : nonAffecte.raisons.some(r => r.includes('capacité'))
+                  ? 'capacity'
+                  : 'unknown';
+            } else {
+              raisons.push('🚗 Trop loin de tous les enseignants');
+              problemType = 'too-far';
+            }
+          }
+
+          newNonAffectesInfo.set(eleve.id!, { eleveId: eleve.id!, raisons, problemType });
+        }
+        setNonAffectesInfo(newNonAffectesInfo);
       } else if (isJuryMode && scenarioJurys.length > 0) {
         // DNB jury matching
         const result = solveOralDnbComplete(scenarioEleves, enseignants, scenarioJurys, activeScenario, { verbose: false });
@@ -584,6 +629,7 @@ export const Board: React.FC = () => {
       setMatchingStats(null);
       setMatchingError(null);
       setDnbResults(new Map());
+      setNonAffectesInfo(new Map());
     } catch (err) {
       setMatchingError(`Erreur lors de la réinitialisation : ${String(err)}`);
     }
@@ -678,7 +724,7 @@ export const Board: React.FC = () => {
             </div>
             <UnassignedDropZone>
               {unassignedEleves.map(eleve => (
-                <DraggableEleve key={eleve.id} eleve={eleve} onContextMenu={handleContextMenuUnassigned} />
+                <DraggableEleve key={eleve.id} eleve={eleve} onContextMenu={handleContextMenuUnassigned} nonAffectationInfo={nonAffectesInfo.get(eleve.id!)} />
               ))}
               {unassignedEleves.length === 0 && (
                 <div className="empty-state"><p>Tous les élèves sont affectés</p></div>
