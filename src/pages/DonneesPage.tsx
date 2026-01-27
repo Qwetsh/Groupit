@@ -613,8 +613,8 @@ export const DonneesPage: React.FC = () => {
           });
         }
 
-        // Délai pour respecter les limites API Nominatim (1 req/s)
-        await new Promise(r => setTimeout(r, 1100));
+        // Petit délai pour UI (rate limit géré par le provider hybride)
+        await new Promise(r => setTimeout(r, 100));
       }
 
       alert(`Géocodage terminé ! ${toGeocode.length} adresses traitées.`);

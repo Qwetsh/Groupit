@@ -3,6 +3,7 @@
 // ============================================================
 
 import type { IGeoProvider, GeocodeResult, GeoConfidence } from './types';
+import { parseAddress } from './addressParser';
 
 // ============================================================
 // CONFIGURATION DES PROVIDERS
@@ -13,7 +14,7 @@ import type { IGeoProvider, GeocodeResult, GeoConfidence } from './types';
  * Peut être surchargée via localStorage ou variables d'environnement
  */
 export interface GeoConfig {
-  geocodeProvider: 'nominatim' | 'photon' | 'mock';
+  geocodeProvider: 'nominatim' | 'photon' | 'ban' | 'hybrid' | 'mock';
   nominatim?: {
     baseUrl: string;
     userAgent: string;
@@ -23,10 +24,14 @@ export interface GeoConfig {
     baseUrl: string;
     rateLimit: number;
   };
+  ban?: {
+    baseUrl: string;
+    rateLimit: number; // ms entre requêtes (peut être très bas)
+  };
 }
 
 const DEFAULT_GEO_CONFIG: GeoConfig = {
-  geocodeProvider: 'nominatim',
+  geocodeProvider: 'hybrid', // Utilise BAN pour France, Nominatim pour Luxembourg
   nominatim: {
     baseUrl: 'https://nominatim.openstreetmap.org',
     userAgent: 'Groupit/1.0 (educational-app)',
@@ -35,6 +40,10 @@ const DEFAULT_GEO_CONFIG: GeoConfig = {
   photon: {
     baseUrl: 'https://photon.komoot.io',
     rateLimit: 200,
+  },
+  ban: {
+    baseUrl: 'https://api-adresse.data.gouv.fr',
+    rateLimit: 50, // ~20 req/s, on reste conservateur
   },
 };
 
@@ -111,11 +120,13 @@ export class NominatimProvider implements IGeoProvider {
   readonly name = 'nominatim';
   private lastRequestTime = 0;
   private config: NonNullable<GeoConfig['nominatim']>;
-  
-  constructor(config?: Partial<GeoConfig['nominatim']>) {
+  private countryCodes: string;
+
+  constructor(config?: Partial<GeoConfig['nominatim']>, countryCodes: string = 'fr,lu') {
     this.config = { ...DEFAULT_GEO_CONFIG.nominatim!, ...config };
+    this.countryCodes = countryCodes;
   }
-  
+
   async geocode(address: string): Promise<GeocodeResult> {
     // Rate limiting
     const now = Date.now();
@@ -124,14 +135,14 @@ export class NominatimProvider implements IGeoProvider {
       await delay(this.config.rateLimit - elapsed);
     }
     this.lastRequestTime = Date.now();
-    
+
     try {
       const params = new URLSearchParams({
         q: address,
         format: 'json',
         addressdetails: '1',
         limit: '1',
-        countrycodes: 'fr', // Limiter à la France
+        countrycodes: this.countryCodes,
       });
       
       const url = `${this.config.baseUrl}/search?${params}`;
@@ -396,6 +407,182 @@ export class MockGeoProvider implements IGeoProvider {
 }
 
 // ============================================================
+// PROVIDER: BAN (Base Adresse Nationale - api-adresse.data.gouv.fr)
+// ============================================================
+
+/**
+ * Provider BAN - API du gouvernement français
+ * GRATUIT et RAPIDE (~50 req/s autorisé)
+ * https://adresse.data.gouv.fr/api-doc/adresse
+ *
+ * LIMITATION: France uniquement
+ */
+export class BanProvider implements IGeoProvider {
+  readonly name = 'ban';
+  private lastRequestTime = 0;
+  private config: NonNullable<GeoConfig['ban']>;
+
+  constructor(config?: Partial<GeoConfig['ban']>) {
+    this.config = { ...DEFAULT_GEO_CONFIG.ban!, ...config };
+  }
+
+  async geocode(address: string): Promise<GeocodeResult> {
+    // Rate limiting (très permissif)
+    const now = Date.now();
+    const elapsed = now - this.lastRequestTime;
+    if (elapsed < this.config.rateLimit) {
+      await delay(this.config.rateLimit - elapsed);
+    }
+    this.lastRequestTime = Date.now();
+
+    try {
+      const params = new URLSearchParams({
+        q: address,
+        limit: '1',
+      });
+
+      const url = `${this.config.baseUrl}/search/?${params}`;
+
+      const response = await fetchWithTimeout(url, {
+        headers: {
+          'Accept': 'application/json',
+        },
+        timeout: 10000,
+      });
+
+      if (!response.ok) {
+        return {
+          success: false,
+          confidence: 'unknown',
+          errorMessage: `HTTP ${response.status}: ${response.statusText}`,
+          provider: this.name,
+        };
+      }
+
+      const data = await response.json();
+
+      if (!data.features || data.features.length === 0) {
+        return {
+          success: false,
+          confidence: 'unknown',
+          errorMessage: 'Adresse non trouvée',
+          provider: this.name,
+        };
+      }
+
+      const feature = data.features[0];
+      const [lon, lat] = feature.geometry.coordinates;
+      const props = feature.properties;
+
+      // Score de confiance basé sur le score BAN (0-1)
+      const confidence = this.determineConfidence(props);
+
+      return {
+        success: true,
+        point: { lat, lon },
+        normalizedAddress: props.label || address,
+        confidence,
+        provider: this.name,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erreur inconnue';
+      return {
+        success: false,
+        confidence: 'unknown',
+        errorMessage: message.includes('abort') ? 'Timeout' : message,
+        provider: this.name,
+      };
+    }
+  }
+
+  private determineConfidence(props: Record<string, unknown>): GeoConfidence {
+    const score = props.score as number;
+    const type = props.type as string;
+
+    // Score BAN: 0-1, plus c'est haut, meilleur c'est
+    if (score >= 0.8 && (type === 'housenumber' || type === 'street')) {
+      return 'high';
+    }
+
+    if (score >= 0.6) {
+      return 'medium';
+    }
+
+    // Résultat au niveau ville/localité
+    if (type === 'municipality' || type === 'locality') {
+      return 'low';
+    }
+
+    return score >= 0.4 ? 'medium' : 'low';
+  }
+}
+
+// ============================================================
+// PROVIDER: HYBRID (BAN pour France, Nominatim pour Luxembourg)
+// ============================================================
+
+/**
+ * Provider Hybride intelligent
+ * - Détecte automatiquement le pays (France vs Luxembourg)
+ * - Utilise BAN (rapide) pour la France
+ * - Utilise Nominatim (lent) pour le Luxembourg et autres pays
+ *
+ * Résultat: ~50 req/s pour France, 1 req/s pour Luxembourg
+ */
+export class HybridGeoProvider implements IGeoProvider {
+  readonly name = 'hybrid';
+  private banProvider: BanProvider;
+  private nominatimProvider: NominatimProvider;
+
+  constructor() {
+    this.banProvider = new BanProvider();
+    // Nominatim pour Luxembourg uniquement
+    this.nominatimProvider = new NominatimProvider(undefined, 'lu,be,de');
+  }
+
+  async geocode(address: string): Promise<GeocodeResult> {
+    // Analyser l'adresse pour détecter le pays
+    const parsed = parseAddress(address);
+
+    // Si Luxembourg détecté, utiliser Nominatim
+    if (parsed.pays === 'LU') {
+      const result = await this.nominatimProvider.geocode(address);
+      return {
+        ...result,
+        provider: `${this.name}:nominatim`,
+      };
+    }
+
+    // France ou inconnu: essayer BAN d'abord
+    const banResult = await this.banProvider.geocode(address);
+
+    if (banResult.success) {
+      return {
+        ...banResult,
+        provider: `${this.name}:ban`,
+      };
+    }
+
+    // Si BAN échoue et que le pays est inconnu, essayer Nominatim en fallback
+    if (parsed.pays === 'unknown') {
+      const nominatimResult = await this.nominatimProvider.geocode(address);
+      if (nominatimResult.success) {
+        return {
+          ...nominatimResult,
+          provider: `${this.name}:nominatim-fallback`,
+        };
+      }
+    }
+
+    // Retourner l'erreur BAN
+    return {
+      ...banResult,
+      provider: `${this.name}:ban`,
+    };
+  }
+}
+
+// ============================================================
 // FACTORY
 // ============================================================
 
@@ -405,8 +592,12 @@ export class MockGeoProvider implements IGeoProvider {
 export function createGeoProvider(providerName?: string): IGeoProvider {
   const config = getGeoConfig();
   const name = providerName || config.geocodeProvider;
-  
+
   switch (name) {
+    case 'hybrid':
+      return new HybridGeoProvider();
+    case 'ban':
+      return new BanProvider(config.ban);
     case 'nominatim':
       return new NominatimProvider(config.nominatim);
     case 'photon':
@@ -414,8 +605,8 @@ export function createGeoProvider(providerName?: string): IGeoProvider {
     case 'mock':
       return new MockGeoProvider();
     default:
-      console.warn(`[Geo] Provider inconnu: ${name}, utilisation de Nominatim`);
-      return new NominatimProvider(config.nominatim);
+      console.warn(`[Geo] Provider inconnu: ${name}, utilisation de Hybrid`);
+      return new HybridGeoProvider();
   }
 }
 

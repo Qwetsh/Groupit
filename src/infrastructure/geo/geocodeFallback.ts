@@ -115,11 +115,11 @@ export async function geocodeWithFallback(
   address: string,
   options: GeocodeFallbackOptions = {}
 ): Promise<GeocodeFallbackResult> {
-  const { 
-    delayBetweenAttempts = 300, 
+  const {
+    delayBetweenAttempts = 50, // Provider gère son propre rate limit
     forceRefresh = false,
     codePostal,
-    ville 
+    ville
   } = options;
 
   // Résultat par défaut (échec)
@@ -357,7 +357,7 @@ export async function geocodeBatchWithFallback(
   }
 ): Promise<Map<string, GeocodeFallbackResult>> {
   const results = new Map<string, GeocodeFallbackResult>();
-  const delayMs = options?.delayBetweenItems ?? 500;
+  const delayMs = options?.delayBetweenItems ?? 100; // Provider gère son propre rate limit
 
   for (let i = 0; i < items.length; i++) {
     if (options?.abortSignal?.aborted) break;
