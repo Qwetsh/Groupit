@@ -193,8 +193,8 @@ function StageImportModal({ onClose, onImportComplete }: ImportModalProps) {
             setGeocodeProgress(p => ({ ...p, errors: p.errors + 1 }));
           }
 
-          // Rate limit Nominatim (1 req/sec)
-          await new Promise(r => setTimeout(r, 1100));
+          // Petit délai pour UI (rate limit géré par le provider)
+          await new Promise(r => setTimeout(r, 100));
         }
       }
 

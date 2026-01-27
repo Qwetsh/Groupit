@@ -757,8 +757,8 @@ export function SuiviStagePage() {
           setProgress(p => ({ ...p, errors: p.errors + 1 }));
         }
         
-        // Délai pour respecter les limites API (Nominatim: 1 req/s)
-        await new Promise(r => setTimeout(r, 1100));
+        // Petit délai pour UI (rate limit géré par le provider hybride)
+        await new Promise(r => setTimeout(r, 100));
       }
       
       // Geocode teachers (aussi avec fallback)
@@ -799,8 +799,8 @@ export function SuiviStagePage() {
           setProgress(p => ({ ...p, errors: p.errors + 1 }));
         }
         
-        // Délai pour respecter les limites API (Nominatim: 1 req/s)
-        await new Promise(r => setTimeout(r, 1100));
+        // Petit délai pour UI (rate limit géré par le provider hybride)
+        await new Promise(r => setTimeout(r, 100));
       }
       
       setProgress(p => ({ ...p, completed: total, phase: 'Terminé' }));
