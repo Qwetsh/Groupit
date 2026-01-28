@@ -299,8 +299,9 @@
 }
 
 .drag-legend .legend-border.has-class {
-  border: 3px solid #8b5cf6;
-  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+  outline: 3px solid #8b5cf6;
+  outline-offset: -1px;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3);
 }
 
 /* Results Grid - Compact view */
@@ -1064,9 +1065,12 @@
 }
 
 /* Enseignant qui a l'élève dragué dans sa classe */
+/* Utilisation de outline pour éviter le décalage des cartes */
 .enseignant-tile.has-eleve-class {
-  border: 3px solid #8b5cf6 !important;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25), 0 4px 12px rgba(139, 92, 246, 0.2) !important;
+  outline: 3px solid #8b5cf6;
+  outline-offset: -1px;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.25), 0 4px 12px rgba(139, 92, 246, 0.2) !important;
+  z-index: 1;
 }
 
 .enseignant-tile.has-eleve-class .tile-header {
@@ -1075,23 +1079,19 @@
 
 /* Combiner avec les couleurs de distance */
 .enseignant-tile.has-eleve-class.distance-close {
-  border-color: #8b5cf6 !important;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25), 0 4px 12px rgba(34, 197, 94, 0.15) !important;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.25), 0 4px 12px rgba(34, 197, 94, 0.15) !important;
 }
 
 .enseignant-tile.has-eleve-class.distance-medium {
-  border-color: #8b5cf6 !important;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25), 0 4px 12px rgba(234, 179, 8, 0.15) !important;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.25), 0 4px 12px rgba(234, 179, 8, 0.15) !important;
 }
 
 .enseignant-tile.has-eleve-class.distance-far {
-  border-color: #8b5cf6 !important;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25), 0 4px 12px rgba(249, 115, 22, 0.15) !important;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.25), 0 4px 12px rgba(249, 115, 22, 0.15) !important;
 }
 
 .enseignant-tile.has-eleve-class.distance-very-far {
-  border-color: #8b5cf6 !important;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25), 0 4px 12px rgba(239, 68, 68, 0.15) !important;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.25), 0 4px 12px rgba(239, 68, 68, 0.15) !important;
 }
 
 /* ============================================================ */
