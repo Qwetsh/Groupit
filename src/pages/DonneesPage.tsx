@@ -7,6 +7,7 @@ import { useEleveStore } from '../stores/eleveStore';
 import { useEnseignantStore } from '../stores/enseignantStore';
 import { useFieldDefinitionStore } from '../stores/fieldDefinitionStore';
 import type { Eleve, Enseignant, FieldType, EntityType } from '../domain/models';
+import { calculateCapacitesStage } from '../domain/models';
 import {
   X,
   Users,
@@ -63,7 +64,7 @@ const ENSEIGNANT_CORE_COLUMNS: ColumnDef[] = [
   { key: 'classePP', label: 'Classe PP', type: 'text', isCore: true, editable: true },
   { key: 'adresse', label: 'Adresse', type: 'text', isCore: true, editable: true },
   { key: 'commune', label: 'Commune', type: 'text', isCore: true, editable: true },
-  { key: 'capaciteStage', label: 'Capacité stage', type: 'number', isCore: true, editable: true },
+  { key: 'capaciteStage', label: 'Capacité stage', type: 'number', isCore: true, editable: false },
 ];
 
 // ============================================================
@@ -405,15 +406,24 @@ export const DonneesPage: React.FC = () => {
     return Array.from(matieres).sort();
   }, [enseignants]);
 
+  // Capacités stage calculées (heures × nb classes 3e)
+  const capacitesStageCalculees = useMemo(() => {
+    return calculateCapacitesStage(enseignants, eleves);
+  }, [enseignants, eleves]);
+
   // Get cell value (core or custom) - must be defined before filteredData useMemo
   const getCellValue = useCallback((item: Eleve | Enseignant, key: string): unknown => {
     if (key.startsWith('custom_')) {
       const customKey = key.replace('custom_', '');
       return item.customFields?.[customKey];
     }
+    // Capacité stage calculée automatiquement pour les enseignants
+    if (key === 'capaciteStage' && 'matierePrincipale' in item) {
+      return capacitesStageCalculees.get(item.id!) ?? 0;
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (item as any)[key];
-  }, []);
+  }, [capacitesStageCalculees]);
 
   // Filter and sort data
   const filteredData = useMemo(() => {

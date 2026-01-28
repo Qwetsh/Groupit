@@ -22,8 +22,9 @@ import { buildArchiveFromCurrentState } from '../../services';
 import { solveMatching, convertToAffectations, solveOralDnbComplete, solveStageMatching, toStageGeoInfo, toEnseignantGeoInfo, calculateDistance } from '../../algorithms';
 import { getEffectiveCriteres, criteresToStageOptions } from '../../domain/criteriaConfig';
 import type { Eleve, Enseignant, Affectation, Jury, MatchingResultDNB, Stage } from '../../domain/models';
+import { calculateCapacitesStage } from '../../domain/models';
 import { filterEleves, filterEnseignants } from '../../utils/filteringUtils';
-import { Info, UserX, Users } from 'lucide-react';
+import { Info, UserX, Users, MapPin, MapPinOff } from 'lucide-react';
 import { OverlayProgress } from '../ui/ProgressIndicator';
 import { HelpTooltip, HELP_TEXTS } from '../ui/Tooltip';
 import { ConfirmModal } from '../ui/ConfirmModal';
@@ -38,7 +39,7 @@ import { BoardToolbar } from './BoardToolbar';
 import { BoardMessages } from './BoardMessages';
 import { ValidationModal } from './ValidationModal';
 import { DraggableEleve, DroppableEnseignantTile, DroppableJuryTile } from './tiles';
-import type { DragData, DropData, ContextMenuState, JuryAffectationDisplay, MatchingStats, ValidationSuccess, NonAffectationInfo } from './types';
+import type { DragData, DropData, ContextMenuState, EnseignantContextMenuState, JuryAffectationDisplay, MatchingStats, ValidationSuccess, NonAffectationInfo } from './types';
 
 import './Board.css';
 
@@ -121,6 +122,8 @@ export const Board: React.FC = () => {
   const [dnbResults, setDnbResults] = useState<Map<string, MatchingResultDNB>>(new Map());
   const [nonAffectesInfo, setNonAffectesInfo] = useState<Map<string, NonAffectationInfo>>(new Map());
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [enseignantContextMenu, setEnseignantContextMenu] = useState<EnseignantContextMenuState | null>(null);
+  const [distanceEnseignantId, setDistanceEnseignantId] = useState<string | null>(null);
   const [infoModalEleve, setInfoModalEleve] = useState<{ eleve: Eleve; affectation?: Affectation; enseignant?: Enseignant; jury?: Jury; stage?: Stage } | null>(null);
   const [mapDrawerOpen, setMapDrawerOpen] = useState(false);
   const [selectedTeacherForMap, setSelectedTeacherForMap] = useState<Enseignant | null>(null);
@@ -235,12 +238,21 @@ export const Board: React.FC = () => {
   const geocodedEnseignantsCount = useMemo(() => scenarioEnseignants.filter(e => (e.geoStatus === 'ok' || e.geoStatus === 'manual') && e.lat && e.lon).length, [scenarioEnseignants]);
   const stageReadyForMatching = geocodedStagesCount > 0 && geocodedEnseignantsCount > 0;
 
-  // Capacity
+  // Capacity (default fixed value)
   const capacity = useMemo(() => {
     if (!activeScenario) return 5;
     if (isStageScenario) return activeScenario.parametres?.suiviStage?.capaciteTuteurDefaut || 5;
     return activeScenario.parametres?.capaciteConfig?.capaciteBaseDefaut || 5;
   }, [activeScenario, isStageScenario]);
+
+  // Capacités calculées pour suivi stage (heures × nb classes 3e)
+  const capacitesStageCalculees = useMemo(() => {
+    if (!isStageScenario) return new Map<string, number>();
+    return calculateCapacitesStage(enseignants, eleves);
+  }, [isStageScenario, enseignants, eleves]);
+
+  // Déterminer si on utilise les capacités calculées
+  const utiliserCapaciteCalculee = activeScenario?.parametres?.suiviStage?.utiliserCapaciteCalculee ?? true;
 
   // Toolbar props
   const scenarioInfo = isStageScenario
@@ -309,6 +321,15 @@ export const Board: React.FC = () => {
 
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
 
+  // Handlers pour menu contextuel enseignant (clic droit sur tuile enseignant)
+  const handleEnseignantContextMenu = useCallback((e: React.MouseEvent, enseignant: Enseignant) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEnseignantContextMenu({ x: e.clientX, y: e.clientY, enseignant });
+  }, []);
+
+  const closeEnseignantContextMenu = useCallback(() => setEnseignantContextMenu(null), []);
+
   // Stage lookup by eleveId (pour mode stage)
   const stageByEleveId = useMemo(() => {
     const map = new Map<string, Stage>();
@@ -319,6 +340,76 @@ export const Board: React.FC = () => {
     }
     return map;
   }, [stages]);
+
+  // Distances enseignant -> stage de l'élève dragué (pour feedback visuel)
+  const dragDistancesByEnseignant = useMemo(() => {
+    const distances = new Map<string, number>();
+
+    // Seulement en mode stage et si un élève est dragué
+    if (!isStageScenario || !activeData) return distances;
+
+    // Récupérer l'eleveId depuis activeData
+    const eleveId = 'eleveId' in activeData ? activeData.eleveId : undefined;
+    if (!eleveId) return distances;
+
+    // Récupérer le stage de l'élève dragué
+    const stage = stageByEleveId.get(eleveId);
+    if (!stage || !stage.lat || !stage.lon) return distances;
+
+    // Calculer la distance pour chaque enseignant géocodé
+    for (const ens of enseignants) {
+      if (ens.lat && ens.lon) {
+        const dist = calculateDistance(ens.lat, ens.lon, stage.lat, stage.lon);
+        distances.set(ens.id!, dist);
+      }
+    }
+
+    return distances;
+  }, [isStageScenario, activeData, stageByEleveId, enseignants]);
+
+  // Calcul des enseignants qui ont l'élève dragué dans leur classe
+  const enseignantsWithDraggedEleveClass = useMemo(() => {
+    const enseignantIds = new Set<string>();
+
+    // Seulement si un élève est dragué
+    if (!activeData) return enseignantIds;
+
+    // Récupérer l'élève depuis activeData
+    const eleve = 'eleve' in activeData ? activeData.eleve : undefined;
+    if (!eleve || !eleve.classe) return enseignantIds;
+
+    // Trouver tous les enseignants qui ont cette classe
+    for (const ens of enseignants) {
+      if (ens.classesEnCharge?.includes(eleve.classe)) {
+        enseignantIds.add(ens.id!);
+      }
+    }
+
+    return enseignantIds;
+  }, [activeData, enseignants]);
+
+  // Calcul des distances depuis l'enseignant sélectionné vers TOUS les élèves (mode distance enseignant)
+  const distancesByEleveFromEnseignant = useMemo(() => {
+    const distances = new Map<string, number>();
+
+    // Seulement en mode stage et si un enseignant est sélectionné pour le mode distance
+    if (!isStageScenario || !distanceEnseignantId) return distances;
+
+    // Récupérer l'enseignant sélectionné
+    const enseignant = enseignantsById.get(distanceEnseignantId);
+    if (!enseignant || !enseignant.lat || !enseignant.lon) return distances;
+
+    // Calculer la distance pour TOUS les élèves du scénario avec un stage géocodé
+    for (const eleve of scenarioEleves) {
+      const stage = stageByEleveId.get(eleve.id!);
+      if (stage && stage.lat && stage.lon) {
+        const dist = calculateDistance(enseignant.lat, enseignant.lon, stage.lat, stage.lon);
+        distances.set(eleve.id!, dist);
+      }
+    }
+
+    return distances;
+  }, [isStageScenario, distanceEnseignantId, enseignantsById, scenarioEleves, stageByEleveId]);
 
   // Context menu items
   const contextMenuItems: ContextMenuItem[] = useMemo(() => {
@@ -351,6 +442,29 @@ export const Board: React.FC = () => {
     }
     return items;
   }, [contextMenu, deleteAffectation, isStageScenario, stageByEleveId]);
+
+  // Context menu items pour enseignant (mode distance)
+  const enseignantContextMenuItems: ContextMenuItem[] = useMemo(() => {
+    if (!enseignantContextMenu || !isStageScenario) return [];
+
+    const enseignant = enseignantContextMenu.enseignant;
+    const isActive = distanceEnseignantId === enseignant.id;
+
+    return [
+      {
+        id: 'distance-toggle',
+        label: isActive ? 'Masquer distances' : 'Voir distances stages',
+        icon: isActive ? <MapPinOff size={16} /> : <MapPin size={16} />,
+        onClick: () => {
+          if (isActive) {
+            setDistanceEnseignantId(null);
+          } else {
+            setDistanceEnseignantId(enseignant.id!);
+          }
+        },
+      },
+    ];
+  }, [enseignantContextMenu, isStageScenario, distanceEnseignantId]);
 
   // Drag handlers
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -519,7 +633,15 @@ export const Board: React.FC = () => {
         }
 
         const stagesGeoInfo = geocodedStages.map(s => toStageGeoInfo({ id: s.id, eleveId: s.eleveId, eleveClasse: s.eleveClasse, adresse: s.adresse || '', lat: s.lat, lon: s.lon, geoStatus: s.geoStatus || 'pending', nomEntreprise: s.nomEntreprise }));
-        const enseignantsGeoInfo = geocodedEnseignants.map(e => toEnseignantGeoInfo({ id: e.id!, nom: e.nom, prenom: e.prenom, adresse: e.adresse, lat: e.lat, lon: e.lon, geoStatus: e.geoStatus, capaciteStage: activeScenario.parametres.suiviStage?.capaciteTuteurDefaut ?? 5, classesEnCharge: e.classesEnCharge }));
+
+        // Capacité par enseignant: calculée ou fixe selon l'option du scénario
+        const capaciteDefaut = activeScenario.parametres.suiviStage?.capaciteTuteurDefaut ?? 5;
+        const enseignantsGeoInfo = geocodedEnseignants.map(e => {
+          const capacite = utiliserCapaciteCalculee
+            ? (capacitesStageCalculees.get(e.id!) ?? capaciteDefaut)
+            : capaciteDefaut;
+          return toEnseignantGeoInfo({ id: e.id!, nom: e.nom, prenom: e.prenom, adresse: e.adresse, lat: e.lat, lon: e.lon, geoStatus: e.geoStatus, capaciteStage: capacite, classesEnCharge: e.classesEnCharge });
+        });
 
         const effectiveCriteres = getEffectiveCriteres(activeScenario.type, activeScenario.parametres.criteresV2 || []);
         const stageOptions = criteresToStageOptions(effectiveCriteres, { distanceMaxKm: activeScenario.parametres.suiviStage?.distanceMaxKm, dureeMaxMin: activeScenario.parametres.suiviStage?.dureeMaxMin });
@@ -744,7 +866,7 @@ export const Board: React.FC = () => {
             </div>
             <UnassignedDropZone>
               {unassignedEleves.map(eleve => (
-                <DraggableEleve key={eleve.id} eleve={eleve} onContextMenu={handleContextMenuUnassigned} nonAffectationInfo={nonAffectesInfo.get(eleve.id!)} />
+                <DraggableEleve key={eleve.id} eleve={eleve} onContextMenu={handleContextMenuUnassigned} nonAffectationInfo={nonAffectesInfo.get(eleve.id!)} distanceFromEnseignantKm={distancesByEleveFromEnseignant.get(eleve.id!)} />
               ))}
               {unassignedEleves.length === 0 && (
                 <div className="empty-state"><p>Tous les élèves sont affectés</p></div>
@@ -761,6 +883,16 @@ export const Board: React.FC = () => {
                 <span className="matiere-badge">{Math.round(matchingStats.tauxMatiere)}% matières correspondantes</span>
               )}
             </div>
+            {isStageScenario && (
+              <div className="drag-legend">
+                <span className="legend-title">Légende drag & drop :</span>
+                <span className="legend-item"><span className="legend-color distance-close"></span> ≤5km</span>
+                <span className="legend-item"><span className="legend-color distance-medium"></span> ≤15km</span>
+                <span className="legend-item"><span className="legend-color distance-far"></span> ≤30km</span>
+                <span className="legend-item"><span className="legend-color distance-very-far"></span> &gt;30km</span>
+                <span className="legend-item"><span className="legend-border has-class"></span> Prof de l'élève</span>
+              </div>
+            )}
             <div className="results-grid">
               {isJuryMode ? (
                 scenarioJurys.length > 0 ? (
@@ -782,18 +914,29 @@ export const Board: React.FC = () => {
                   </div>
                 )
               ) : (
-                displayedEnseignants.map(enseignant => (
-                  <DroppableEnseignantTile
-                    key={enseignant.id}
-                    enseignant={enseignant}
-                    affectations={affectationsByEnseignant.get(enseignant.id!) || []}
-                    eleves={eleves}
-                    capacity={capacity}
-                    onContextMenu={handleContextMenuAffected}
-                    onClick={handleTeacherCardClick}
-                    isStageScenario={isStageScenario}
-                  />
-                ))
+                displayedEnseignants.map(enseignant => {
+                  // Capacité par enseignant: calculée ou fixe selon l'option du scénario (suivi stage)
+                  const enseignantCapacity = isStageScenario && utiliserCapaciteCalculee
+                    ? (capacitesStageCalculees.get(enseignant.id!) ?? capacity)
+                    : capacity;
+                  return (
+                    <DroppableEnseignantTile
+                      key={enseignant.id}
+                      enseignant={enseignant}
+                      affectations={affectationsByEnseignant.get(enseignant.id!) || []}
+                      eleves={eleves}
+                      capacity={enseignantCapacity}
+                      onContextMenu={handleContextMenuAffected}
+                      onTileContextMenu={handleEnseignantContextMenu}
+                      onClick={handleTeacherCardClick}
+                      isStageScenario={isStageScenario}
+                      dragDistanceKm={dragDistancesByEnseignant.get(enseignant.id!)}
+                      isDistanceActive={distanceEnseignantId === enseignant.id}
+                      distancesByEleve={distancesByEleveFromEnseignant}
+                      hasEleveInClass={enseignantsWithDraggedEleveClass.has(enseignant.id!)}
+                    />
+                  );
+                })
               )}
             </div>
           </div>
@@ -809,6 +952,7 @@ export const Board: React.FC = () => {
       </DndContext>
 
       {contextMenu && <ContextMenu x={contextMenu.x} y={contextMenu.y} items={contextMenuItems} onClose={closeContextMenu} />}
+      {enseignantContextMenu && <ContextMenu x={enseignantContextMenu.x} y={enseignantContextMenu.y} items={enseignantContextMenuItems} onClose={closeEnseignantContextMenu} />}
 
       {infoModalEleve && (
         <EleveInfoModal
