@@ -9,7 +9,7 @@
 
 // Coordonnées du collège (centre de référence)
 export const COLLEGE_REFERENCE = {
-  nom: 'Collège Jean Laurain',
+  nom: 'Collège Pierre Mendes France',
   adresse: '1 rue Jean Laurain',
   codePostal: '57140',
   ville: 'Woippy',
