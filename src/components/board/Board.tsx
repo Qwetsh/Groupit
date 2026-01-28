@@ -518,8 +518,8 @@ export const Board: React.FC = () => {
           return;
         }
 
-        const stagesGeoInfo = geocodedStages.map(s => toStageGeoInfo({ id: s.id, eleveId: s.eleveId, adresse: s.adresse || '', lat: s.lat, lon: s.lon, geoStatus: s.geoStatus || 'pending', nomEntreprise: s.nomEntreprise }));
-        const enseignantsGeoInfo = geocodedEnseignants.map(e => toEnseignantGeoInfo({ id: e.id!, nom: e.nom, prenom: e.prenom, adresse: e.adresse, lat: e.lat, lon: e.lon, geoStatus: e.geoStatus, capaciteStage: activeScenario.parametres.suiviStage?.capaciteTuteurDefaut ?? 5 }));
+        const stagesGeoInfo = geocodedStages.map(s => toStageGeoInfo({ id: s.id, eleveId: s.eleveId, eleveClasse: s.eleveClasse, adresse: s.adresse || '', lat: s.lat, lon: s.lon, geoStatus: s.geoStatus || 'pending', nomEntreprise: s.nomEntreprise }));
+        const enseignantsGeoInfo = geocodedEnseignants.map(e => toEnseignantGeoInfo({ id: e.id!, nom: e.nom, prenom: e.prenom, adresse: e.adresse, lat: e.lat, lon: e.lon, geoStatus: e.geoStatus, capaciteStage: activeScenario.parametres.suiviStage?.capaciteTuteurDefaut ?? 5, classesEnCharge: e.classesEnCharge }));
 
         const effectiveCriteres = getEffectiveCriteres(activeScenario.type, activeScenario.parametres.criteresV2 || []);
         const stageOptions = criteresToStageOptions(effectiveCriteres, { distanceMaxKm: activeScenario.parametres.suiviStage?.distanceMaxKm, dureeMaxMin: activeScenario.parametres.suiviStage?.dureeMaxMin });

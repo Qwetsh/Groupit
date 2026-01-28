@@ -35,6 +35,23 @@ interface SolverState {
 }
 
 // ============================================================
+// HELPERS
+// ============================================================
+
+/**
+ * Vérifie si l'élève est dans une des classes de l'enseignant
+ */
+function isEleveEnCoursForEnseignant(
+  eleveClasse: string | undefined,
+  enseignantClasses: string[] | undefined
+): boolean {
+  if (!eleveClasse || !enseignantClasses || enseignantClasses.length === 0) {
+    return false;
+  }
+  return enseignantClasses.includes(eleveClasse);
+}
+
+// ============================================================
 // SCORING
 // ============================================================
 
@@ -45,27 +62,36 @@ function computeCandidateScore(
   pair: TeacherStagePair,
   currentLoad: number,
   avgLoad: number,
-  options: StageMatchingOptions
+  options: StageMatchingOptions,
+  isEleveEnCours?: boolean
 ): number {
-  const { poidsDuree, poidsDistance, poidsEquilibrage } = options;
-  const totalPoids = poidsDuree + poidsDistance + poidsEquilibrage;
-  
+  const { poidsDuree, poidsDistance, poidsEquilibrage, poidsElevesEnCours = 0 } = options;
+  const totalPoids = poidsDuree + poidsDistance + poidsEquilibrage + poidsElevesEnCours;
+
+  // Éviter division par zéro
+  if (totalPoids === 0) return 0;
+
   // Normalisation des poids
   const wDuree = poidsDuree / totalPoids;
   const wDistance = poidsDistance / totalPoids;
   const wEquilibrage = poidsEquilibrage / totalPoids;
-  
+  const wElevesEnCours = poidsElevesEnCours / totalPoids;
+
   // Score durée (normalisé sur 60 min max)
   const scoreDuree = Math.min(pair.durationMin / 60, 1) * 100;
-  
+
   // Score distance (normalisé sur 50 km max)
   const scoreDistance = Math.min(pair.distanceKm / 50, 1) * 100;
-  
+
   // Score équilibrage (pénalité si au-dessus de la moyenne)
   const loadDiff = Math.max(0, currentLoad - avgLoad);
   const scoreEquilibrage = loadDiff * 20; // 20 points par stage au-dessus de la moyenne
-  
-  return wDuree * scoreDuree + wDistance * scoreDistance + wEquilibrage * scoreEquilibrage;
+
+  // Score élèves en cours (bonus si l'enseignant a l'élève dans ses classes)
+  // Attention: score bas = meilleur, donc on met 0 si élève en cours, 100 sinon
+  const scoreElevesEnCours = isEleveEnCours ? 0 : 100;
+
+  return wDuree * scoreDuree + wDistance * scoreDistance + wEquilibrage * scoreEquilibrage + wElevesEnCours * scoreElevesEnCours;
 }
 
 /**
@@ -160,9 +186,12 @@ function greedyAssignment(
       // Vérifier contraintes dures
       const constraints = checkHardConstraints(ens, stage, pair, currentLoad, options);
       if (!constraints.valid) continue;
-      
+
+      // Vérifier si l'élève est dans les classes de l'enseignant
+      const isEleveEnCours = isEleveEnCoursForEnseignant(stage.eleveClasse, ens.classesEnCharge);
+
       // Calculer le score
-      const score = computeCandidateScore(pair, currentLoad, avgLoad, options);
+      const score = computeCandidateScore(pair, currentLoad, avgLoad, options, isEleveEnCours);
       
       if (!bestCandidate || score < bestCandidate.totalScore) {
         bestCandidate = {
@@ -235,24 +264,26 @@ function localSearch(
       
       const currentEns = enseignants.find(e => e.enseignantId === currentEnsId);
       if (!currentEns) continue;
-      
+
       const currentLoad = state.loads.get(currentEnsId) || 0;
-      const currentScore = computeCandidateScore(currentPair, currentLoad - 1, avgLoad, options);
-      
+      const isCurrentEleveEnCours = isEleveEnCoursForEnseignant(stage.eleveClasse, currentEns.classesEnCharge);
+      const currentScore = computeCandidateScore(currentPair, currentLoad - 1, avgLoad, options, isCurrentEleveEnCours);
+
       // Chercher un meilleur candidat
       for (const ens of enseignants) {
         if (ens.enseignantId === currentEnsId) continue;
-        
+
         const pair = getRoutePair(pairsMap, stage.stageId, ens.enseignantId);
         if (!pair) continue;
-        
+
         const newLoad = state.loads.get(ens.enseignantId) || 0;
-        
+
         // Vérifier contraintes
         const constraints = checkHardConstraints(ens, stage, pair, newLoad, options);
         if (!constraints.valid) continue;
-        
-        const newScore = computeCandidateScore(pair, newLoad, avgLoad, options);
+
+        const isNewEleveEnCours = isEleveEnCoursForEnseignant(stage.eleveClasse, ens.classesEnCharge);
+        const newScore = computeCandidateScore(pair, newLoad, avgLoad, options, isNewEleveEnCours);
         
         // Amélioration?
         if (newScore < currentScore - 1) { // Seuil pour éviter les micro-optimisations
@@ -327,7 +358,9 @@ export function solveStageMatching(
       if (pair && ens) {
         dureeTotale += pair.durationMin;
         distanceTotale += pair.distanceKm;
-        
+
+        const isEleveEnCours = isEleveEnCoursForEnseignant(stage.eleveClasse, ens.classesEnCharge);
+
         affectations.push({
           stageId: stage.stageId,
           eleveId: stage.eleveId,
@@ -338,7 +371,8 @@ export function solveStageMatching(
             pair,
             state.loads.get(enseignantId) || 0,
             enseignants.length > 0 ? stages.length / enseignants.length : 0,
-            opts
+            opts,
+            isEleveEnCours
           ),
           explication: `${ens.prenom} ${ens.nom} - Trajet: ${Math.round(pair.distanceKm)}km, ${Math.round(pair.durationMin)}min`,
         });
@@ -427,6 +461,7 @@ export function solveStageMatching(
 export function toStageGeoInfo(stage: {
   id: string;
   eleveId?: string;
+  eleveClasse?: string;
   adresse: string;
   lat?: number;
   lon?: number;
@@ -440,6 +475,7 @@ export function toStageGeoInfo(stage: {
   return {
     stageId: stage.id,
     eleveId: stage.eleveId || '',
+    eleveClasse: stage.eleveClasse,
     address: stage.adresse,
     geo: stage.lat && stage.lon ? { lat: stage.lat, lon: stage.lon } : undefined,
     geoStatus: toGeoStatus(stage.geoStatus),
@@ -464,6 +500,7 @@ export function toEnseignantGeoInfo(ens: {
   geoStatus?: string;
   geoErrorMessage?: string;
   capaciteStage?: number;
+  classesEnCharge?: string[];
   stageExclusions?: Array<{ type: string; value: string; reason?: string }>;
 }): EnseignantGeoInfo {
   return {
@@ -475,6 +512,7 @@ export function toEnseignantGeoInfo(ens: {
     homeGeoStatus: toGeoStatus(ens.geoStatus),
     homeGeoErrorMessage: ens.geoErrorMessage,
     capacityMax: ens.capaciteStage || 10,
+    classesEnCharge: ens.classesEnCharge,
     exclusions: ens.stageExclusions?.map(e => ({
       type: toExclusionType(e.type),
       value: e.value,
