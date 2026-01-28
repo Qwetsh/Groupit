@@ -200,13 +200,18 @@ export function improveWithLocalSearch(
       for (let j = i + 1; j < currentAffectations.length && !improved; j++) {
         const aff1 = currentAffectations[i];
         const aff2 = currentAffectations[j];
-        
+
         // Vérifier si l'échange est valide et améliore le score
-        const eleve1 = eleves.find(e => e.id === aff1.eleveId)!;
-        const eleve2 = eleves.find(e => e.id === aff2.eleveId)!;
-        const ens1 = enseignants.find(e => e.id === aff1.enseignantId)!;
-        const ens2 = enseignants.find(e => e.id === aff2.enseignantId)!;
-        
+        const eleve1 = eleves.find(e => e.id === aff1.eleveId);
+        const eleve2 = eleves.find(e => e.id === aff2.eleveId);
+        const ens1 = enseignants.find(e => e.id === aff1.enseignantId);
+        const ens2 = enseignants.find(e => e.id === aff2.enseignantId);
+
+        // Skip si une entité n'existe plus (supprimée pendant le matching)
+        if (!eleve1 || !eleve2 || !ens1 || !ens2) {
+          continue;
+        }
+
         // Simuler l'échange
         const meta1 = metadataMap.get(eleve1.id);
         const meta2 = metadataMap.get(eleve2.id);

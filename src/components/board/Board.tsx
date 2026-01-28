@@ -377,12 +377,12 @@ export const Board: React.FC = () => {
     const isDropOnUnassigned = overDataCurrent?.type === 'unassigned' || over.id === 'unassigned-zone';
 
     // Case 1a: Dropping unassigned élève on enseignant
-    if (activeDataCurrent?.type === 'eleve' && targetEnseignantId) {
+    if (activeDataCurrent?.type === 'eleve' && targetEnseignantId && activeScenario?.id) {
       try {
         await addAffectation({
           eleveId: activeDataCurrent.eleveId,
           enseignantId: targetEnseignantId,
-          scenarioId: activeScenario?.id!,
+          scenarioId: activeScenario.id,
           type: 'autre',
           metadata: { source: 'drag-drop' },
           scoreDetail: {},
@@ -394,7 +394,7 @@ export const Board: React.FC = () => {
     }
 
     // Case 1b: Dropping unassigned élève on jury
-    if (activeDataCurrent?.type === 'eleve' && targetJuryId) {
+    if (activeDataCurrent?.type === 'eleve' && targetJuryId && activeScenario?.id) {
       const eleve = activeDataCurrent.eleve;
       const jury = jurysById.get(targetJuryId);
       if (jury) {
@@ -405,7 +405,7 @@ export const Board: React.FC = () => {
             eleveId: activeDataCurrent.eleveId,
             enseignantId: '',
             juryId: targetJuryId,
-            scenarioId: activeScenario?.id!,
+            scenarioId: activeScenario.id,
             type: 'oral_dnb',
             metadata: { source: 'drag-drop' },
             explication: {
@@ -838,18 +838,20 @@ export const Board: React.FC = () => {
         showElapsedTime
       />
 
-      <ValidationModal
-        isOpen={showValidationModal}
-        isValidating={isValidating}
-        scenario={activeScenario!}
-        affectations={scenarioAffectations}
-        eleves={scenarioEleves}
-        enseignants={displayedEnseignants}
-        jurys={scenarioJurys}
-        stages={stages}
-        onClose={() => setShowValidationModal(false)}
-        onConfirm={handleValidateAffectations}
-      />
+      {activeScenario && (
+        <ValidationModal
+          isOpen={showValidationModal}
+          isValidating={isValidating}
+          scenario={activeScenario}
+          affectations={scenarioAffectations}
+          eleves={scenarioEleves}
+          enseignants={displayedEnseignants}
+          jurys={scenarioJurys}
+          stages={stages}
+          onClose={() => setShowValidationModal(false)}
+          onConfirm={handleValidateAffectations}
+        />
+      )}
 
       <ConfirmModal
         isOpen={confirmState.isOpen}
