@@ -14,13 +14,27 @@ const problemIcons: Record<string, string> = {
 };
 
 /**
+ * Retourne la classe CSS de couleur selon la distance
+ */
+function getDistanceColorClass(distanceKm: number | undefined): string {
+  if (distanceKm === undefined) return '';
+  if (distanceKm <= 5) return 'distance-close';      // Vert
+  if (distanceKm <= 15) return 'distance-medium';    // Jaune
+  if (distanceKm <= 30) return 'distance-far';       // Orange
+  return 'distance-very-far';                         // Rouge
+}
+
+/**
  * Composant élève draggable depuis la colonne "non affectés"
  */
-export const DraggableEleve: React.FC<DraggableEleveProps> = ({ eleve, onContextMenu, nonAffectationInfo }) => {
+export const DraggableEleve: React.FC<DraggableEleveProps> = ({ eleve, onContextMenu, nonAffectationInfo, distanceFromEnseignantKm }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `eleve:${eleve.id}`,
     data: { type: 'eleve', eleveId: eleve.id, eleve },
   });
+
+  const distanceClass = getDistanceColorClass(distanceFromEnseignantKm);
+  const showDistanceBadge = distanceFromEnseignantKm !== undefined;
 
   const style: React.CSSProperties = {
     transform: transform ? CSS.Translate.toString(transform) : undefined,
@@ -41,7 +55,7 @@ export const DraggableEleve: React.FC<DraggableEleveProps> = ({ eleve, onContext
     <div
       ref={setNodeRef}
       style={style}
-      className={`draggable-eleve ${isDragging ? 'dragging' : ''} ${hasTooltip ? `problem-${problemType}` : ''}`}
+      className={`draggable-eleve ${isDragging ? 'dragging' : ''} ${hasTooltip ? `problem-${problemType}` : ''} ${distanceClass}`}
       onContextMenu={handleContextMenu}
       title={hasTooltip ? nonAffectationInfo.raisons.join('\n') : undefined}
       {...listeners}
@@ -54,6 +68,11 @@ export const DraggableEleve: React.FC<DraggableEleveProps> = ({ eleve, onContext
       <span className="eleve-nom">{eleve.nom}</span>
       <span className="eleve-prenom">{eleve.prenom}</span>
       <span className="eleve-classe">{eleve.classe}</span>
+      {showDistanceBadge && (
+        <span className={`eleve-distance-badge ${distanceClass}`}>
+          {distanceFromEnseignantKm! < 1 ? '<1' : Math.round(distanceFromEnseignantKm!)} km
+        </span>
+      )}
       {hasTooltip && (
         <div className="eleve-tooltip">
           <div className="tooltip-header">Raison de non-affectation</div>

@@ -168,6 +168,18 @@ export interface DraggableEleveProps {
   onContextMenu: (e: React.MouseEvent, eleve: Eleve) => void;
   /** Infos de non-affectation (si élève non placé après matching) */
   nonAffectationInfo?: NonAffectationInfo;
+  /** Distance en km entre l'enseignant sélectionné et le stage de l'élève (mode distance enseignant) */
+  distanceFromEnseignantKm?: number;
+}
+
+// ============================================================
+// ENSEIGNANT CONTEXT MENU STATE
+// ============================================================
+
+export interface EnseignantContextMenuState {
+  x: number;
+  y: number;
+  enseignant: Enseignant;
 }
 
 export interface DraggableAffectationChipProps {
@@ -175,6 +187,8 @@ export interface DraggableAffectationChipProps {
   eleve: Eleve;
   enseignant: Enseignant;
   onContextMenu: (e: React.MouseEvent, eleve: Eleve, affectation: Affectation, enseignant: Enseignant) => void;
+  /** Distance en km entre l'enseignant sélectionné et le stage de l'élève (mode distance enseignant) */
+  distanceFromEnseignantKm?: number;
 }
 
 export interface DroppableEnseignantTileProps {
@@ -183,8 +197,18 @@ export interface DroppableEnseignantTileProps {
   eleves: Eleve[];
   capacity: number;
   onContextMenu: (e: React.MouseEvent, eleve: Eleve, affectation: Affectation, enseignant: Enseignant) => void;
+  /** Handler pour le menu contextuel sur la tuile enseignant (clic droit sur la tuile, pas sur un élève) */
+  onTileContextMenu?: (e: React.MouseEvent, enseignant: Enseignant) => void;
   onClick?: (enseignant: Enseignant) => void;
   isStageScenario?: boolean;
+  /** Distance en km entre l'enseignant et le stage de l'élève dragué (undefined si pas de drag actif) */
+  dragDistanceKm?: number;
+  /** Indique si cet enseignant est sélectionné pour le mode distance */
+  isDistanceActive?: boolean;
+  /** Map des distances par élève (mode distance enseignant) */
+  distancesByEleve?: Map<string, number>;
+  /** Indique si l'enseignant a l'élève dragué dans une de ses classes */
+  hasEleveInClass?: boolean;
 }
 
 export interface DroppableJuryTileProps {

@@ -9,7 +9,7 @@ import { useEleveStore } from '../../stores/eleveStore';
 import { useEnseignantStore } from '../../stores/enseignantStore';
 import { useUIStore } from '../../stores/uiStore';
 import type { CritereConfig, ScenarioType, ScenarioMode, Niveau, CritereInstance } from '../../domain/models';
-import { MATIERES_HEURES_3E, createDefaultCriteres, getEffectiveCriteres } from '../../domain/models';
+import { MATIERES_HEURES_3E, createDefaultCriteres, getEffectiveCriteres, calculateCapacitesStage } from '../../domain/models';
 import { CriteresEditor } from './CriteresEditor';
 import './Modal.css';
 
@@ -388,6 +388,7 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
       dureeMaxMin: 60,
       prioriserPP: true,
       capaciteTuteurDefaut: 5,
+      utiliserCapaciteCalculee: true,
     },
   });
 
@@ -443,6 +444,7 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
           dureeMaxMin: scenario.parametres.suiviStage?.dureeMaxMin ?? 60,
           prioriserPP: scenario.parametres.suiviStage?.prioriserPP ?? true,
           capaciteTuteurDefaut: scenario.parametres.suiviStage?.capaciteTuteurDefaut ?? 5,
+          utiliserCapaciteCalculee: scenario.parametres.suiviStage?.utiliserCapaciteCalculee ?? true,
         },
       });
     }
@@ -488,6 +490,26 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
   }, [enseignants, formData.filtresEnseignants]);
 
   const filteredEnseignantsCount = filteredEnseignants.length;
+
+  // Calculer les capacités stage pour affichage indicatif
+  const capacitesStageCalculees = useMemo(() => {
+    return calculateCapacitesStage(enseignants, eleves);
+  }, [enseignants, eleves]);
+
+  // Stats sur les capacités calculées (pour info)
+  const capacitesStats = useMemo(() => {
+    const capacites = Array.from(capacitesStageCalculees.values());
+    const ensAvec3e = capacites.filter(c => c > 0);
+    const total = ensAvec3e.reduce((sum, c) => sum + c, 0);
+    const nb3e = eleves.filter(e => e.classe.startsWith('3')).length;
+    return {
+      nbEnseignantsAvec3e: ensAvec3e.length,
+      capaciteTotale: total,
+      nbEleves3e: nb3e,
+      min: ensAvec3e.length > 0 ? Math.min(...ensAvec3e) : 0,
+      max: ensAvec3e.length > 0 ? Math.max(...ensAvec3e) : 0,
+    };
+  }, [capacitesStageCalculees, eleves]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -813,30 +835,84 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
                     </div>
                   </div>
 
-                  {/* Capacité tuteur */}
-                  <div className="stage-param-card">
-                    <div className="param-icon">
-                      <UserPlus size={20} />
-                    </div>
-                    <div className="param-content">
-                      <label htmlFor="capaciteTuteurDefaut">Capacité par tuteur</label>
-                      <p className="param-hint">Élèves max par enseignant</p>
-                    </div>
-                    <div className="param-input-group">
-                      <input
-                        id="capaciteTuteurDefaut"
-                        type="number"
-                        min={1}
-                        max={20}
-                        value={formData.suiviStage.capaciteTuteurDefaut}
-                        onChange={e => setFormData(prev => ({
-                          ...prev,
-                          suiviStage: { ...prev.suiviStage, capaciteTuteurDefaut: parseInt(e.target.value) || 5 }
-                        }))}
-                      />
-                      <span className="param-unit">élèves</span>
-                    </div>
+                </div>
+
+                {/* Section Capacité - avec choix calculée/fixe */}
+                <div className="capacity-mode-section">
+                  <div className="section-header">
+                    <UserPlus size={18} />
+                    <span>Capacité des tuteurs</span>
                   </div>
+
+                  {/* Toggle capacité calculée vs fixe */}
+                  <div className="capacity-mode-toggle">
+                    <button
+                      type="button"
+                      className={`mode-btn ${formData.suiviStage.utiliserCapaciteCalculee ? 'active' : ''}`}
+                      onClick={() => setFormData(prev => ({
+                        ...prev,
+                        suiviStage: { ...prev.suiviStage, utiliserCapaciteCalculee: true }
+                      }))}
+                    >
+                      <Check size={14} />
+                      Calculée automatiquement
+                    </button>
+                    <button
+                      type="button"
+                      className={`mode-btn ${!formData.suiviStage.utiliserCapaciteCalculee ? 'active' : ''}`}
+                      onClick={() => setFormData(prev => ({
+                        ...prev,
+                        suiviStage: { ...prev.suiviStage, utiliserCapaciteCalculee: false }
+                      }))}
+                    >
+                      <Check size={14} />
+                      Valeur fixe pour tous
+                    </button>
+                  </div>
+
+                  {/* Info capacité calculée */}
+                  {formData.suiviStage.utiliserCapaciteCalculee && (
+                    <div className="capacity-info-box">
+                      <div className="info-content">
+                        <p>
+                          La capacité de chaque enseignant est calculée selon ses <strong>heures de cours en 3ème</strong> et
+                          son <strong>nombre de classes de 3ème</strong>.
+                        </p>
+                        <div className="capacity-stats">
+                          <span><strong>{capacitesStats.nbEnseignantsAvec3e}</strong> enseignants avec 3ème</span>
+                          <span><strong>{capacitesStats.nbEleves3e}</strong> élèves de 3ème</span>
+                          <span>Capacités: <strong>{capacitesStats.min}</strong> à <strong>{capacitesStats.max}</strong></span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Input capacité fixe */}
+                  {!formData.suiviStage.utiliserCapaciteCalculee && (
+                    <div className="stage-param-card single">
+                      <div className="param-icon">
+                        <UserPlus size={20} />
+                      </div>
+                      <div className="param-content">
+                        <label htmlFor="capaciteTuteurDefaut">Capacité par tuteur</label>
+                        <p className="param-hint">Même valeur pour tous les enseignants</p>
+                      </div>
+                      <div className="param-input-group">
+                        <input
+                          id="capaciteTuteurDefaut"
+                          type="number"
+                          min={1}
+                          max={20}
+                          value={formData.suiviStage.capaciteTuteurDefaut}
+                          onChange={e => setFormData(prev => ({
+                            ...prev,
+                            suiviStage: { ...prev.suiviStage, capaciteTuteurDefaut: parseInt(e.target.value) || 5 }
+                          }))}
+                        />
+                        <span className="param-unit">élèves</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Option priorité PP */}
