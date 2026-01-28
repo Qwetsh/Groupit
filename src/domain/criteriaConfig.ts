@@ -113,6 +113,19 @@ export const CRITERE_DEFINITIONS: CritereDefinition[] = [
     defaultHardConstraint: false,
     engineKey: 'profPrincipal',
   },
+
+  // Élèves en cours (Stage et Oral DNB)
+  {
+    id: 'eleves_en_cours',
+    nom: 'Élèves en cours',
+    description: 'Favorise l\'affectation aux enseignants qui ont l\'élève dans une de leurs classes',
+    scenarioTypes: ['suivi_stage', 'oral_dnb'],
+    isForced: false,
+    canBeHardConstraint: false,
+    defaultPriority: 'normal',
+    defaultHardConstraint: false,
+    engineKey: 'elevesEnCours',
+  },
   
   // Poids pédagogique (Oral DNB seulement)
   {
@@ -272,6 +285,7 @@ export interface StageMatchingOptionsFromCriteria {
   poidsDistance: number;
   poidsEquilibrage: number;
   poidsProfssPrincipal: number;
+  poidsElevesEnCours: number;
   distanceMaxKm?: number;
   dureeMaxMin?: number;
   // Option équilibrage pondéré
@@ -304,6 +318,7 @@ export function criteresToStageOptions(
     poidsDistance: poidsDistanceTrajet * 0.4, // 40% pour la distance
     poidsEquilibrage: getCritereWeight('equilibrage'),
     poidsProfssPrincipal: getCritereWeight('prof_principal'),
+    poidsElevesEnCours: getCritereWeight('eleves_en_cours'),
     // Contraintes dures depuis la config
     distanceMaxKm: stageConfig?.distanceMaxKm,
     dureeMaxMin: stageConfig?.dureeMaxMin,
@@ -321,6 +336,7 @@ export interface OralDnbOptionsFromCriteria {
   poidsMixite: number;
   poidsPedagogique: number;
   poidsCapacite: number;
+  poidsElevesEnCours: number;
   // Option équilibrage pondéré
   equilibrageWeightByHours: boolean;
 }
@@ -349,6 +365,7 @@ export function criteresToOralDnbOptions(
     poidsMixite: getCritereWeight('mixite'),
     poidsPedagogique: getCritereWeight('poids_pedagogique'),
     poidsCapacite: getCritereWeight('capacite'),
+    poidsElevesEnCours: getCritereWeight('eleves_en_cours'),
     // Option équilibrage pondéré
     equilibrageWeightByHours: equilibrageCritere?.weightByHours ?? false,
   };

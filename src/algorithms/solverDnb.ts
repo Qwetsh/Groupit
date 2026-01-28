@@ -57,26 +57,38 @@ function getOptionsFromScenario(scenario: Scenario): OralDnbOptions {
       poidsMixite: 10,
       poidsPedagogique: 0,
       poidsCapacite: 0,
+      poidsElevesEnCours: 0, // Désactivé par défaut
       equilibrageWeightByHours: false, // Désactivé par défaut dans l'ancien système
     };
   }
-  
+
   // Convertir l'ancien format vers le nouveau
   const hasCritere = (c: string) => oralConfig.criteresSecondaires?.includes(c as 'equilibrage' | 'parite' | 'capacite');
   const nbCriteres = oralConfig.criteresSecondaires?.length || 1;
   const poidsSecondaire = (100 - oralConfig.poidsMatiere) / nbCriteres;
-  
+
   return {
     poidsMatiereMatch: oralConfig.poidsMatiere,
     poidsEquilibrage: hasCritere('equilibrage') ? poidsSecondaire : 0,
     poidsMixite: hasCritere('parite') ? poidsSecondaire : 0,
     poidsPedagogique: 0, // Pas dans l'ancien système
     poidsCapacite: hasCritere('capacite') ? poidsSecondaire : 0,
+    poidsElevesEnCours: 0, // Pas dans l'ancien système
     equilibrageWeightByHours: false, // Pas dans l'ancien système
   };
 }
 
 // ============ UTILITAIRES ============
+
+/**
+ * Vérifie si l'élève est dans les classes d'un des enseignants du jury
+ */
+function isEleveEnCoursForJury(eleveClasse: string | undefined, juryEnseignants: Enseignant[]): boolean {
+  if (!eleveClasse || juryEnseignants.length === 0) {
+    return false;
+  }
+  return juryEnseignants.some(e => e.classesEnCharge?.includes(eleveClasse));
+}
 
 /**
  * Calcule les matières couvertes par un jury
@@ -191,13 +203,15 @@ function scoreEleveJury(
   }
   
   // Normaliser les poids pour avoir un total de 100
-  const totalPoids = opts.poidsMatiereMatch + opts.poidsEquilibrage + opts.poidsMixite + opts.poidsCapacite;
+  const poidsElevesEnCours = opts.poidsElevesEnCours ?? 0;
+  const totalPoids = opts.poidsMatiereMatch + opts.poidsEquilibrage + opts.poidsMixite + opts.poidsCapacite + poidsElevesEnCours;
   const norm = totalPoids > 0 ? 100 / totalPoids : 1;
-  
+
   const wMatiere = opts.poidsMatiereMatch * norm / 100;
   const wEquilibrage = opts.poidsEquilibrage * norm / 100;
   const wMixite = opts.poidsMixite * norm / 100;
   const wCapacite = opts.poidsCapacite * norm / 100;
+  const wElevesEnCours = poidsElevesEnCours * norm / 100;
   
   scoreDetail['matiere'] = scoreMatiereBase;
   
@@ -273,13 +287,28 @@ function scoreEleveJury(
     }
     scoreDetail['capacite'] = scoreCapacite;
   }
-  
-  // 5. Score final pondéré
+
+  // 5. Score "élèves en cours" (bonus si l'élève est dans une des classes d'un enseignant du jury)
+  let scoreElevesEnCours = 50;
+  if (poidsElevesEnCours > 0) {
+    const isEnCours = isEleveEnCoursForJury(eleve.classe, juryContext.enseignants);
+    if (isEnCours) {
+      scoreElevesEnCours = 100;
+      raisons.push('Élève dans une classe du jury');
+    } else {
+      scoreElevesEnCours = 30;
+      raisons.push('Élève pas dans les classes du jury');
+    }
+    scoreDetail['elevesEnCours'] = scoreElevesEnCours;
+  }
+
+  // 6. Score final pondéré
   const scoreFinal = Math.round(
     scoreMatiereBase * wMatiere +
     scoreEquilibrage * wEquilibrage +
     scoreMixite * wMixite +
-    scoreCapacite * wCapacite
+    scoreCapacite * wCapacite +
+    scoreElevesEnCours * wElevesEnCours
   );
   
   return {

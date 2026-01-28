@@ -166,6 +166,7 @@ export interface IRouteProvider {
 export interface StageGeoInfo {
   stageId: string;
   eleveId: string;                // Référence locale uniquement
+  eleveClasse?: string;           // Classe de l'élève (pour critère "élèves en cours")
   address: string;
   geo?: GeoPoint;
   geoStatus: GeoStatus;
@@ -188,6 +189,7 @@ export interface EnseignantGeoInfo {
   homeGeoStatus: GeoStatus;
   homeGeoErrorMessage?: string;
   capacityMax: number;
+  classesEnCharge?: string[];     // Classes de l'enseignant (pour critère "élèves en cours")
   exclusions?: StageExclusion[];
 }
 
@@ -274,11 +276,12 @@ export interface StageMatchingOptions {
   poidsDuree: number;             // Poids de la durée du trajet
   poidsDistance: number;          // Poids de la distance
   poidsEquilibrage: number;       // Poids de l'équilibrage de charge
-  
+  poidsElevesEnCours?: number;    // Poids du critère "élèves en cours"
+
   // Contraintes
   dureeMaxMin?: number;           // Durée max acceptée (minutes)
   distanceMaxKm?: number;         // Distance max acceptée (km)
-  
+
   // Optimisation
   maxCandidatsParStage?: number;  // Limiter les candidats par stage (perf)
   useLocalSearch?: boolean;       // Amélioration par recherche locale
@@ -292,6 +295,7 @@ export const DEFAULT_STAGE_MATCHING_OPTIONS: StageMatchingOptions = {
   poidsDuree: 60,
   poidsDistance: 20,
   poidsEquilibrage: 20,
+  poidsElevesEnCours: 0,          // Désactivé par défaut
   dureeMaxMin: 60,
   distanceMaxKm: 50,
   maxCandidatsParStage: 10,
