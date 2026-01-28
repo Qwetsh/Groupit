@@ -132,14 +132,14 @@ function greedyAssignment(
     loads: new Map(),
     totalCost: 0,
   };
-  
+
   // Initialiser les charges
   for (const ens of enseignants) {
     state.loads.set(ens.enseignantId, 0);
   }
-  
-  // Calculer la charge moyenne cible
-  const avgLoad = stages.length / enseignants.length;
+
+  // Calculer la charge moyenne cible (éviter division par zéro)
+  const avgLoad = enseignants.length > 0 ? stages.length / enseignants.length : 0;
   
   // Trier les stages par nombre de candidats valides (les plus contraints d'abord)
   const sortedStages = [...stages].sort((a, b) => {
@@ -210,7 +210,8 @@ function localSearch(
   let improved = true;
   let iterations = 0;
 
-  const avgLoad = stages.length / enseignants.length;
+  // Éviter division par zéro
+  const avgLoad = enseignants.length > 0 ? stages.length / enseignants.length : 0;
 
   while (improved && iterations < maxIterations) {
     // Vérifier timeout pour éviter freeze UI
@@ -334,9 +335,9 @@ export function solveStageMatching(
           distanceKm: pair.distanceKm,
           durationMin: pair.durationMin,
           score: computeCandidateScore(
-            pair, 
-            state.loads.get(enseignantId) || 0, 
-            stages.length / enseignants.length, 
+            pair,
+            state.loads.get(enseignantId) || 0,
+            enseignants.length > 0 ? stages.length / enseignants.length : 0,
             opts
           ),
           explication: `${ens.prenom} ${ens.nom} - Trajet: ${Math.round(pair.distanceKm)}km, ${Math.round(pair.durationMin)}min`,
