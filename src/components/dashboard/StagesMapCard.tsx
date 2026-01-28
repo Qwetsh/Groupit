@@ -119,12 +119,19 @@ function FitBoundsOnLoad({ points }: { points: GeoPoint[] }) {
 // ============================================================
 
 export function StagesMapCard({ stages, eleves, collegeGeo }: StagesMapCardProps) {
-  // Filtrer les stages avec coordonnées et calculer les distances
+  // Set des IDs d'élèves existants pour filtrage rapide
+  const eleveIds = useMemo(() => new Set(eleves.map(e => e.id)), [eleves]);
+
+  // Filtrer les stages avec coordonnées ET un élève existant, puis calculer les distances
   const stagesWithDistance = useMemo(() => {
     const result: StageWithDistance[] = [];
 
     for (const stage of stages) {
+      // Ignorer les stages sans coordonnées
       if (!stage.lat || !stage.lon) continue;
+
+      // Ignorer les stages orphelins (élève supprimé ou inexistant)
+      if (!stage.eleveId || !eleveIds.has(stage.eleveId)) continue;
 
       const distanceKm = haversineDistance(
         collegeGeo.lat, collegeGeo.lon,
@@ -141,12 +148,17 @@ export function StagesMapCard({ stages, eleves, collegeGeo }: StagesMapCardProps
     }
 
     return result.sort((a, b) => a.distanceKm - b.distanceKm);
-  }, [stages, eleves, collegeGeo]);
+  }, [stages, eleves, collegeGeo, eleveIds]);
+
+  // Compter les stages valides (avec élève existant)
+  const validStagesCount = useMemo(() => {
+    return stages.filter(s => s.eleveId && eleveIds.has(s.eleveId)).length;
+  }, [stages, eleveIds]);
 
   // Stats
   const stats = useMemo(() => {
     const total = stagesWithDistance.length;
-    const withoutGeo = stages.length - total;
+    const withoutGeo = validStagesCount - total; // Stages valides mais sans coordonnées
 
     const byCategory = {
       close: stagesWithDistance.filter(s => s.distanceKm <= DISTANCE_THRESHOLDS.close).length,
@@ -164,7 +176,7 @@ export function StagesMapCard({ stages, eleves, collegeGeo }: StagesMapCardProps
       : 0;
 
     return { total, withoutGeo, byCategory, avgDistance, maxDistance };
-  }, [stagesWithDistance, stages.length]);
+  }, [stagesWithDistance, validStagesCount]);
 
   // Points pour le fit bounds
   const allPoints = useMemo(() => {
