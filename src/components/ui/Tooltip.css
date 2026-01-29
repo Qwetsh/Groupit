@@ -30,6 +30,12 @@
   transform: none !important;
   background: #1e293b;
   width: max-content;
+  height: fit-content !important;
+  min-height: fit-content !important;
+  animation: none;
+  opacity: 1;
+  display: block;
+  overflow: visible;
 }
 
 @keyframes tooltipFadeIn {
