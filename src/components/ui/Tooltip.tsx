@@ -1,8 +1,9 @@
 // ============================================================
-// TOOLTIP COMPONENT - Infobulles contextuelles
+// TOOLTIP COMPONENT - Infobulles contextuelles (Portal)
 // ============================================================
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { HelpCircle } from 'lucide-react';
 import './Tooltip.css';
 
@@ -28,6 +29,12 @@ interface HelpTooltipProps {
   maxWidth?: number;
 }
 
+interface CalculatedPosition {
+  top: number;
+  left: number;
+  actualPosition: TooltipPosition;
+}
+
 // ============================================================
 // TOOLTIP COMPONENT
 // ============================================================
@@ -41,40 +48,80 @@ export const Tooltip: React.FC<TooltipProps> = ({
   className = '',
 }) => {
   const [isVisible, setIsVisible] = useState(false);
-  const [actualPosition, setActualPosition] = useState(position);
+  const [calculatedPos, setCalculatedPos] = useState<CalculatedPosition | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
 
-  // Ajuster la position si le tooltip dépasse de l'écran
-  const adjustPosition = useCallback(() => {
-    if (!tooltipRef.current || !triggerRef.current) return;
+  // Calculer la position du tooltip
+  const calculatePosition = useCallback(() => {
+    if (!triggerRef.current) return;
 
-    const tooltip = tooltipRef.current.getBoundingClientRect();
     const trigger = triggerRef.current.getBoundingClientRect();
-    const padding = 10;
+    const padding = 12;
+    const tooltipHeight = 80; // Estimation
+    const tooltipWidth = Math.min(maxWidth, 280);
 
-    let newPosition = position;
+    let top: number;
+    let left: number;
+    let actualPosition = position;
 
-    // Vérifier les dépassements
-    if (position === 'top' && trigger.top - tooltip.height - padding < 0) {
-      newPosition = 'bottom';
-    } else if (position === 'bottom' && trigger.bottom + tooltip.height + padding > window.innerHeight) {
-      newPosition = 'top';
-    } else if (position === 'left' && trigger.left - tooltip.width - padding < 0) {
-      newPosition = 'right';
-    } else if (position === 'right' && trigger.right + tooltip.width + padding > window.innerWidth) {
-      newPosition = 'left';
+    // Calculer position initiale
+    switch (position) {
+      case 'top':
+        top = trigger.top - tooltipHeight - padding;
+        left = trigger.left + trigger.width / 2 - tooltipWidth / 2;
+        break;
+      case 'bottom':
+        top = trigger.bottom + padding;
+        left = trigger.left + trigger.width / 2 - tooltipWidth / 2;
+        break;
+      case 'left':
+        top = trigger.top + trigger.height / 2 - tooltipHeight / 2;
+        left = trigger.left - tooltipWidth - padding;
+        break;
+      case 'right':
+        top = trigger.top + trigger.height / 2 - tooltipHeight / 2;
+        left = trigger.right + padding;
+        break;
     }
 
-    setActualPosition(newPosition);
-  }, [position]);
+    // Ajuster si dépasse en haut
+    if (top < padding) {
+      if (position === 'top') {
+        actualPosition = 'bottom';
+        top = trigger.bottom + padding;
+      } else {
+        top = padding;
+      }
+    }
+
+    // Ajuster si dépasse en bas
+    if (top + tooltipHeight > window.innerHeight - padding) {
+      if (position === 'bottom') {
+        actualPosition = 'top';
+        top = trigger.top - tooltipHeight - padding;
+      } else {
+        top = window.innerHeight - tooltipHeight - padding;
+      }
+    }
+
+    // Ajuster si dépasse à gauche
+    if (left < padding) {
+      left = padding;
+    }
+
+    // Ajuster si dépasse à droite
+    if (left + tooltipWidth > window.innerWidth - padding) {
+      left = window.innerWidth - tooltipWidth - padding;
+    }
+
+    setCalculatedPos({ top, left, actualPosition });
+  }, [position, maxWidth]);
 
   const handleMouseEnter = () => {
     timeoutRef.current = setTimeout(() => {
+      calculatePosition();
       setIsVisible(true);
-      // Ajuster après que le tooltip soit visible
-      setTimeout(adjustPosition, 0);
     }, delay);
   };
 
@@ -83,6 +130,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
       clearTimeout(timeoutRef.current);
     }
     setIsVisible(false);
+    setCalculatedPos(null);
   };
 
   useEffect(() => {
@@ -101,16 +149,19 @@ export const Tooltip: React.FC<TooltipProps> = ({
       ref={triggerRef}
     >
       {children}
-      {isVisible && (
+      {isVisible && calculatedPos && createPortal(
         <div
-          ref={tooltipRef}
-          className={`tooltip tooltip-${actualPosition}`}
-          style={{ maxWidth }}
+          className={`tooltip tooltip-portal tooltip-${calculatedPos.actualPosition}`}
+          style={{
+            top: calculatedPos.top,
+            left: calculatedPos.left,
+            maxWidth,
+          }}
           role="tooltip"
         >
           <div className="tooltip-content">{content}</div>
-          <div className="tooltip-arrow" />
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

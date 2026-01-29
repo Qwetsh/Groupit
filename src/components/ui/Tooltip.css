@@ -24,6 +24,12 @@
   word-wrap: break-word;
 }
 
+/* Portal tooltip - rendu dans document.body avec position fixe */
+.tooltip.tooltip-portal {
+  position: fixed;
+  transform: none;
+}
+
 @keyframes tooltipFadeIn {
   from {
     opacity: 0;
