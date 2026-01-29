@@ -691,7 +691,7 @@ export const AidePage: React.FC = () => {
           </div>
           <div className="contact-info">
             <div className="contact-label">Email de support</div>
-            <div className="contact-value">support@groupit.fr</div>
+            <div className="contact-value">thomas.charles@ac-nancy-metz.fr</div>
           </div>
         </div>
       </Accordion>
