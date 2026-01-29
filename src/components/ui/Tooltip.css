@@ -27,7 +27,9 @@
 /* Portal tooltip - rendu dans document.body avec position fixe */
 .tooltip.tooltip-portal {
   position: fixed;
-  transform: none;
+  transform: none !important;
+  background: #1e293b;
+  width: max-content;
 }
 
 @keyframes tooltipFadeIn {
