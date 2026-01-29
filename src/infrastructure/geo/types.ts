@@ -167,6 +167,7 @@ export interface StageGeoInfo {
   stageId: string;
   eleveId: string;                // Référence locale uniquement
   eleveClasse?: string;           // Classe de l'élève (pour critère "élèves en cours")
+  eleveOptions?: string[];        // Options de l'élève (langues, etc.) pour matching avec matière enseignant
   address: string;
   geo?: GeoPoint;
   geoStatus: GeoStatus;
@@ -184,6 +185,7 @@ export interface EnseignantGeoInfo {
   enseignantId: string;
   nom: string;
   prenom: string;
+  matierePrincipale?: string;     // Matière principale (pour vérifier compatibilité options élève)
   homeAddress?: string;
   homeGeo?: GeoPoint;
   homeGeoStatus: GeoStatus;

@@ -6,6 +6,8 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useEleveStore } from '../../stores/eleveStore';
 import { useStageStore } from '../../stores/stageStore';
+import { useAffectationStore } from '../../stores/affectationStore';
+import { useEnseignantStore } from '../../stores/enseignantStore';
 import {
   importStagesFromFile,
   convertMatchedRowsToStageData,
@@ -659,6 +661,7 @@ function EditStageRow({ eleve, stage, onSave, onCancel }: EditRowProps) {
         />
       </td>
       <td>-</td>
+      <td>-</td>
       <td className="actions-cell">
         <button className="btn-icon save" onClick={handleSave} title="Enregistrer">
           <Save size={16} />
@@ -680,6 +683,8 @@ export const StageTab: React.FC = () => {
   const stages = useStageStore(state => state.stages);
   const loadGlobalStages = useStageStore(state => state.loadGlobalStages);
   const upsertStageForEleve = useStageStore(state => state.upsertStageForEleve);
+  const affectations = useAffectationStore(state => state.affectations);
+  const enseignants = useEnseignantStore(state => state.enseignants);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedNiveau, setSelectedNiveau] = useState('3e'); // Par défaut 3ème
@@ -761,6 +766,27 @@ export const StageTab: React.FC = () => {
       return { eleve, stage, status };
     });
   }, [eleves, stages]);
+
+  // Map eleveId -> référent (enseignant assigné dans un scénario suivi_stage)
+  const referentByEleveId = useMemo(() => {
+    const map = new Map<string, { nom: string; prenom: string; matiere: string }>();
+    const enseignantsById = new Map(enseignants.map(e => [e.id, e]));
+
+    // Trouver les affectations de type suivi_stage
+    for (const aff of affectations) {
+      if (aff.type === 'suivi_stage' && aff.eleveId && aff.enseignantId) {
+        const enseignant = enseignantsById.get(aff.enseignantId);
+        if (enseignant) {
+          map.set(aff.eleveId, {
+            nom: enseignant.nom,
+            prenom: enseignant.prenom,
+            matiere: enseignant.matierePrincipale,
+          });
+        }
+      }
+    }
+    return map;
+  }, [affectations, enseignants]);
 
   // Stats
   const stats = useMemo(() => {
@@ -985,6 +1011,7 @@ export const StageTab: React.FC = () => {
               <th>Entreprise</th>
               <th>Adresse</th>
               <th>Téléphone</th>
+              <th>Référent</th>
               <th>Statut</th>
               <th className="actions-col">Actions</th>
             </tr>
@@ -1033,6 +1060,16 @@ export const StageTab: React.FC = () => {
                         {stage.tuteurTel}
                       </span>
                     ) : '-'}
+                  </td>
+                  <td>
+                    {(() => {
+                      const referent = referentByEleveId.get(eleve.id!);
+                      return referent ? (
+                        <span className="referent-cell" title={referent.matiere}>
+                          {referent.prenom} {referent.nom}
+                        </span>
+                      ) : '-';
+                    })()}
                   </td>
                   <td>{getStatusBadge(status)}</td>
                   <td className="actions-cell">

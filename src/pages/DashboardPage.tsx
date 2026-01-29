@@ -5,10 +5,13 @@ import { useEnseignantStore } from '../stores/enseignantStore';
 import { useScenarioStore } from '../stores/scenarioStore';
 import { useScenarioArchiveStore } from '../stores/scenarioArchiveStore';
 import { useStageStore } from '../stores/stageStore';
+import { useAffectationStore } from '../stores/affectationStore';
 import { useUIStore } from '../stores/uiStore';
 import { ValidatedAssignmentCard, ValidatedAssignmentDrawer, StagesMapCard } from '../components/dashboard';
 import { HelpTooltip, HELP_TEXTS } from '../components/ui/Tooltip';
 import { mapArchiveToExportData, downloadExportPdf, downloadExportCsv } from '../infrastructure/export';
+import { ImportSessionModal } from '../components/board/ImportSessionModal';
+import { importAffectationSession, type SessionExportData, type ImportReport } from '../services/affectationSessionService';
 import type { ScenarioArchive } from '../domain/models';
 import type { GeoPoint } from '../infrastructure/geo/types';
 import {
@@ -25,7 +28,8 @@ import {
   Settings,
   X,
   Eye,
-  EyeOff
+  EyeOff,
+  FolderOpen
 } from 'lucide-react';
 import './DashboardPage.css';
 
@@ -71,6 +75,9 @@ export const DashboardPage: React.FC = () => {
   // Drawer state
   const [selectedArchive, setSelectedArchive] = useState<ScenarioArchive | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  // Import session modal state
+  const [showImportSessionModal, setShowImportSessionModal] = useState(false);
 
   // Load data on mount
   useEffect(() => {
@@ -212,6 +219,37 @@ export const DashboardPage: React.FC = () => {
     }
   }, []);
 
+  // Import session handler
+  const handleImportSession = useCallback(async (data: SessionExportData): Promise<ImportReport> => {
+    const scenariosState = useScenarioStore.getState().scenarios;
+    const upsertStage = useStageStore.getState().upsertStageForEleve;
+    const addAffectation = useAffectationStore.getState().addAffectation;
+    const deleteAffectationsByScenario = useAffectationStore.getState().deleteAffectationsByScenario;
+    const updateScenarioParametres = useScenarioStore.getState().updateParametres;
+    const setActiveScenarioId = useScenarioStore.getState().setCurrentScenario;
+    const updateEnseignant = useEnseignantStore.getState().updateEnseignant;
+
+    const report = await importAffectationSession(data, {
+      eleves,
+      enseignants,
+      stages,
+      scenarios: scenariosState,
+      upsertStage,
+      addAffectation,
+      deleteAffectationsByScenario,
+      updateScenarioParametres,
+      setActiveScenarioId,
+      updateEnseignantGeo: (id, geo) => updateEnseignant(id, geo),
+    });
+
+    // Si l'import a réussi, naviguer vers le board
+    if (report.success && report.affectationsImported > 0) {
+      setTimeout(() => navigate('/board'), 500);
+    }
+
+    return report;
+  }, [eleves, enseignants, stages, navigate]);
+
   // Quick actions
   const handleImport = () => openModal('import');
   const handleCreateScenario = () => openModal('editScenario');
@@ -282,6 +320,10 @@ export const DashboardPage: React.FC = () => {
         <button className="quick-action-btn" onClick={handleImport}>
           <Upload size={20} />
           <span>Importer des données</span>
+        </button>
+        <button className="quick-action-btn" onClick={() => setShowImportSessionModal(true)}>
+          <FolderOpen size={20} />
+          <span>Reprendre une session</span>
         </button>
         <button className="quick-action-btn" onClick={handleCreateScenario}>
           <Plus size={20} />
@@ -461,6 +503,13 @@ export const DashboardPage: React.FC = () => {
           onExportCsv={() => handleExportCsv(selectedArchive)}
         />
       )}
+
+      {/* Import Session Modal */}
+      <ImportSessionModal
+        isOpen={showImportSessionModal}
+        onClose={() => setShowImportSessionModal(false)}
+        onImport={handleImportSession}
+      />
     </div>
   );
 };

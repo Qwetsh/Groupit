@@ -7,6 +7,7 @@ import type { DraggableEleveProps } from '../types';
 /** Icône selon le type de problème */
 const problemIcons: Record<string, string> = {
   'no-stage': '📭',
+  'no-address': '🏢',
   'no-geo': '📍',
   'too-far': '🚗',
   'capacity': '👥',

@@ -1,0 +1,331 @@
+/* ============================================================
+   IMPORT SESSION MODAL STYLES
+   ============================================================ */
+
+.import-session-modal {
+  max-width: 550px;
+  width: 90vw;
+}
+
+/* Steps */
+.import-step {
+  padding: 1rem 0;
+}
+
+/* Select Step */
+.select-step .drop-zone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  background: #f8fafc;
+}
+
+.select-step .drop-zone:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.select-step .drop-zone.error {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+.select-step .drop-icon {
+  color: #94a3b8;
+  margin-bottom: 1rem;
+}
+
+.select-step .drop-text {
+  color: #64748b;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.select-step .file-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.select-step .parse-error {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+
+.select-step .help-text {
+  margin-top: 1rem;
+  color: #64748b;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+/* Preview Step */
+.preview-step .preview-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.preview-step .preview-header .success-icon {
+  color: #22c55e;
+}
+
+.preview-step .preview-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1e293b;
+}
+
+.preview-step .preview-info {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.preview-step .info-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.preview-step .info-label {
+  font-size: 0.75rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.preview-step .info-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.preview-step .info-sublabel {
+  font-size: 0.8rem;
+  color: #94a3b8;
+}
+
+.preview-step .preview-warning {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  color: #92400e;
+}
+
+.preview-step .preview-warning svg {
+  flex-shrink: 0;
+  color: #f59e0b;
+}
+
+.preview-step .preview-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+/* Importing Step */
+.importing-step {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.importing-step .spinner {
+  color: #3b82f6;
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+.importing-step h3 {
+  margin: 0 0 0.5rem;
+  color: #1e293b;
+}
+
+.importing-step p {
+  color: #64748b;
+  margin: 0;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Report Step */
+.report-step .report-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+}
+
+.report-step .report-header.success {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.report-step .report-header.error {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.report-step .report-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.report-step .report-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.report-step .stat-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  flex: 1;
+  min-width: 150px;
+}
+
+.report-step .stat-item.success {
+  background: #dcfce7;
+  border-color: #86efac;
+  color: #166534;
+}
+
+.report-step .stat-item.warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.report-step .stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.report-step .stat-label {
+  font-size: 0.8rem;
+  color: inherit;
+  opacity: 0.8;
+}
+
+.report-step .report-section {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.report-step .report-section.warning {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+}
+
+.report-step .report-section.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+.report-step .report-section h4 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: inherit;
+}
+
+.report-step .report-section.warning h4 {
+  color: #92400e;
+}
+
+.report-step .report-section.error h4 {
+  color: #dc2626;
+}
+
+.report-step .not-found-list,
+.report-step .error-list,
+.report-step .warning-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  font-size: 0.85rem;
+}
+
+.report-step .not-found-list li,
+.report-step .error-list li,
+.report-step .warning-list li {
+  margin-bottom: 0.25rem;
+}
+
+.report-step .not-found-list .more,
+.report-step .warning-list .more {
+  color: #64748b;
+  font-style: italic;
+}
+
+/* Buttons */
+.import-session-modal .btn-primary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.import-session-modal .btn-primary:hover {
+  background: #2563eb;
+}
+
+.import-session-modal .btn-secondary {
+  padding: 0.625rem 1.25rem;
+  background: white;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.import-session-modal .btn-secondary:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}

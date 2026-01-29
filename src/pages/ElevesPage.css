@@ -166,6 +166,11 @@
   border-bottom: 1px solid #f1f5f9;
 }
 
+/* Zebra striping */
+.eleves-table tbody tr:nth-child(even) {
+  background: rgba(0, 0, 0, 0.02);
+}
+
 .eleves-table tbody tr:hover {
   background: #f8fafc;
 }
