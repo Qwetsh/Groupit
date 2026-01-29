@@ -7,6 +7,7 @@
   flex-direction: column;
   height: 100%;
   background: #f1f5f9;
+  overflow-x: hidden;
 }
 
 /* Toolbar */
@@ -67,6 +68,15 @@
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.toolbar-session-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 8px;
+  border-right: 1px solid #e2e8f0;
+  margin-right: 4px;
 }
 
 .btn-icon {
@@ -217,6 +227,7 @@
   flex: 1;
   padding: 12px;
   overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -236,6 +247,7 @@
   width: 320px;
   min-width: 320px;
   flex-shrink: 0;
+  overflow-x: hidden;
 }
 
 .results-column {
@@ -1439,6 +1451,11 @@
 .draggable-eleve.problem-no-stage {
   border-left: 3px solid #f59e0b;
   background: #fffbeb;
+}
+
+.draggable-eleve.problem-no-address {
+  border-left: 3px solid #fb923c;
+  background: #fff7ed;
 }
 
 .draggable-eleve.problem-no-geo {

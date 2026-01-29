@@ -42,10 +42,9 @@ interface StageAssignmentMapDrawerProps {
 // ============================================================
 
 // Coordonnées du collège (1 rue Jean Laurain, 57140 Woippy)
-// Source approximative centrée sur l'établissement (Woippy, Metz Nord)
 export const COLLEGE_GEO: GeoPoint = {
-  lat: 49.1452,
-  lon: 6.1667,
+  lat: 49.15680,
+  lon: 6.13754,
 };
 
 export const COLLEGE_ADDRESS = '1 rue Jean Laurain, 57140 Woippy';
@@ -387,6 +386,22 @@ export function StageAssignmentMapDrawer({
                   />
                 ))}
               </MapContainer>
+
+              {/* Legend - juste sous la carte */}
+              <div className="map-legend">
+                <div className="legend-item">
+                  <span className="legend-marker college"></span>
+                  Collège
+                </div>
+                <div className="legend-item">
+                  <span className="legend-marker teacher"></span>
+                  Enseignant
+                </div>
+                <div className="legend-item">
+                  <span className="legend-marker stage"></span>
+                  Stage
+                </div>
+              </div>
             </div>
           )}
 
@@ -492,21 +507,6 @@ export function StageAssignmentMapDrawer({
             )}
           </div>
 
-          {/* Legend */}
-          <div className="map-legend">
-            <div className="legend-item">
-              <span className="legend-marker college"></span>
-              Collège
-            </div>
-            <div className="legend-item">
-              <span className="legend-marker teacher"></span>
-              Enseignant
-            </div>
-            <div className="legend-item">
-              <span className="legend-marker stage"></span>
-              Stage
-            </div>
-          </div>
         </div>
       </div>
     </>

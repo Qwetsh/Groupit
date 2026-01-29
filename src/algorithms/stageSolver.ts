@@ -51,6 +51,70 @@ function isEleveEnCoursForEnseignant(
   return enseignantClasses.includes(eleveClasse);
 }
 
+/**
+ * Matières considérées comme des "options" nécessitant une correspondance avec les options de l'élève.
+ * Un prof de ces matières ne peut encadrer que les élèves ayant cette option.
+ */
+const MATIERES_OPTIONS = [
+  'espagnol',
+  'allemand',
+  'italien',
+  'chinois',
+  'portugais',
+  'arabe',
+  'russe',
+  'latin',
+  'grec',
+];
+
+/**
+ * Vérifie si une matière est une matière "option" (langue, latin, etc.)
+ */
+function isMatiereOption(matiere: string | undefined): boolean {
+  if (!matiere) return false;
+  return MATIERES_OPTIONS.some(m => matiere.toLowerCase().includes(m));
+}
+
+/**
+ * Vérifie si l'élève a l'option correspondant à la matière de l'enseignant.
+ * Retourne true si :
+ * - La matière de l'enseignant n'est pas une option (pas de vérification nécessaire)
+ * - OU l'élève a cette option dans ses options
+ */
+function isEleveOptionCompatible(
+  eleveOptions: string[] | undefined,
+  enseignantMatiere: string | undefined
+): { compatible: boolean; reason?: string } {
+  // Si la matière n'est pas une option, pas de contrainte
+  if (!isMatiereOption(enseignantMatiere)) {
+    return { compatible: true };
+  }
+
+  // Si l'enseignant enseigne une option, l'élève doit l'avoir
+  if (!eleveOptions || eleveOptions.length === 0) {
+    return {
+      compatible: false,
+      reason: `L'élève n'a pas l'option ${enseignantMatiere}`
+    };
+  }
+
+  // Vérifier si l'élève a l'option correspondante
+  const matiereNormalized = enseignantMatiere!.toLowerCase();
+  const hasOption = eleveOptions.some(opt =>
+    opt.toLowerCase().includes(matiereNormalized) ||
+    matiereNormalized.includes(opt.toLowerCase())
+  );
+
+  if (!hasOption) {
+    return {
+      compatible: false,
+      reason: `L'élève n'a pas l'option ${enseignantMatiere} (options: ${eleveOptions.join(', ')})`
+    };
+  }
+
+  return { compatible: true };
+}
+
 // ============================================================
 // SCORING
 // ============================================================
@@ -108,17 +172,23 @@ function checkHardConstraints(
   if (currentLoad >= enseignant.capacityMax) {
     return { valid: false, reason: 'Capacité maximale atteinte' };
   }
-  
+
   // Durée max
   if (options.dureeMaxMin && pair.durationMin > options.dureeMaxMin) {
     return { valid: false, reason: `Trajet trop long (${Math.round(pair.durationMin)} min > ${options.dureeMaxMin} min)` };
   }
-  
+
   // Distance max
   if (options.distanceMaxKm && pair.distanceKm > options.distanceMaxKm) {
     return { valid: false, reason: `Distance trop grande (${Math.round(pair.distanceKm)} km > ${options.distanceMaxKm} km)` };
   }
-  
+
+  // Vérification option/matière (un prof de langue ne peut encadrer que ses élèves)
+  const optionCheck = isEleveOptionCompatible(stage.eleveOptions, enseignant.matierePrincipale);
+  if (!optionCheck.compatible) {
+    return { valid: false, reason: optionCheck.reason };
+  }
+
   // Exclusions
   if (enseignant.exclusions) {
     for (const exclusion of enseignant.exclusions) {
@@ -126,7 +196,7 @@ function checkHardConstraints(
       if (exclusion.type === 'eleve' && exclusion.value === stage.eleveId) {
         return { valid: false, reason: `Exclusion élève: ${exclusion.reason || 'Non spécifié'}` };
       }
-      
+
       // Exclusion par secteur (basé sur l'adresse ou le code postal)
       if (exclusion.type === 'secteur' || exclusion.type === 'zone') {
         const addr = stage.address.toLowerCase();
@@ -136,7 +206,7 @@ function checkHardConstraints(
       }
     }
   }
-  
+
   return { valid: true };
 }
 
@@ -462,6 +532,7 @@ export function toStageGeoInfo(stage: {
   id: string;
   eleveId?: string;
   eleveClasse?: string;
+  eleveOptions?: string[];
   adresse: string;
   lat?: number;
   lon?: number;
@@ -476,6 +547,7 @@ export function toStageGeoInfo(stage: {
     stageId: stage.id,
     eleveId: stage.eleveId || '',
     eleveClasse: stage.eleveClasse,
+    eleveOptions: stage.eleveOptions,
     address: stage.adresse,
     geo: stage.lat && stage.lon ? { lat: stage.lat, lon: stage.lon } : undefined,
     geoStatus: toGeoStatus(stage.geoStatus),
@@ -494,6 +566,7 @@ export function toEnseignantGeoInfo(ens: {
   id: string;
   nom: string;
   prenom: string;
+  matierePrincipale?: string;
   adresse?: string;
   lat?: number;
   lon?: number;
@@ -507,6 +580,7 @@ export function toEnseignantGeoInfo(ens: {
     enseignantId: ens.id,
     nom: ens.nom,
     prenom: ens.prenom,
+    matierePrincipale: ens.matierePrincipale,
     homeAddress: ens.adresse,
     homeGeo: ens.lat && ens.lon ? { lat: ens.lat, lon: ens.lon } : undefined,
     homeGeoStatus: toGeoStatus(ens.geoStatus),

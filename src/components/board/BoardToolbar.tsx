@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wand2, RefreshCw, RotateCcw, Save, Loader2 } from 'lucide-react';
+import { Wand2, RefreshCw, RotateCcw, Save, Loader2, Download, Upload } from 'lucide-react';
 import { HelpTooltip, HELP_TEXTS } from '../ui/Tooltip';
 import type { BoardToolbarProps } from './types';
 
@@ -19,6 +19,8 @@ export const BoardToolbar: React.FC<BoardToolbarProps> = ({
   onRunMatching,
   onResetAffectations,
   onValidateClick,
+  onExportSession,
+  onImportSession,
 }) => {
   return (
     <div className="board-toolbar">
@@ -30,6 +32,27 @@ export const BoardToolbar: React.FC<BoardToolbarProps> = ({
         <span className="scenario-info">{scenarioInfo}</span>
       </div>
       <div className="toolbar-right">
+        {/* Import/Export buttons - only for stage scenarios */}
+        {isStageScenario && (
+          <div className="toolbar-session-buttons">
+            <button
+              className="btn-icon"
+              title="Importer une session"
+              onClick={onImportSession}
+              disabled={!activeScenario || isRunning}
+            >
+              <Upload size={18} />
+            </button>
+            <button
+              className="btn-icon"
+              title="Exporter la session"
+              onClick={onExportSession}
+              disabled={!activeScenario || isRunning}
+            >
+              <Download size={18} />
+            </button>
+          </div>
+        )}
         <button
           className="btn-icon"
           title="Réinitialiser les affectations"

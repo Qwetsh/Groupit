@@ -189,8 +189,15 @@ export function EleveInfoModal({ eleve, affectation, enseignant, stage, onClose 
                 )}
                 {stage.tuteur && (
                   <div className="info-item">
-                    <span className="info-label"><UserCircle size={12} /> Tuteur</span>
+                    <span className="info-label"><UserCircle size={12} /> Tuteur entreprise</span>
                     <span className="info-value">{stage.tuteur}</span>
+                  </div>
+                )}
+                {/* Référent enseignant (si affectation suivi_stage) */}
+                {affectation?.type === 'suivi_stage' && enseignant && (
+                  <div className="info-item">
+                    <span className="info-label"><Users size={12} /> Référent</span>
+                    <span className="info-value highlight">{enseignant.prenom} {enseignant.nom}</span>
                   </div>
                 )}
                 {stage.tuteurTel && (

@@ -95,6 +95,11 @@
   max-width: 300px;
 }
 
+/* Zebra striping */
+.stage-table tbody tr:nth-child(even):not(.no-stage):not(.editing-row) {
+  background: rgba(0, 0, 0, 0.02);
+}
+
 .stage-table tr.no-stage {
   background: #fef9c3;
 }
@@ -122,6 +127,11 @@
 .phone-cell svg {
   color: #94a3b8;
   flex-shrink: 0;
+}
+
+.referent-cell {
+  font-weight: 500;
+  color: #3b82f6;
 }
 
 .address-cell {

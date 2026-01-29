@@ -106,6 +106,8 @@ export interface BoardToolbarProps {
   onRunMatching: () => void;
   onResetAffectations: () => void;
   onValidateClick: () => void;
+  onExportSession: () => void;
+  onImportSession: () => void;
 }
 
 // ============================================================
@@ -156,7 +158,7 @@ export interface NonAffectationInfo {
   eleveId: string;
   raisons: string[];
   /** Type de problème principal pour affichage visuel */
-  problemType: 'no-stage' | 'no-geo' | 'too-far' | 'capacity' | 'unknown';
+  problemType: 'no-stage' | 'no-address' | 'no-geo' | 'too-far' | 'capacity' | 'unknown';
 }
 
 // ============================================================

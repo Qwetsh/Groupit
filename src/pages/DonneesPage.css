@@ -261,6 +261,11 @@
   color: var(--primary);
 }
 
+/* Zebra striping - alternance de couleurs pour lisibilité */
+.donnees-table tbody tr:nth-child(even) {
+  background: rgba(0, 0, 0, 0.02);
+}
+
 .donnees-table tbody tr:hover {
   background: var(--bg-hover);
 }

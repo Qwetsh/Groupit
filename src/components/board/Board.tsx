@@ -33,6 +33,8 @@ import { useConfirmReset } from '../../hooks/useConfirm';
 import { EleveInfoModal } from '../modals/EleveInfoModal';
 import { ExportButtons } from '../export';
 import { StageAssignmentMapDrawer, COLLEGE_GEO } from './StageAssignmentMapDrawer';
+import { ImportSessionModal } from './ImportSessionModal';
+import { exportAffectationSession, downloadSessionAsJson, importAffectationSession, type SessionExportData, type ImportReport } from '../../services/affectationSessionService';
 
 // Sous-composants
 import { BoardToolbar } from './BoardToolbar';
@@ -130,6 +132,7 @@ export const Board: React.FC = () => {
   const [isValidating, setIsValidating] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
   const [validationSuccess, setValidationSuccess] = useState<ValidationSuccess | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   // Confirm modal hook
   const { confirmState, confirmReset, handleConfirm: handleConfirmReset, handleCancel: handleCancelReset } = useConfirmReset();
@@ -411,6 +414,63 @@ export const Board: React.FC = () => {
     return distances;
   }, [isStageScenario, distanceEnseignantId, enseignantsById, scenarioEleves, stageByEleveId]);
 
+  // Computed non-affectation info (persiste entre les changements d'onglet)
+  // Fusionne l'info calculée (basée sur les données actuelles) avec l'info détaillée du matching
+  const computedNonAffectesInfo = useMemo(() => {
+    if (!isStageScenario || !activeScenario) return nonAffectesInfo;
+
+    const result = new Map<string, NonAffectationInfo>();
+    const affectedEleveIds = new Set(scenarioAffectations.map(a => a.eleveId));
+
+    for (const eleve of scenarioEleves) {
+      if (affectedEleveIds.has(eleve.id!)) continue; // Skip affected students
+
+      // Si on a déjà une info détaillée du matching, l'utiliser
+      const existingInfo = nonAffectesInfo.get(eleve.id!);
+      if (existingInfo) {
+        result.set(eleve.id!, existingInfo);
+        continue;
+      }
+
+      // Sinon, calculer l'info de base
+      const stage = stageByEleveId.get(eleve.id!);
+      const raisons: string[] = [];
+      let problemType: NonAffectationInfo['problemType'] = 'unknown';
+
+      // Vérifier si le stage existe ET a des données significatives
+      const hasStage = stage && (stage.nomEntreprise || stage.adresse);
+      const hasAddress = stage && stage.adresse && stage.adresse.trim().length > 0;
+      const isGeocoded = stage && stage.lat && stage.lon && (stage.geoStatus === 'ok' || stage.geoStatus === 'manual');
+
+      if (!hasStage) {
+        // Pas de stage OU stage vide (juste créé sans données)
+        raisons.push('📭 Pas de stage renseigné');
+        problemType = 'no-stage';
+      } else if (!hasAddress) {
+        // Stage avec entreprise mais sans adresse
+        raisons.push('🏢 Stage sans adresse');
+        if (stage.nomEntreprise) raisons.push(`Entreprise: ${stage.nomEntreprise}`);
+        problemType = 'no-address';
+      } else if (!isGeocoded) {
+        // Stage avec adresse mais pas géocodé
+        raisons.push('📍 Adresse non géolocalisée');
+        raisons.push(`Adresse: ${stage.adresse}`);
+        if (stage.geoStatus === 'error' || stage.geoStatus === 'not_found') {
+          raisons.push('⚠️ Échec du géocodage');
+        }
+        problemType = 'no-geo';
+      } else {
+        // Stage géocodé mais non affecté - probablement trop loin ou capacité
+        raisons.push('🚗 Non affecté (distance ou capacité)');
+        problemType = 'too-far';
+      }
+
+      result.set(eleve.id!, { eleveId: eleve.id!, raisons, problemType });
+    }
+
+    return result;
+  }, [isStageScenario, activeScenario, scenarioEleves, scenarioAffectations, stageByEleveId, nonAffectesInfo]);
+
   // Context menu items
   const contextMenuItems: ContextMenuItem[] = useMemo(() => {
     if (!contextMenu) return [];
@@ -632,7 +692,23 @@ export const Board: React.FC = () => {
           return;
         }
 
-        const stagesGeoInfo = geocodedStages.map(s => toStageGeoInfo({ id: s.id, eleveId: s.eleveId, eleveClasse: s.eleveClasse, adresse: s.adresse || '', lat: s.lat, lon: s.lon, geoStatus: s.geoStatus || 'pending', nomEntreprise: s.nomEntreprise }));
+        // Map des élèves pour récupérer leurs options
+        const elevesById = new Map(scenarioEleves.map(e => [e.id, e]));
+
+        const stagesGeoInfo = geocodedStages.map(s => {
+          const eleve = s.eleveId ? elevesById.get(s.eleveId) : undefined;
+          return toStageGeoInfo({
+            id: s.id,
+            eleveId: s.eleveId,
+            eleveClasse: s.eleveClasse,
+            eleveOptions: eleve?.options,
+            adresse: s.adresse || '',
+            lat: s.lat,
+            lon: s.lon,
+            geoStatus: s.geoStatus || 'pending',
+            nomEntreprise: s.nomEntreprise
+          });
+        });
 
         // Capacité par enseignant: calculée ou fixe selon l'option du scénario
         const capaciteDefaut = activeScenario.parametres.suiviStage?.capaciteTuteurDefaut ?? 5;
@@ -640,7 +716,18 @@ export const Board: React.FC = () => {
           const capacite = utiliserCapaciteCalculee
             ? (capacitesStageCalculees.get(e.id!) ?? capaciteDefaut)
             : capaciteDefaut;
-          return toEnseignantGeoInfo({ id: e.id!, nom: e.nom, prenom: e.prenom, adresse: e.adresse, lat: e.lat, lon: e.lon, geoStatus: e.geoStatus, capaciteStage: capacite, classesEnCharge: e.classesEnCharge });
+          return toEnseignantGeoInfo({
+            id: e.id!,
+            nom: e.nom,
+            prenom: e.prenom,
+            matierePrincipale: e.matierePrincipale,
+            adresse: e.adresse,
+            lat: e.lat,
+            lon: e.lon,
+            geoStatus: e.geoStatus,
+            capaciteStage: capacite,
+            classesEnCharge: e.classesEnCharge
+          });
         });
 
         const effectiveCriteres = getEffectiveCriteres(activeScenario.type, activeScenario.parametres.criteresV2 || []);
@@ -694,12 +781,26 @@ export const Board: React.FC = () => {
           const raisons: string[] = [];
           let problemType: NonAffectationInfo['problemType'] = 'unknown';
 
-          if (!stage) {
+          // Vérifier si le stage existe ET a des données significatives
+          const hasStage = stage && (stage.nomEntreprise || stage.adresse);
+          const hasAddress = stage && stage.adresse && stage.adresse.trim().length > 0;
+
+          if (!hasStage) {
+            // Pas de stage OU stage vide
             raisons.push('📭 Pas de stage renseigné');
             problemType = 'no-stage';
+          } else if (!hasAddress) {
+            // Stage avec entreprise mais sans adresse
+            raisons.push('🏢 Stage sans adresse');
+            if (stage.nomEntreprise) raisons.push(`Entreprise: ${stage.nomEntreprise}`);
+            problemType = 'no-address';
           } else if (!geocodedStageEleveIds.has(eleve.id!)) {
-            raisons.push('📍 Adresse du stage non géolocalisée');
-            if (stage.adresse) raisons.push(`Adresse: ${stage.adresse}`);
+            // Stage avec adresse mais pas géocodé
+            raisons.push('📍 Adresse non géolocalisée');
+            raisons.push(`Adresse: ${stage.adresse}`);
+            if (stage.geoStatus === 'error' || stage.geoStatus === 'not_found') {
+              raisons.push('⚠️ Échec du géocodage');
+            }
             problemType = 'no-geo';
           } else {
             // Student has geocoded stage but wasn't affected - check why
@@ -812,6 +913,45 @@ export const Board: React.FC = () => {
     }
   }, [activeScenario, affectations, eleves, enseignants, isJuryMode, isStageScenario, scenarioJurys, stages, createArchive]);
 
+  // ============================================================
+  // EXPORT/IMPORT SESSION HANDLERS
+  // ============================================================
+
+  const handleExportSession = useCallback(() => {
+    if (!activeScenario) return;
+
+    const exportData = exportAffectationSession(
+      activeScenario,
+      affectations,
+      eleves,
+      enseignants,
+      stages
+    );
+
+    downloadSessionAsJson(exportData);
+  }, [activeScenario, affectations, eleves, enseignants, stages]);
+
+  const handleImportSession = useCallback(async (data: SessionExportData): Promise<ImportReport> => {
+    const scenarios = useScenarioStore.getState().scenarios;
+    const upsertStage = useStageStore.getState().upsertStageForEleve;
+    const updateScenarioParametres = useScenarioStore.getState().updateParametres;
+    const setActiveScenarioId = useScenarioStore.getState().setCurrentScenario;
+    const updateEnseignant = useEnseignantStore.getState().updateEnseignant;
+
+    return await importAffectationSession(data, {
+      eleves,
+      enseignants,
+      stages,
+      scenarios,
+      upsertStage,
+      addAffectation,
+      deleteAffectationsByScenario,
+      updateScenarioParametres,
+      setActiveScenarioId,
+      updateEnseignantGeo: (id, geo) => updateEnseignant(id, geo),
+    });
+  }, [eleves, enseignants, stages, addAffectation, deleteAffectationsByScenario]);
+
   const activeEleve = activeData?.eleve;
 
   // ============================================================
@@ -833,6 +973,8 @@ export const Board: React.FC = () => {
         onRunMatching={runMatching}
         onResetAffectations={handleResetAffectations}
         onValidateClick={handleValidateClick}
+        onExportSession={handleExportSession}
+        onImportSession={() => setShowImportModal(true)}
       />
 
       <BoardMessages
@@ -855,7 +997,7 @@ export const Board: React.FC = () => {
         <ExportButtons scenario={activeScenario} filteredEleveIds={scenarioEleves.map(e => e.id!)} />
       )}
 
-      <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd} autoScroll={false}>
         <div className="board-columns">
           {/* Unassigned column */}
           <div className="board-column eleves-column">
@@ -866,7 +1008,7 @@ export const Board: React.FC = () => {
             </div>
             <UnassignedDropZone>
               {unassignedEleves.map(eleve => (
-                <DraggableEleve key={eleve.id} eleve={eleve} onContextMenu={handleContextMenuUnassigned} nonAffectationInfo={nonAffectesInfo.get(eleve.id!)} distanceFromEnseignantKm={distancesByEleveFromEnseignant.get(eleve.id!)} />
+                <DraggableEleve key={eleve.id} eleve={eleve} onContextMenu={handleContextMenuUnassigned} nonAffectationInfo={computedNonAffectesInfo.get(eleve.id!)} distanceFromEnseignantKm={distancesByEleveFromEnseignant.get(eleve.id!)} />
               ))}
               {unassignedEleves.length === 0 && (
                 <div className="empty-state"><p>Tous les élèves sont affectés</p></div>
@@ -996,6 +1138,13 @@ export const Board: React.FC = () => {
           onConfirm={handleValidateAffectations}
         />
       )}
+
+      {/* Import Session Modal */}
+      <ImportSessionModal
+        isOpen={showImportModal}
+        onClose={() => setShowImportModal(false)}
+        onImport={handleImportSession}
+      />
 
       <ConfirmModal
         isOpen={confirmState.isOpen}
