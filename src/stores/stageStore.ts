@@ -163,7 +163,7 @@ export const useStageStore = create<StageState>((set) => ({
         ...data,
         id: generateId(),
         eleveId,
-        geoStatus: data.adresse ? 'pending' : undefined,
+        geoStatus: data.geoStatus ?? (data.adresse ? 'pending' : undefined),
         createdAt: now,
         updatedAt: now,
       } as Stage;
@@ -199,7 +199,7 @@ export const useStageStore = create<StageState>((set) => ({
         toCreate.push({
           ...data,
           id: generateId(),
-          geoStatus: data.adresse ? 'pending' : undefined,
+          geoStatus: data.geoStatus ?? (data.adresse ? 'pending' : undefined),
           createdAt: now,
           updatedAt: now,
         } as Stage);
