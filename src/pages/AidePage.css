@@ -7,7 +7,8 @@
   flex-direction: column;
   gap: 20px;
   padding: 24px;
-  max-width: 900px;
+  max-width: 1400px;
+  width: 100%;
 }
 
 .aide-page h1 {
@@ -819,4 +820,41 @@
   color: white;
   font-size: 10px;
   font-weight: 500;
+}
+
+/* ============================================================
+   RESPONSIVE - GRANDS ÉCRANS
+   ============================================================ */
+
+@media (min-width: 1200px) {
+  .glossaire-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .guide-steps {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .schema-board,
+  .schema-scenario {
+    max-width: 700px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .aide-page {
+    max-width: 1600px;
+  }
+
+  .glossaire-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .faq-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
 }
