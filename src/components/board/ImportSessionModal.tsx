@@ -19,7 +19,7 @@ type Step = 'select' | 'preview' | 'importing' | 'report';
 
 export function ImportSessionModal({ isOpen, onClose, onImport }: ImportSessionModalProps) {
   const [step, setStep] = useState<Step>('select');
-  const [file, setFile] = useState<File | null>(null);
+  const [_file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<SessionExportData | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
   const [report, setReport] = useState<ImportReport | null>(null);
@@ -66,9 +66,12 @@ export function ImportSessionModal({ isOpen, onClose, onImport }: ImportSessionM
         success: false,
         scenarioMatched: false,
         scenarioName: parsedData.scenario.nom,
+        scenarioActivated: false,
+        parametresRestored: false,
         affectationsImported: 0,
         affectationsSkipped: 0,
         stagesUpdated: 0,
+        enseignantsGeoUpdated: 0,
         elevesMatched: 0,
         elevesNotFound: [],
         enseignantsMatched: 0,
