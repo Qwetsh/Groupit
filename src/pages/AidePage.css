@@ -823,38 +823,479 @@
 }
 
 /* ============================================================
-   RESPONSIVE - GRANDS ÉCRANS
+   RESPONSIVE - ÉCRANS MOYENS (1200px+)
    ============================================================ */
 
 @media (min-width: 1200px) {
-  .glossaire-grid {
-    grid-template-columns: repeat(4, 1fr);
+  .aide-page {
+    gap: 28px;
+    padding: 32px;
   }
 
+  .aide-page h1 {
+    font-size: 28px;
+  }
+
+  .aide-page .lead {
+    font-size: 16px;
+  }
+
+  /* Accordéons */
+  .accordion-header {
+    padding: 18px 24px;
+    font-size: 17px;
+    gap: 14px;
+  }
+
+  .accordion-content {
+    padding: 0 24px 24px;
+    font-size: 15px;
+  }
+
+  /* Guide */
   .guide-steps {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
   }
 
+  .guide-step {
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .step-number {
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+  }
+
+  .step-title {
+    font-size: 16px;
+  }
+
+  .step-desc {
+    font-size: 14px;
+  }
+
+  /* Schémas */
   .schema-board,
   .schema-scenario {
-    max-width: 700px;
+    font-size: 13px;
+    padding: 14px;
+  }
+
+  .schema-toolbar {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .schema-toolbar-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .schema-columns {
+    grid-template-columns: 180px 1fr;
+    gap: 12px;
+  }
+
+  .schema-column {
+    padding: 12px;
+  }
+
+  .schema-column-title {
+    font-size: 12px;
+  }
+
+  .schema-eleve {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .schema-enseignant {
+    padding: 10px 12px;
+  }
+
+  .schema-enseignant-header {
+    font-size: 12px;
+  }
+
+  .schema-affecte {
+    padding: 5px 8px;
+    font-size: 11px;
+  }
+
+  /* Schéma Scénario */
+  .schema-modal-header {
+    padding: 14px 18px;
+  }
+
+  .schema-modal-title {
+    font-size: 14px;
+  }
+
+  .schema-modal-body {
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .schema-section {
+    padding: 14px 16px;
+  }
+
+  .schema-section-title {
+    font-size: 13px;
+  }
+
+  .schema-type-card {
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+
+  .schema-critere-card {
+    padding: 10px 14px;
+  }
+
+  .schema-critere-name {
+    font-size: 12px;
+  }
+
+  .schema-priority-btn {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  /* FAQ */
+  .faq-question {
+    padding: 14px 18px;
+    font-size: 15px;
+  }
+
+  .faq-answer {
+    padding: 0 18px 16px;
+    font-size: 14px;
+  }
+
+  /* Glossaire */
+  .glossaire-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+
+  .glossaire-item {
+    padding: 14px 16px;
+  }
+
+  .glossaire-term {
+    font-size: 15px;
+  }
+
+  .glossaire-def {
+    font-size: 13px;
+  }
+
+  /* Contact */
+  .contact-card {
+    padding: 18px 20px;
+    gap: 16px;
+  }
+
+  .contact-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .contact-label {
+    font-size: 14px;
+  }
+
+  .contact-value {
+    font-size: 16px;
   }
 }
 
-@media (min-width: 1600px) {
+/* ============================================================
+   RESPONSIVE - GRANDS ÉCRANS (1400px+)
+   ============================================================ */
+
+@media (min-width: 1400px) {
   .aide-page {
-    max-width: 1600px;
+    gap: 32px;
+    padding: 40px;
+  }
+
+  .aide-page h1 {
+    font-size: 32px;
+  }
+
+  .aide-page .lead {
+    font-size: 17px;
+  }
+
+  /* Accordéons */
+  .accordion-header {
+    padding: 20px 28px;
+    font-size: 18px;
+  }
+
+  .accordion-content {
+    padding: 0 28px 28px;
+    font-size: 16px;
+    line-height: 1.7;
+  }
+
+  /* Guide */
+  .guide-step {
+    padding: 20px;
+  }
+
+  .step-number {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+  }
+
+  .step-title {
+    font-size: 17px;
+  }
+
+  .step-desc {
+    font-size: 15px;
+  }
+
+  /* Schémas - encore plus grands */
+  .schema-board,
+  .schema-scenario {
+    font-size: 14px;
+    padding: 18px;
+    border-radius: 12px;
+  }
+
+  .schema-toolbar {
+    padding: 14px 18px;
+    border-radius: 8px;
+  }
+
+  .schema-toolbar-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+    border-radius: 6px;
+  }
+
+  .schema-messages {
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+
+  .schema-columns {
+    grid-template-columns: 220px 1fr;
+    gap: 16px;
+  }
+
+  .schema-column {
+    padding: 16px;
+    border-radius: 10px;
+  }
+
+  .schema-column-title {
+    font-size: 14px;
+  }
+
+  .schema-badge {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+  .schema-eleve {
+    padding: 10px 14px;
+    font-size: 13px;
+    border-radius: 6px;
+  }
+
+  .schema-eleve-dot {
+    width: 8px;
+    height: 8px;
+  }
+
+  .schema-results-grid {
+    gap: 10px;
+  }
+
+  .schema-enseignant {
+    padding: 12px 16px;
+    border-radius: 8px;
+  }
+
+  .schema-enseignant-header {
+    font-size: 13px;
+    gap: 6px;
+  }
+
+  .schema-enseignant-icon {
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+  }
+
+  .schema-affecte {
+    padding: 6px 10px;
+    font-size: 12px;
+    border-radius: 4px;
+  }
+
+  /* Schéma Scénario */
+  .schema-scenario {
+    border-radius: 14px;
+  }
+
+  .schema-modal-header {
+    padding: 16px 22px;
+  }
+
+  .schema-modal-title {
+    font-size: 16px;
+    gap: 10px;
+  }
+
+  .schema-modal-body {
+    padding: 20px;
+    gap: 16px;
+  }
+
+  .schema-section {
+    padding: 16px 20px;
+    border-radius: 10px;
+  }
+
+  .schema-section-title {
+    font-size: 14px;
+    gap: 10px;
+  }
+
+  .schema-step-num {
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+  }
+
+  .schema-type-card {
+    padding: 12px 16px;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+
+  .schema-critere-card {
+    padding: 12px 16px;
+    border-radius: 10px;
+  }
+
+  .schema-critere-name {
+    font-size: 13px;
+  }
+
+  .schema-priority-group {
+    padding: 4px;
+    border-radius: 8px;
+  }
+
+  .schema-priority-btn {
+    padding: 6px 10px;
+    font-size: 11px;
+    border-radius: 6px;
+  }
+
+  .schema-modal-footer {
+    padding: 14px 22px;
+  }
+
+  .schema-btn-cancel,
+  .schema-btn-save {
+    padding: 8px 16px;
+    font-size: 12px;
+  }
+
+  /* FAQ */
+  .faq-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .faq-question {
+    padding: 16px 20px;
+    font-size: 16px;
+  }
+
+  .faq-answer {
+    padding: 0 20px 18px;
+    font-size: 15px;
+  }
+
+  /* Glossaire */
+  .glossaire-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .glossaire-item {
+    padding: 16px 20px;
+  }
+
+  .glossaire-term {
+    font-size: 16px;
+    margin-bottom: 6px;
+  }
+
+  .glossaire-def {
+    font-size: 14px;
+  }
+
+  /* Contact */
+  .contact-card {
+    padding: 20px 24px;
+  }
+
+  .contact-icon {
+    width: 52px;
+    height: 52px;
+  }
+}
+
+/* ============================================================
+   RESPONSIVE - TRÈS GRANDS ÉCRANS (1800px+)
+   ============================================================ */
+
+@media (min-width: 1800px) {
+  .aide-page {
+    max-width: 1800px;
+    gap: 36px;
+    padding: 48px;
+  }
+
+  .aide-page h1 {
+    font-size: 36px;
+  }
+
+  .aide-page .lead {
+    font-size: 18px;
+  }
+
+  .accordion-header {
+    padding: 22px 32px;
+    font-size: 19px;
+  }
+
+  .accordion-content {
+    padding: 0 32px 32px;
+    font-size: 17px;
   }
 
   .glossaire-grid {
     grid-template-columns: repeat(5, 1fr);
   }
 
-  .faq-list {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+  .guide-steps {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
