@@ -175,24 +175,28 @@ function BoardSchema() {
           tooltipTitle="Barre d'outils"
           tooltipContent={
             <>
-              <strong>Lancer</strong> : lance l'algorithme d'affectation automatique.<br />
+              <strong>Titre & badges</strong> : nom du scénario actif et mode (Stage/Jury).<br />
               <strong>Reset</strong> : supprime toutes les affectations.<br />
-              <strong>Valider</strong> : archive le scénario une fois satisfait.<br />
-              <strong>Export</strong> : sauvegarde la session en fichier JSON.
+              <strong>Lancer le matching</strong> : lance l'algorithme d'affectation automatique.<br />
+              <strong>Valider</strong> : archive le scénario une fois satisfait.
             </>
           }
         >
-          <div className="schema-toolbar-btn primary">
-            <Play size={10} /> Lancer
+          <div className="schema-toolbar-title">
+            <span className="schema-toolbar-h1">Affectations</span>
+            <span className="schema-toolbar-scenario">Stage 3e</span>
+            <span className="schema-toolbar-mode">Mode Suivi Stage</span>
           </div>
-          <div className="schema-toolbar-btn">
-            <RotateCcw size={10} /> Reset
-          </div>
-          <div className="schema-toolbar-btn success">
-            <CheckCircle size={10} /> Valider
-          </div>
-          <div className="schema-toolbar-btn">
-            <Download size={10} /> Export
+          <div className="schema-toolbar-actions">
+            <div className="schema-toolbar-btn icon-only">
+              <RotateCcw size={10} />
+            </div>
+            <div className="schema-toolbar-btn primary">
+              <Play size={10} /> Lancer le matching
+            </div>
+            <div className="schema-toolbar-btn success">
+              <CheckCircle size={10} /> Valider
+            </div>
           </div>
         </SchemaHotspot>
 
@@ -203,40 +207,43 @@ function BoardSchema() {
           tooltipContent="Affiche les informations importantes : nombre de stages géocodés, résultats du matching, erreurs éventuelles, et succès de validation."
         >
           <Info size={12} />
-          <span>Zone d'informations et alertes</span>
+          <span>12/15 stages géocodés • 8 enseignants</span>
         </SchemaHotspot>
 
         {/* Colonnes */}
         <div className="schema-columns">
           {/* Colonne élèves */}
           <SchemaHotspot
-            className="schema-column"
+            className="schema-column eleves"
             tooltipTitle="Élèves non affectés"
             tooltipContent={
               <>
                 Liste des élèves en attente d'affectation.
                 <strong> Glissez-déposez</strong> un élève vers un enseignant pour l'affecter manuellement,
-                ou utilisez le bouton "Lancer" pour une affectation automatique.
+                ou utilisez le bouton "Lancer le matching" pour une affectation automatique.
               </>
             }
           >
             <div className="schema-column-header">
               <span className="schema-column-title">Élèves à affecter</span>
-              <span className="schema-badge">12</span>
+              <span className="schema-badge orange">3</span>
             </div>
             <div className="schema-eleves-wrapper">
               <div className="schema-eleves">
                 <div className="schema-eleve">
                   <span className="schema-eleve-dot"></span>
-                  Martin Lucas
+                  <span className="schema-eleve-name">Martin Lucas</span>
+                  <span className="schema-eleve-classe">3e1</span>
                 </div>
                 <div className="schema-eleve">
                   <span className="schema-eleve-dot"></span>
-                  Dupont Marie
+                  <span className="schema-eleve-name">Dupont Marie</span>
+                  <span className="schema-eleve-classe">3e2</span>
                 </div>
                 <div className="schema-eleve">
                   <span className="schema-eleve-dot"></span>
-                  Bernard Julie
+                  <span className="schema-eleve-name">Bernard Julie</span>
+                  <span className="schema-eleve-classe">3e1</span>
                 </div>
               </div>
               <span className="schema-drag-arrow">→</span>
@@ -245,7 +252,7 @@ function BoardSchema() {
 
           {/* Colonne résultats */}
           <SchemaHotspot
-            className="schema-column"
+            className="schema-column results"
             tooltipTitle="Enseignants et affectations"
             tooltipContent={
               <>
@@ -257,34 +264,43 @@ function BoardSchema() {
           >
             <div className="schema-column-header">
               <span className="schema-column-title">Résultats</span>
-              <span className="schema-badge">8 affectations</span>
+              <span className="schema-badge green">12 affectations</span>
             </div>
             <div className="schema-results-grid">
-              <div className="schema-enseignant">
+              <div className="schema-enseignant has-eleves">
                 <div className="schema-enseignant-header">
-                  <span className="schema-enseignant-icon"><GraduationCap size={8} /></span>
-                  Mme Petit
+                  <div className="schema-enseignant-info">
+                    <span className="schema-enseignant-name">Mme Petit</span>
+                    <span className="schema-enseignant-matiere">Français</span>
+                  </div>
+                  <span className="schema-enseignant-count">2/5</span>
                 </div>
                 <div className="schema-enseignant-eleves">
                   <div className="schema-affecte">
-                    <span className="schema-affecte-dot"></span>
-                    Durand Paul
+                    <span className="schema-affecte-name">Durand P.</span>
+                    <span className="schema-affecte-classe">3e1</span>
+                    <span className="schema-affecte-distance close">3km</span>
                   </div>
                   <div className="schema-affecte">
-                    <span className="schema-affecte-dot"></span>
-                    Moreau Léa
+                    <span className="schema-affecte-name">Moreau L.</span>
+                    <span className="schema-affecte-classe">3e2</span>
+                    <span className="schema-affecte-distance medium">12km</span>
                   </div>
                 </div>
               </div>
-              <div className="schema-enseignant">
+              <div className="schema-enseignant has-eleves">
                 <div className="schema-enseignant-header">
-                  <span className="schema-enseignant-icon"><GraduationCap size={8} /></span>
-                  M. Grand
+                  <div className="schema-enseignant-info">
+                    <span className="schema-enseignant-name">M. Grand</span>
+                    <span className="schema-enseignant-matiere">Maths</span>
+                  </div>
+                  <span className="schema-enseignant-count">1/5</span>
                 </div>
                 <div className="schema-enseignant-eleves">
                   <div className="schema-affecte">
-                    <span className="schema-affecte-dot"></span>
-                    Simon Emma
+                    <span className="schema-affecte-name">Simon E.</span>
+                    <span className="schema-affecte-classe">3e1</span>
+                    <span className="schema-affecte-distance close">2km</span>
                   </div>
                 </div>
               </div>
