@@ -40,15 +40,15 @@
 .accordion-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 18px;
+  gap: 10px;
+  padding: 12px 16px;
   background: transparent;
   border: none;
   width: 100%;
   text-align: left;
   cursor: pointer;
   color: #f1f5f9;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   transition: background 0.15s ease;
 }
@@ -74,9 +74,9 @@
 
 .accordion-content {
   display: none;
-  padding: 0 18px 18px;
+  padding: 0 16px 14px;
   color: #cbd5e1;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.6;
 }
 
@@ -842,14 +842,14 @@
 
   /* Accordéons */
   .accordion-header {
-    padding: 18px 24px;
-    font-size: 17px;
-    gap: 14px;
+    padding: 14px 18px;
+    font-size: 15px;
+    gap: 12px;
   }
 
   .accordion-content {
-    padding: 0 24px 24px;
-    font-size: 15px;
+    padding: 0 18px 16px;
+    font-size: 14px;
   }
 
   /* Guide */
@@ -1035,14 +1035,14 @@
 
   /* Accordéons */
   .accordion-header {
-    padding: 20px 28px;
-    font-size: 18px;
+    padding: 16px 20px;
+    font-size: 16px;
   }
 
   .accordion-content {
-    padding: 0 28px 28px;
-    font-size: 16px;
-    line-height: 1.7;
+    padding: 0 20px 18px;
+    font-size: 15px;
+    line-height: 1.6;
   }
 
   /* Guide */
@@ -1282,13 +1282,13 @@
   }
 
   .accordion-header {
-    padding: 22px 32px;
-    font-size: 19px;
+    padding: 16px 22px;
+    font-size: 17px;
   }
 
   .accordion-content {
-    padding: 0 32px 32px;
-    font-size: 17px;
+    padding: 0 22px 20px;
+    font-size: 15px;
   }
 
   .glossaire-grid {
