@@ -416,31 +416,160 @@
   color: #16a34a;
 }
 
-/* Badge de charge (ratio élèves/heures de 3e) */
-.charge-badge {
+/* Indicateur de charge (pastille avec tooltip) */
+.charge-indicator-wrapper {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 600;
-  margin-right: 4px;
+  margin-right: 6px;
+}
+
+.charge-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
   cursor: help;
+  transition: transform 0.15s ease;
 }
 
-.charge-badge.charge-ok {
-  background: #dcfce7;
-  color: #16a34a;
+.charge-indicator-wrapper:hover .charge-dot {
+  transform: scale(1.2);
 }
 
-.charge-badge.charge-warning {
-  background: #fef3c7;
-  color: #d97706;
+.charge-dot.charge-ok {
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.2);
 }
 
-.charge-badge.charge-overload {
-  background: #fee2e2;
-  color: #dc2626;
+.charge-dot.charge-warning {
+  background: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+.charge-dot.charge-overload {
+  background: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
+/* Tooltip de charge */
+.charge-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: -8px;
+  width: 180px;
+  background: #1e293b;
+  border-radius: 10px;
+  padding: 12px;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(4px);
+  transition: all 0.2s ease;
+  z-index: 1000;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+.charge-indicator-wrapper:hover .charge-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.charge-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: 12px;
+  border: 6px solid transparent;
+  border-top-color: #1e293b;
+}
+
+.charge-tooltip-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #334155;
+}
+
+.charge-tooltip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.charge-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.charge-tooltip-label {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.charge-tooltip-value {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.charge-tooltip-divider {
+  height: 1px;
+  background: #334155;
+  margin: 4px 0;
+}
+
+.charge-tooltip-row.ratio {
+  margin-top: 2px;
+}
+
+.charge-tooltip-ratio {
+  font-size: 14px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.charge-tooltip-ratio.charge-ok {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+}
+
+.charge-tooltip-ratio.charge-warning {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+}
+
+.charge-tooltip-ratio.charge-overload {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.charge-tooltip-legend {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #334155;
+}
+
+.charge-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  color: #64748b;
+}
+
+.charge-legend-item .charge-dot {
+  width: 6px;
+  height: 6px;
+  box-shadow: none;
 }
 
 .tile-eleves {

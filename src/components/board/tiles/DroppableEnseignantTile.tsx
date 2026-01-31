@@ -103,12 +103,34 @@ export const DroppableEnseignantTile: React.FC<DroppableEnseignantTileProps> = (
           )}
           {/* Badge de charge : affiché seulement en mode stage après matching */}
           {isStageScenario && hasMatchingRun && heures3e !== undefined && heures3e > 0 && (
-            <span
-              className={`charge-badge ${getChargeColorClass(affectations.length, heures3e)}`}
-              title={`Charge : ${affectations.length} élève${affectations.length > 1 ? 's' : ''} pour ${heures3e}h de 3e (ratio ${Math.round((affectations.length / heures3e) * 100)}%)`}
-            >
-              {affectations.length}/{Math.round(heures3e)}h
-            </span>
+            <div className="charge-indicator-wrapper">
+              <span className={`charge-dot ${getChargeColorClass(affectations.length, heures3e)}`} />
+              <div className="charge-tooltip">
+                <div className="charge-tooltip-header">Charge de suivi</div>
+                <div className="charge-tooltip-content">
+                  <div className="charge-tooltip-row">
+                    <span className="charge-tooltip-label">Élèves affectés</span>
+                    <span className="charge-tooltip-value">{affectations.length}</span>
+                  </div>
+                  <div className="charge-tooltip-row">
+                    <span className="charge-tooltip-label">Heures de 3e</span>
+                    <span className="charge-tooltip-value">{Math.round(heures3e * 10) / 10}h</span>
+                  </div>
+                  <div className="charge-tooltip-divider" />
+                  <div className="charge-tooltip-row ratio">
+                    <span className="charge-tooltip-label">Ratio</span>
+                    <span className={`charge-tooltip-ratio ${getChargeColorClass(affectations.length, heures3e)}`}>
+                      {Math.round((affectations.length / heures3e) * 100)}%
+                    </span>
+                  </div>
+                  <div className="charge-tooltip-legend">
+                    <span className="charge-legend-item"><span className="charge-dot charge-ok" /> ≤100%</span>
+                    <span className="charge-legend-item"><span className="charge-dot charge-warning" /> 101-150%</span>
+                    <span className="charge-legend-item"><span className="charge-dot charge-overload" /> &gt;150%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
           <span className={affectations.length >= capacity ? 'full' : ''}>
             {affectations.length}/{capacity}
