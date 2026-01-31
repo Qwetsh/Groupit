@@ -22,7 +22,7 @@ import { buildArchiveFromCurrentState } from '../../services';
 import { solveMatching, convertToAffectations, solveOralDnbComplete, solveStageMatching, toStageGeoInfo, toEnseignantGeoInfo, calculateDistance } from '../../algorithms';
 import { getEffectiveCriteres, criteresToStageOptions } from '../../domain/criteriaConfig';
 import type { Eleve, Enseignant, Affectation, Jury, MatchingResultDNB, Stage } from '../../domain/models';
-import { calculateCapacitesStage } from '../../domain/models';
+import { calculateCapacitesStage, getHeuresMatiere } from '../../domain/models';
 import { filterEleves, filterEnseignants } from '../../utils/filteringUtils';
 import { Info, UserX, Users, MapPin, MapPinOff } from 'lucide-react';
 import { OverlayProgress } from '../ui/ProgressIndicator';
@@ -256,6 +256,22 @@ export const Board: React.FC = () => {
 
   // Déterminer si on utilise les capacités calculées
   const utiliserCapaciteCalculee = activeScenario?.parametres?.suiviStage?.utiliserCapaciteCalculee ?? true;
+
+  // Heures de 3e par enseignant (pour indicateur de charge)
+  // Calcul : heures de la matière × nombre de classes de 3e
+  const heures3eParEnseignant = useMemo(() => {
+    const map = new Map<string, number>();
+    if (!isStageScenario) return map;
+
+    for (const ens of enseignants) {
+      if (!ens.id) continue;
+      const nbClasses3e = (ens.classesEnCharge || []).filter(c => c.startsWith('3')).length;
+      if (nbClasses3e === 0) continue;
+      const heuresMatiere = getHeuresMatiere(ens.matierePrincipale);
+      map.set(ens.id, heuresMatiere * nbClasses3e);
+    }
+    return map;
+  }, [isStageScenario, enseignants]);
 
   // Toolbar props
   const scenarioInfo = isStageScenario
@@ -1076,6 +1092,8 @@ export const Board: React.FC = () => {
                       isDistanceActive={distanceEnseignantId === enseignant.id}
                       distancesByEleve={distancesByEleveFromEnseignant}
                       hasEleveInClass={enseignantsWithDraggedEleveClass.has(enseignant.id!)}
+                      heures3e={heures3eParEnseignant.get(enseignant.id!)}
+                      hasMatchingRun={matchingStats !== null}
                     />
                   );
                 })
