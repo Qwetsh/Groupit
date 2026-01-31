@@ -16,6 +16,19 @@ function getDistanceColorClass(distanceKm: number | undefined): string {
 }
 
 /**
+ * Retourne la classe CSS de couleur selon le ratio de charge
+ * ratio = nbEleves / heures3e
+ * ≤100% = vert, 101-150% = orange, >150% = rouge
+ */
+function getChargeColorClass(nbEleves: number, heures3e: number | undefined): string {
+  if (heures3e === undefined || heures3e === 0) return '';
+  const ratio = nbEleves / heures3e;
+  if (ratio <= 1) return 'charge-ok';           // Vert
+  if (ratio <= 1.5) return 'charge-warning';    // Orange
+  return 'charge-overload';                      // Rouge
+}
+
+/**
  * Tuile enseignant droppable pour recevoir des élèves
  */
 export const DroppableEnseignantTile: React.FC<DroppableEnseignantTileProps> = ({
@@ -31,6 +44,8 @@ export const DroppableEnseignantTile: React.FC<DroppableEnseignantTileProps> = (
   isDistanceActive,
   distancesByEleve,
   hasEleveInClass,
+  heures3e,
+  hasMatchingRun,
 }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: `enseignant:${enseignant.id}`,
@@ -84,6 +99,15 @@ export const DroppableEnseignantTile: React.FC<DroppableEnseignantTileProps> = (
           {showDistanceBadge && (
             <span className={`distance-badge ${distanceClass}`}>
               {dragDistanceKm! < 1 ? '<1' : Math.round(dragDistanceKm!)} km
+            </span>
+          )}
+          {/* Badge de charge : affiché seulement en mode stage après matching */}
+          {isStageScenario && hasMatchingRun && heures3e !== undefined && heures3e > 0 && (
+            <span
+              className={`charge-badge ${getChargeColorClass(affectations.length, heures3e)}`}
+              title={`Charge : ${affectations.length} élève${affectations.length > 1 ? 's' : ''} pour ${heures3e}h de 3e (ratio ${Math.round((affectations.length / heures3e) * 100)}%)`}
+            >
+              {affectations.length}/{Math.round(heures3e)}h
             </span>
           )}
           <span className={affectations.length >= capacity ? 'full' : ''}>

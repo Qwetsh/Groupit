@@ -416,6 +416,33 @@
   color: #16a34a;
 }
 
+/* Badge de charge (ratio élèves/heures de 3e) */
+.charge-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  margin-right: 4px;
+  cursor: help;
+}
+
+.charge-badge.charge-ok {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.charge-badge.charge-warning {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.charge-badge.charge-overload {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
 .tile-eleves {
   padding: 8px;
   display: flex;
