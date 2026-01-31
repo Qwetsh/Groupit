@@ -883,6 +883,67 @@
   .board-column {
     min-width: 280px;
   }
+
+  /* Tuiles enseignants plus compactes */
+  .results-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .enseignant-tile {
+    min-height: 100px;
+  }
+
+  .tile-header {
+    padding: 8px 10px;
+  }
+
+  .tile-name {
+    font-size: 12px;
+  }
+
+  .tile-matiere {
+    font-size: 10px;
+  }
+
+  /* Élèves affectés : plus compacts */
+  .tile-eleves {
+    padding: 6px;
+    gap: 3px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+
+  .mini-eleve {
+    padding: 2px 5px;
+    font-size: 10px;
+    gap: 3px;
+  }
+
+  .mini-name {
+    max-width: 70px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Tooltip de charge : positionné à gauche */
+  .charge-tooltip {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%) translateY(-4px);
+  }
+
+  .charge-indicator-wrapper:hover .charge-tooltip {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  .charge-tooltip::before {
+    right: auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }
 
 @media (max-width: 768px) {
@@ -894,6 +955,104 @@
 
   .toolbar-right {
     justify-content: flex-end;
+  }
+
+  /* Grille en colonne unique */
+  .results-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .enseignant-tile {
+    min-height: 80px;
+  }
+
+  /* Élèves sur une ligne avec scroll horizontal */
+  .tile-eleves {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-height: none;
+    padding-bottom: 8px;
+  }
+
+  .mini-eleve {
+    flex-shrink: 0;
+  }
+
+  /* Tooltip centré et adapté */
+  .charge-tooltip {
+    width: 160px;
+    padding: 10px;
+    left: 50%;
+    right: auto;
+  }
+
+  .charge-tooltip-header {
+    font-size: 10px;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+  }
+
+  .charge-tooltip-label,
+  .charge-tooltip-value {
+    font-size: 11px;
+  }
+
+  .charge-tooltip-ratio {
+    font-size: 12px;
+  }
+
+  .charge-tooltip-legend {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .charge-legend-item {
+    font-size: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .board-columns {
+    padding: 8px;
+    gap: 8px;
+    flex-direction: column;
+  }
+
+  .board-column {
+    min-width: 100%;
+    width: 100%;
+  }
+
+  .eleves-column {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  /* Header tuile encore plus compact */
+  .tile-header {
+    padding: 6px 8px;
+  }
+
+  .tile-name {
+    font-size: 11px;
+  }
+
+  .tile-count {
+    padding: 2px 6px;
+    font-size: 11px;
+  }
+
+  /* Pastille de charge plus petite */
+  .charge-dot {
+    width: 8px;
+    height: 8px;
+  }
+
+  .charge-indicator-wrapper {
+    margin-right: 4px;
   }
 }
 
