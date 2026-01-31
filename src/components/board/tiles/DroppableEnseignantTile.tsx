@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useDroppable } from '@dnd-kit/core';
 import { MapPin } from 'lucide-react';
 import { DraggableAffectationChip } from './DraggableAffectationChip';
@@ -35,7 +36,7 @@ export const DroppableEnseignantTile: React.FC<DroppableEnseignantTileProps> = (
   enseignant,
   affectations,
   eleves,
-  capacity,
+  capacity: _capacity,
   onContextMenu,
   onTileContextMenu,
   onClick,
@@ -51,6 +52,25 @@ export const DroppableEnseignantTile: React.FC<DroppableEnseignantTileProps> = (
     id: `enseignant:${enseignant.id}`,
     data: { type: 'enseignant', enseignantId: enseignant.id },
   });
+
+  // State pour le tooltip de charge en position fixed (via portal)
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
+  const dotRef = useRef<HTMLSpanElement>(null);
+
+  const handleDotMouseEnter = useCallback(() => {
+    if (dotRef.current) {
+      const rect = dotRef.current.getBoundingClientRect();
+      // Positionner à gauche de la pastille, centré verticalement
+      setTooltipPos({
+        x: rect.left - 10,
+        y: rect.top + rect.height / 2,
+      });
+    }
+  }, []);
+
+  const handleDotMouseLeave = useCallback(() => {
+    setTooltipPos(null);
+  }, []);
 
   const handleTileClick = (e: React.MouseEvent) => {
     // Ne pas déclencher si on clique sur un élève ou si c'est un drag
@@ -103,34 +123,51 @@ export const DroppableEnseignantTile: React.FC<DroppableEnseignantTileProps> = (
           )}
           {/* Badge de charge : affiché seulement en mode stage après matching */}
           {isStageScenario && hasMatchingRun && heures3e !== undefined && heures3e > 0 && (
-            <div className="charge-indicator-wrapper">
-              <span className={`charge-dot ${getChargeColorClass(affectations.length, heures3e)}`} />
-              <div className="charge-tooltip">
-                <div className="charge-tooltip-header">Charge de suivi</div>
-                <div className="charge-tooltip-content">
-                  <div className="charge-tooltip-row">
-                    <span className="charge-tooltip-label">Élèves affectés</span>
-                    <span className="charge-tooltip-value">{affectations.length}</span>
+            <>
+              <span
+                ref={dotRef}
+                className={`charge-dot ${getChargeColorClass(affectations.length, heures3e)}`}
+                onMouseEnter={handleDotMouseEnter}
+                onMouseLeave={handleDotMouseLeave}
+                style={{ marginRight: 6, cursor: 'help' }}
+              />
+              {tooltipPos && createPortal(
+                <div
+                  className="charge-tooltip charge-tooltip-portal"
+                  style={{
+                    position: 'fixed',
+                    left: tooltipPos.x,
+                    top: tooltipPos.y,
+                    transform: 'translate(-100%, -50%)',
+                  }}
+                >
+                  <div className="charge-tooltip-header">Charge de suivi</div>
+                  <div className="charge-tooltip-content">
+                    <div className="charge-tooltip-row">
+                      <span className="charge-tooltip-label">Élèves affectés</span>
+                      <span className="charge-tooltip-value">{affectations.length}</span>
+                    </div>
+                    <div className="charge-tooltip-row">
+                      <span className="charge-tooltip-label">Heures de 3e</span>
+                      <span className="charge-tooltip-value">{Math.round(heures3e * 10) / 10}h</span>
+                    </div>
+                    <div className="charge-tooltip-divider" />
+                    <div className="charge-tooltip-row ratio">
+                      <span className="charge-tooltip-label">Ratio</span>
+                      <span className={`charge-tooltip-ratio ${getChargeColorClass(affectations.length, heures3e)}`}>
+                        {Math.round((affectations.length / heures3e) * 100)}%
+                      </span>
+                    </div>
+                    <div className="charge-tooltip-legend">
+                      <span className="charge-legend-item"><span className="charge-dot charge-ok" /> ≤100%</span>
+                      <span className="charge-legend-item"><span className="charge-dot charge-warning" /> 101-150%</span>
+                      <span className="charge-legend-item"><span className="charge-dot charge-overload" /> &gt;150%</span>
+                    </div>
                   </div>
-                  <div className="charge-tooltip-row">
-                    <span className="charge-tooltip-label">Heures de 3e</span>
-                    <span className="charge-tooltip-value">{Math.round(heures3e * 10) / 10}h</span>
-                  </div>
-                  <div className="charge-tooltip-divider" />
-                  <div className="charge-tooltip-row ratio">
-                    <span className="charge-tooltip-label">Ratio</span>
-                    <span className={`charge-tooltip-ratio ${getChargeColorClass(affectations.length, heures3e)}`}>
-                      {Math.round((affectations.length / heures3e) * 100)}%
-                    </span>
-                  </div>
-                  <div className="charge-tooltip-legend">
-                    <span className="charge-legend-item"><span className="charge-dot charge-ok" /> ≤100%</span>
-                    <span className="charge-legend-item"><span className="charge-dot charge-warning" /> 101-150%</span>
-                    <span className="charge-legend-item"><span className="charge-dot charge-overload" /> &gt;150%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+                </div>,
+                document.body
+              )}
+            </>
           )}
           {isStageScenario && affectations.length > 0 && (
             <span title="Cliquez pour voir la carte des trajets">

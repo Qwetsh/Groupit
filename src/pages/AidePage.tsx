@@ -14,7 +14,6 @@ import {
   Play,
   RotateCcw,
   CheckCircle,
-  Download,
   Info,
   GraduationCap,
   FileText,

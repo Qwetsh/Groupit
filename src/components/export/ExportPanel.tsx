@@ -2,7 +2,8 @@
 // EXPORT BUTTONS - Boutons compacts pour exporter les résultats
 // ============================================================
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   FileText,
   FileSpreadsheet,
@@ -80,10 +81,25 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
 
   // Options stage (séparées)
   const [stageCsvOptions] = useState(() => ({ ...DEFAULT_STAGE_CSV_OPTIONS }));
-  const [stagePdfOptions] = useState(() => ({ 
-    ...DEFAULT_STAGE_PDF_OPTIONS, 
-    headerYear: String(new Date().getFullYear()) 
+  const [stagePdfOptions] = useState(() => ({
+    ...DEFAULT_STAGE_PDF_OPTIONS,
+    headerYear: String(new Date().getFullYear())
   }));
+
+  // Ref pour positionner le menu via portal
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
+
+  // Calculer la position du menu quand il s'ouvre
+  useEffect(() => {
+    if (showMenu && toggleRef.current) {
+      const rect = toggleRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 6,
+        right: window.innerWidth - rect.right,
+      });
+    }
+  }, [showMenu]);
 
   // Préparer les données d'export
   const exportData = useMemo(() => {
@@ -265,6 +281,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
 
       <div className="export-menu-wrapper">
         <button
+          ref={toggleRef}
           className="export-menu-toggle"
           onClick={() => setShowMenu(!showMenu)}
           title="Plus d'options"
@@ -272,8 +289,15 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
           <ChevronDown size={14} />
         </button>
 
-        {showMenu && (
-          <div className="export-menu">
+        {showMenu && menuPosition && createPortal(
+          <div
+            className="export-menu export-menu-portal"
+            style={{
+              position: 'fixed',
+              top: menuPosition.top,
+              right: menuPosition.right,
+            }}
+          >
             <div className="menu-section">
               <span className="menu-label">Export rapide</span>
               <div className="menu-stats">
@@ -471,7 +495,8 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
                 {errorMessage}
               </div>
             )}
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     </div>
