@@ -8,6 +8,7 @@ import {
   Page,
   Text,
   View,
+  Image,
   StyleSheet,
 } from '@react-pdf/renderer';
 import type {
@@ -16,6 +17,7 @@ import type {
   PdfExportOptions,
 } from './types';
 import { DEFAULT_PDF_OPTIONS } from './types';
+import { LOGO_ACADEMIE_GRAND_EST, LOGO_EDUCATION_NATIONALE } from './logos';
 
 // ============================================================
 // STYLES PDF
@@ -33,29 +35,48 @@ const createStyles = (options: PdfExportOptions) => {
   
   return StyleSheet.create({
     page: {
-      padding: 40,
+      paddingTop: 20,
       paddingBottom: 60,
+      paddingHorizontal: 40,
       fontFamily: 'Helvetica',
       fontSize: sizes.body,
     },
     
     // En-tête de page
     pageHeader: {
-      marginBottom: 20,
-      paddingBottom: 10,
+      marginBottom: 15,
+      paddingBottom: 5,
       borderBottomWidth: 1,
       borderBottomColor: '#2563eb',
       borderBottomStyle: 'solid',
+    },
+    headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      marginBottom: 0,
+    },
+    headerLogo: {
+      width: 150,
+      height: 150,
+      objectFit: 'contain',
+    },
+    headerCenter: {
+      flex: 1,
+      alignItems: 'center',
+      paddingHorizontal: 15,
     },
     headerTitle: {
       fontSize: sizes.title,
       fontWeight: 'bold',
       color: '#1e293b',
       marginBottom: 4,
+      textAlign: 'center',
     },
     headerSubtitle: {
       fontSize: sizes.subtitle,
       color: '#64748b',
+      textAlign: 'center',
     },
     headerMeta: {
       flexDirection: 'row',
@@ -239,17 +260,44 @@ interface PageHeaderProps {
   styles: ReturnType<typeof createStyles>;
 }
 
-const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, date, options, styles }) => (
-  <View style={styles.pageHeader}>
-    <Text style={styles.headerTitle}>{title}</Text>
-    {subtitle && <Text style={styles.headerSubtitle}>{subtitle}</Text>}
-    <View style={styles.headerMeta}>
-      <Text>{options.headerSchoolName || 'Établissement'}</Text>
-      <Text>Année {options.headerYear || new Date().getFullYear()}</Text>
-      <Text>Exporté le {new Date(date).toLocaleDateString('fr-FR')}</Text>
+const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, date, options, styles }) => {
+  const showLeftLogo = options.showLogoAcademie;
+  const showRightLogo = options.showLogoEducationNationale;
+  const hasLogos = showLeftLogo || showRightLogo;
+
+  return (
+    <View style={styles.pageHeader}>
+      {hasLogos ? (
+        <View style={styles.headerRow}>
+          {showLeftLogo ? (
+            <Image src={LOGO_ACADEMIE_GRAND_EST} style={styles.headerLogo} />
+          ) : (
+            <View style={styles.headerLogo} />
+          )}
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>{title}</Text>
+            {subtitle && <Text style={styles.headerSubtitle}>{subtitle}</Text>}
+          </View>
+          {showRightLogo ? (
+            <Image src={LOGO_EDUCATION_NATIONALE} style={styles.headerLogo} />
+          ) : (
+            <View style={styles.headerLogo} />
+          )}
+        </View>
+      ) : (
+        <>
+          <Text style={styles.headerTitle}>{title}</Text>
+          {subtitle && <Text style={styles.headerSubtitle}>{subtitle}</Text>}
+        </>
+      )}
+      <View style={styles.headerMeta}>
+        <Text>{options.headerSchoolName || 'Établissement'}</Text>
+        <Text>Année {options.headerYear || new Date().getFullYear()}</Text>
+        <Text>Exporté le {new Date(date).toLocaleDateString('fr-FR')}</Text>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 interface EnseignantsBlockProps {
   enseignants: ExportJuryData['enseignants'];

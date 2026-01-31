@@ -5,6 +5,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '../database/db';
 import type { Enseignant, CapaciteConfig } from '../../domain/models';
+import { geocodeWithFallback, toGeoStatus } from '../geo/geocodeFallback';
 
 export class EnseignantRepository {
   async getAll(): Promise<Enseignant[]> {
@@ -53,6 +54,30 @@ export class EnseignantRepository {
       createdAt: new Date(),
       updatedAt: new Date(),
     };
+
+    // Géocodage automatique si adresse fournie mais pas de coordonnées
+    if (newEnseignant.adresse && !newEnseignant.lat && !newEnseignant.lon) {
+      const fullAddress = newEnseignant.commune
+        ? `${newEnseignant.adresse}, ${newEnseignant.commune}`
+        : newEnseignant.adresse;
+
+      try {
+        const geoResult = await geocodeWithFallback(fullAddress);
+        if (geoResult.success && geoResult.point) {
+          newEnseignant.lat = geoResult.point.lat;
+          newEnseignant.lon = geoResult.point.lon;
+          newEnseignant.geoStatus = toGeoStatus(geoResult.status);
+        } else {
+          newEnseignant.geoStatus = 'error';
+          newEnseignant.geoErrorMessage = geoResult.errorMessage;
+        }
+      } catch (error) {
+        console.error('Erreur géocodage enseignant:', error);
+        newEnseignant.geoStatus = 'error';
+        newEnseignant.geoErrorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      }
+    }
+
     await db.enseignants.add(newEnseignant);
     return newEnseignant;
   }
@@ -66,11 +91,74 @@ export class EnseignantRepository {
       createdAt: new Date(),
       updatedAt: new Date(),
     }));
+
+    // Géocodage automatique pour ceux qui ont une adresse mais pas de coordonnées
+    const toGeocode = newEnseignants.filter(e => e.adresse && !e.lat && !e.lon);
+
+    if (toGeocode.length > 0) {
+      // Géocodage séquentiel avec délai pour respecter les rate limits
+      for (const ens of toGeocode) {
+        const fullAddress = ens.commune
+          ? `${ens.adresse}, ${ens.commune}`
+          : ens.adresse!;
+
+        try {
+          const geoResult = await geocodeWithFallback(fullAddress);
+          if (geoResult.success && geoResult.point) {
+            ens.lat = geoResult.point.lat;
+            ens.lon = geoResult.point.lon;
+            ens.geoStatus = toGeoStatus(geoResult.status);
+          } else {
+            ens.geoStatus = 'error';
+            ens.geoErrorMessage = geoResult.errorMessage;
+          }
+        } catch (error) {
+          console.error('Erreur géocodage enseignant:', error);
+          ens.geoStatus = 'error';
+          ens.geoErrorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+        }
+
+        // Petit délai entre chaque géocodage pour respecter les rate limits
+        if (toGeocode.indexOf(ens) < toGeocode.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+    }
+
     await db.enseignants.bulkAdd(newEnseignants);
     return newEnseignants;
   }
 
   async update(id: string, updates: Partial<Omit<Enseignant, 'id' | 'createdAt'>>): Promise<void> {
+    // Si l'adresse change et qu'on ne fournit pas de nouvelles coordonnées, géocoder
+    if (updates.adresse && updates.lat === undefined && updates.lon === undefined) {
+      const existing = await this.getById(id);
+      // Géocoder seulement si l'adresse a vraiment changé
+      if (existing && updates.adresse !== existing.adresse) {
+        const commune = updates.commune ?? existing.commune;
+        const fullAddress = commune
+          ? `${updates.adresse}, ${commune}`
+          : updates.adresse;
+
+        try {
+          const geoResult = await geocodeWithFallback(fullAddress);
+          if (geoResult.success && geoResult.point) {
+            updates.lat = geoResult.point.lat;
+            updates.lon = geoResult.point.lon;
+            updates.geoStatus = toGeoStatus(geoResult.status);
+            updates.geoErrorMessage = undefined;
+          } else {
+            updates.geoStatus = 'error';
+            updates.geoErrorMessage = geoResult.errorMessage;
+          }
+        } catch (error) {
+          console.error('Erreur géocodage enseignant:', error);
+          updates.geoStatus = 'error';
+          updates.geoErrorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+        }
+      }
+    }
+
     await db.enseignants.update(id, { ...updates, updatedAt: new Date() });
   }
 

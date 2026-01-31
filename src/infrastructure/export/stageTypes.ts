@@ -155,18 +155,22 @@ export interface StagePdfExportOptions {
   headerScenarioName?: string;
   collegeName?: string;
   collegeAddress?: string;
-  
+
+  // Logos institutionnels
+  showLogoAcademie: boolean;        // Logo Académie Grand Est (gauche)
+  showLogoEducationNationale: boolean; // Logo Éducation Nationale (droite)
+
   // Contenu par enseignant
   includeLetterIntro: boolean;
   includeMap: boolean;             // Image carte statique (futur)
   includeContactInfo: boolean;
   includeDates: boolean;
   includeDistanceWarning: boolean; // Mention "distances indicatives"
-  
+
   // Pages supplémentaires
   includeUnassignedPage: boolean;
   includeSummaryPage: boolean;
-  
+
   // Mise en page
   orientation: 'portrait' | 'landscape';
   pageSize: 'A4' | 'LETTER';
@@ -189,6 +193,8 @@ export const DEFAULT_STAGE_CSV_OPTIONS: StageCsvExportOptions = {
 };
 
 export const DEFAULT_STAGE_PDF_OPTIONS: StagePdfExportOptions = {
+  showLogoAcademie: true,
+  showLogoEducationNationale: true,
   includeLetterIntro: true,
   includeMap: false,  // Désactivé - API carte statique non disponible
   includeContactInfo: true,
