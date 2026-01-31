@@ -326,6 +326,7 @@
 }
 
 .enseignant-tile {
+  position: relative;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
@@ -422,6 +423,12 @@
   display: inline-flex;
   align-items: center;
   margin-right: 6px;
+  z-index: 1;
+}
+
+/* Quand on hover sur la tuile, elle passe au-dessus des autres pour le tooltip */
+.enseignant-tile:hover {
+  z-index: 10;
 }
 
 .charge-dot {
@@ -573,7 +580,7 @@
 }
 
 .tile-eleves {
-  padding: 8px;
+  padding: 8px 8px 14px 8px;
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
