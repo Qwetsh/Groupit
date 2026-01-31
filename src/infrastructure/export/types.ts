@@ -127,18 +127,22 @@ export interface PdfExportOptions {
   includeTopicTitle: boolean;       // sujetIntitule
   includeSalle: boolean;            // salle
   includeRubric: boolean;           // grille d'évaluation (future)
-  
+
   // En-tête
   headerSchoolName?: string;
   headerYear?: string;
   headerScenarioName?: string;
-  headerLogo?: string;              // Base64 ou URL
-  
+  headerLogo?: string;              // Base64 ou URL (legacy, remplacé par logos)
+
+  // Logos institutionnels
+  showLogoAcademie: boolean;        // Logo Académie Grand Est (gauche)
+  showLogoEducationNationale: boolean; // Logo Éducation Nationale (droite)
+
   // Contenu
   includeLetterText: boolean;       // Texte de lettre intro
   includeUnassignedPage: boolean;   // Page des non-affectés
   includeStatsPage: boolean;        // Page de statistiques
-  
+
   // Mise en page
   orientation: 'portrait' | 'landscape';
   pageSize: 'A4' | 'LETTER';
@@ -165,6 +169,8 @@ export const DEFAULT_PDF_OPTIONS: PdfExportOptions = {
   includeTopicTitle: false,
   includeSalle: false,
   includeRubric: false,
+  showLogoAcademie: true,
+  showLogoEducationNationale: true,
   includeLetterText: true,
   includeUnassignedPage: true,
   includeStatsPage: false,

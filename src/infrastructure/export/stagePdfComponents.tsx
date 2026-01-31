@@ -11,13 +11,14 @@ import {
   StyleSheet,
   Image,
 } from '@react-pdf/renderer';
-import type { 
-  StageExportResultData, 
+import type {
+  StageExportResultData,
   StageExportEnseignantData,
   StageExportEleveData,
   StageExportUnassignedData,
-  StagePdfExportOptions 
+  StagePdfExportOptions
 } from './stageTypes';
+import { LOGO_ACADEMIE_GRAND_EST, LOGO_EDUCATION_NATIONALE } from './logos';
 
 // Coordonnées du collège (Woippy)
 const COLLEGE_COORDS = { lat: 49.1523, lon: 6.1522 };
@@ -29,31 +30,52 @@ const COLLEGE_COORDS = { lat: 49.1523, lon: 6.1522 };
 const styles = StyleSheet.create({
   // Page
   page: {
-    padding: 40,
+    paddingTop: 20,
+    paddingBottom: 60,
+    paddingHorizontal: 40,
     fontSize: 10,
     fontFamily: 'Helvetica',
   },
   
   // En-tête
   header: {
-    marginBottom: 20,
+    marginBottom: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#333',
-    paddingBottom: 10,
+    paddingBottom: 5,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 0,
+  },
+  headerLogo: {
+    width: 150,
+    height: 150,
+    objectFit: 'contain',
+  },
+  headerCenter: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 15,
   },
   headerTitle: {
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 4,
+    textAlign: 'center',
   },
   headerSubtitle: {
     fontSize: 11,
     color: '#555',
     marginBottom: 2,
+    textAlign: 'center',
   },
   headerInfo: {
     fontSize: 9,
     color: '#777',
+    textAlign: 'center',
   },
   
   // Section enseignant
@@ -280,6 +302,8 @@ interface PageHeaderProps {
   collegeName?: string;
   anneeScolaire?: string;
   dateExport: string;
+  showLogoAcademie?: boolean;
+  showLogoEducationNationale?: boolean;
 }
 
 const PageHeader: React.FC<PageHeaderProps> = ({
@@ -287,17 +311,49 @@ const PageHeader: React.FC<PageHeaderProps> = ({
   collegeName,
   anneeScolaire,
   dateExport,
-}) => (
-  <View style={styles.header}>
-    <Text style={styles.headerTitle}>Suivi de Stage</Text>
-    <Text style={styles.headerSubtitle}>{scenarioName}</Text>
-    {collegeName && <Text style={styles.headerInfo}>{collegeName}</Text>}
-    {anneeScolaire && <Text style={styles.headerInfo}>Année scolaire : {anneeScolaire}</Text>}
-    <Text style={styles.headerInfo}>
-      Exporté le {new Date(dateExport).toLocaleDateString('fr-FR')}
-    </Text>
-  </View>
-);
+  showLogoAcademie = false,
+  showLogoEducationNationale = false,
+}) => {
+  const hasLogos = showLogoAcademie || showLogoEducationNationale;
+
+  return (
+    <View style={styles.header}>
+      {hasLogos ? (
+        <View style={styles.headerRow}>
+          {showLogoAcademie ? (
+            <Image src={LOGO_ACADEMIE_GRAND_EST} style={styles.headerLogo} />
+          ) : (
+            <View style={styles.headerLogo} />
+          )}
+          <View style={styles.headerCenter}>
+            <Text style={styles.headerTitle}>Suivi de Stage</Text>
+            <Text style={styles.headerSubtitle}>{scenarioName}</Text>
+            {collegeName && <Text style={styles.headerInfo}>{collegeName}</Text>}
+            {anneeScolaire && <Text style={styles.headerInfo}>Année scolaire : {anneeScolaire}</Text>}
+            <Text style={styles.headerInfo}>
+              Exporté le {new Date(dateExport).toLocaleDateString('fr-FR')}
+            </Text>
+          </View>
+          {showLogoEducationNationale ? (
+            <Image src={LOGO_EDUCATION_NATIONALE} style={styles.headerLogo} />
+          ) : (
+            <View style={styles.headerLogo} />
+          )}
+        </View>
+      ) : (
+        <>
+          <Text style={styles.headerTitle}>Suivi de Stage</Text>
+          <Text style={styles.headerSubtitle}>{scenarioName}</Text>
+          {collegeName && <Text style={styles.headerInfo}>{collegeName}</Text>}
+          {anneeScolaire && <Text style={styles.headerInfo}>Année scolaire : {anneeScolaire}</Text>}
+          <Text style={styles.headerInfo}>
+            Exporté le {new Date(dateExport).toLocaleDateString('fr-FR')}
+          </Text>
+        </>
+      )}
+    </View>
+  );
+};
 
 /**
  * Pied de page
@@ -574,6 +630,8 @@ const EnseignantPage: React.FC<EnseignantPageProps> = ({
       collegeName={collegeName}
       anneeScolaire={anneeScolaire}
       dateExport={dateExport}
+      showLogoAcademie={options.showLogoAcademie}
+      showLogoEducationNationale={options.showLogoEducationNationale}
     />
     
     {/* Section enseignant */}
@@ -621,6 +679,8 @@ interface UnassignedPageProps {
   scenarioName: string;
   collegeName?: string;
   dateExport: string;
+  showLogoAcademie?: boolean;
+  showLogoEducationNationale?: boolean;
 }
 
 const UnassignedPage: React.FC<UnassignedPageProps> = ({
@@ -628,12 +688,16 @@ const UnassignedPage: React.FC<UnassignedPageProps> = ({
   scenarioName,
   collegeName,
   dateExport,
+  showLogoAcademie,
+  showLogoEducationNationale,
 }) => (
   <Page size="A4" style={styles.page}>
     <PageHeader
       scenarioName={scenarioName}
       collegeName={collegeName}
       dateExport={dateExport}
+      showLogoAcademie={showLogoAcademie}
+      showLogoEducationNationale={showLogoEducationNationale}
     />
     
     <Text style={styles.unassignedTitle}>
@@ -677,6 +741,8 @@ const SummaryPage: React.FC<SummaryPageProps> = ({ data, options }) => (
       collegeName={options.collegeName}
       anneeScolaire={data.anneeScolaire}
       dateExport={data.dateExport}
+      showLogoAcademie={options.showLogoAcademie}
+      showLogoEducationNationale={options.showLogoEducationNationale}
     />
     
     <Text style={styles.summaryTitle}>Récapitulatif Global</Text>
@@ -790,6 +856,8 @@ export const StageExportDocument: React.FC<StageExportDocumentProps> = ({
         scenarioName={data.scenarioName}
         collegeName={options.collegeName}
         dateExport={data.dateExport}
+        showLogoAcademie={options.showLogoAcademie}
+        showLogoEducationNationale={options.showLogoEducationNationale}
       />
     )}
   </Document>

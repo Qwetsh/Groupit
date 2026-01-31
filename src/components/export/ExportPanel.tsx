@@ -211,7 +211,13 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
     setErrorMessage(null);
     try {
       if (stageMode) {
-        await exportStagePdf(exportData as StageExportResultData, stagePdfOptions);
+        await exportStagePdf(exportData as StageExportResultData, {
+          ...stagePdfOptions,
+          showLogoAcademie: pdfOptions.showLogoAcademie,
+          showLogoEducationNationale: pdfOptions.showLogoEducationNationale,
+          collegeName: pdfOptions.headerSchoolName,
+          headerYear: pdfOptions.headerYear,
+        });
       } else {
         await downloadExportPdf(exportData as ExportResultData, `${baseFilename}.pdf`, {
           ...pdfOptions,
@@ -374,6 +380,22 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
             <div className="menu-section">
               <span className="menu-label">PDF</span>
               <div className="menu-options">
+                <label className="option-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={pdfOptions.showLogoAcademie}
+                    onChange={() => togglePdfOption('showLogoAcademie')}
+                  />
+                  Logo Académie Grand Est
+                </label>
+                <label className="option-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={pdfOptions.showLogoEducationNationale}
+                    onChange={() => togglePdfOption('showLogoEducationNationale')}
+                  />
+                  Logo Éducation Nationale
+                </label>
                 <label className="option-checkbox">
                   <input
                     type="checkbox"
