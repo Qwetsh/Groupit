@@ -132,9 +132,6 @@ export const DroppableEnseignantTile: React.FC<DroppableEnseignantTileProps> = (
               </div>
             </div>
           )}
-          <span className={affectations.length >= capacity ? 'full' : ''}>
-            {affectations.length}/{capacity}
-          </span>
           {isStageScenario && affectations.length > 0 && (
             <span title="Cliquez pour voir la carte des trajets">
               <MapPin size={14} className="stage-map-icon" />
