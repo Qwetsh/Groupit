@@ -187,7 +187,8 @@
   flex: 1;
   gap: 16px;
   padding: 16px;
-  overflow-x: auto;
+  overflow: auto;
+  min-height: 0;
 }
 
 .board-column {
@@ -196,6 +197,7 @@
   display: flex;
   flex-direction: column;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -254,6 +256,9 @@
   border-top: 3px solid #22c55e;
   flex: 1;
   min-width: 400px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* Légende drag & drop (mode stage) */
@@ -322,7 +327,10 @@
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 12px;
   padding: 16px;
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
+  align-content: start;
 }
 
 .enseignant-tile {
@@ -331,7 +339,8 @@
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   transition: all 0.2s;
-  min-height: 120px;
+  display: flex;
+  flex-direction: column;
 }
 
 .enseignant-tile.dropping {
@@ -417,23 +426,18 @@
   color: #16a34a;
 }
 
-/* Indicateur de charge (pastille avec tooltip) */
-.charge-indicator-wrapper {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  margin-right: 6px;
-}
-
+/* Indicateur de charge (pastille) */
 .charge-dot {
+  display: inline-block;
   width: 10px;
   height: 10px;
   border-radius: 50%;
   cursor: help;
   transition: transform 0.15s ease;
+  flex-shrink: 0;
 }
 
-.charge-indicator-wrapper:hover .charge-dot {
+.charge-dot:hover {
   transform: scale(1.2);
 }
 
@@ -452,43 +456,26 @@
   box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
 }
 
-/* Tooltip de charge - positionné à gauche de la pastille */
-.charge-tooltip {
-  position: absolute;
-  top: 50%;
-  right: calc(100% + 10px);
-  transform: translateY(-50%) translateX(4px);
+/* Tooltip de charge - rendu via portal avec position fixed */
+.charge-tooltip-portal {
   width: 180px;
   background: #1e293b;
   border-radius: 10px;
   padding: 12px;
-  opacity: 0;
-  visibility: hidden;
-  transition: all 0.2s ease;
-  z-index: 9999;
+  z-index: 99999;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   pointer-events: none;
 }
 
-.charge-indicator-wrapper:hover .charge-tooltip {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(-50%) translateX(0);
-}
-
 /* Flèche pointant vers la droite */
-.charge-tooltip::after {
+.charge-tooltip-portal::after {
   content: '';
   position: absolute;
   top: 50%;
-  left: 100%;
+  right: -12px;
   transform: translateY(-50%);
   border: 6px solid transparent;
   border-left-color: #1e293b;
-}
-
-.charge-tooltip::before {
-  display: none;
 }
 
 .charge-tooltip-header {
@@ -903,10 +890,6 @@
     padding: 12px;
   }
 
-  .enseignant-tile {
-    min-height: 100px;
-  }
-
   .tile-header {
     padding: 8px 10px;
   }
@@ -945,17 +928,25 @@
     flex-direction: column;
     padding: 10px;
     gap: 10px;
+    overflow-y: auto;
   }
 
   .eleves-column {
     width: 100%;
     min-width: 100%;
     max-height: 200px;
+    flex-shrink: 0;
   }
 
   .results-column {
     min-width: 100%;
     flex: 1;
+    min-height: 300px;
+  }
+
+  .results-column .column-content {
+    overflow-y: auto;
+    max-height: calc(100vh - 350px);
   }
 
   .column-content {
@@ -969,8 +960,8 @@
     padding: 10px;
   }
 
-  /* Tooltip de charge : garde la position à gauche */
-  .charge-tooltip {
+  /* Tooltip de charge */
+  .charge-tooltip-portal {
     width: 160px;
   }
 }
@@ -1003,6 +994,11 @@
     font-size: 13px;
   }
 
+  /* Scroll vertical pour la colonne des résultats */
+  .results-column .column-content {
+    max-height: calc(100vh - 380px);
+  }
+
   /* Grille en colonne unique ou deux colonnes */
   .results-grid {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -1010,16 +1006,11 @@
     padding: 8px;
   }
 
-  .enseignant-tile {
-    min-height: 80px;
-  }
-
-  /* Élèves sur une ligne avec scroll horizontal */
+  /* Élèves sur une ligne avec scroll horizontal sur petit écran */
   .tile-eleves {
     flex-wrap: nowrap;
     overflow-x: auto;
     overflow-y: hidden;
-    max-height: none;
     padding-bottom: 8px;
     -webkit-overflow-scrolling: touch;
   }
@@ -1029,32 +1020,32 @@
   }
 
   /* Tooltip plus compact */
-  .charge-tooltip {
+  .charge-tooltip-portal {
     width: 150px;
     padding: 10px;
   }
 
-  .charge-tooltip-header {
+  .charge-tooltip-portal .charge-tooltip-header {
     font-size: 10px;
     margin-bottom: 8px;
     padding-bottom: 6px;
   }
 
-  .charge-tooltip-label,
-  .charge-tooltip-value {
+  .charge-tooltip-portal .charge-tooltip-label,
+  .charge-tooltip-portal .charge-tooltip-value {
     font-size: 11px;
   }
 
-  .charge-tooltip-ratio {
+  .charge-tooltip-portal .charge-tooltip-ratio {
     font-size: 12px;
   }
 
-  .charge-tooltip-legend {
+  .charge-tooltip-portal .charge-tooltip-legend {
     flex-wrap: wrap;
     gap: 4px;
   }
 
-  .charge-legend-item {
+  .charge-tooltip-portal .charge-legend-item {
     font-size: 8px;
   }
 }
@@ -1086,6 +1077,11 @@
 
   .eleves-column {
     max-height: 150px;
+  }
+
+  /* Scroll vertical pour la colonne des résultats */
+  .results-column .column-content {
+    max-height: calc(100vh - 400px);
   }
 
   /* Grille en colonne unique */
@@ -1120,12 +1116,8 @@
     height: 8px;
   }
 
-  .charge-indicator-wrapper {
-    margin-right: 4px;
-  }
-
   /* Tooltip adapté mobile */
-  .charge-tooltip {
+  .charge-tooltip-portal {
     width: 140px;
     padding: 8px;
   }
