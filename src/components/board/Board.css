@@ -912,12 +912,10 @@
     font-size: 10px;
   }
 
-  /* Élèves affectés : plus compacts */
+  /* Élèves affectés : plus compacts mais sans limite de hauteur */
   .tile-eleves {
     padding: 6px;
     gap: 3px;
-    max-height: 120px;
-    overflow-y: auto;
   }
 
   .mini-eleve {
