@@ -874,19 +874,24 @@
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
+@media (max-width: 1200px) {
   .board-columns {
     padding: 12px;
     gap: 12px;
   }
 
-  .board-column {
+  .eleves-column {
+    width: 280px;
     min-width: 280px;
+  }
+
+  .results-column {
+    min-width: 350px;
   }
 
   /* Tuiles enseignants plus compactes */
   .results-grid {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 10px;
     padding: 12px;
   }
@@ -927,6 +932,37 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+}
+
+@media (max-width: 1024px) {
+  /* Colonnes empilées verticalement */
+  .board-columns {
+    flex-direction: column;
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .eleves-column {
+    width: 100%;
+    min-width: 100%;
+    max-height: 200px;
+  }
+
+  .results-column {
+    min-width: 100%;
+    flex: 1;
+  }
+
+  .column-content {
+    min-height: 100px;
+  }
+
+  /* Grille enseignants adaptée */
+  .results-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+    padding: 10px;
+  }
 
   /* Tooltip de charge : positionné à gauche */
   .charge-tooltip {
@@ -949,19 +985,36 @@
 @media (max-width: 768px) {
   .board-toolbar {
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     align-items: stretch;
+    padding: 12px;
+  }
+
+  .toolbar-left {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .toolbar-left h1 {
+    font-size: 20px;
   }
 
   .toolbar-right {
     justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
-  /* Grille en colonne unique */
+  .btn-action {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  /* Grille en colonne unique ou deux colonnes */
   .results-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 8px;
-    padding: 10px;
+    padding: 8px;
   }
 
   .enseignant-tile {
@@ -975,6 +1028,7 @@
     overflow-y: hidden;
     max-height: none;
     padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
   }
 
   .mini-eleve {
@@ -1015,20 +1069,39 @@
 }
 
 @media (max-width: 480px) {
+  .board-toolbar {
+    padding: 10px;
+  }
+
+  .toolbar-left h1 {
+    font-size: 18px;
+  }
+
+  .scenario-badge,
+  .mode-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  .btn-action {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
   .board-columns {
     padding: 8px;
     gap: 8px;
-    flex-direction: column;
-  }
-
-  .board-column {
-    min-width: 100%;
-    width: 100%;
   }
 
   .eleves-column {
-    width: 100%;
-    min-width: 100%;
+    max-height: 150px;
+  }
+
+  /* Grille en colonne unique */
+  .results-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 6px;
   }
 
   /* Header tuile encore plus compact */
@@ -1040,9 +1113,14 @@
     font-size: 11px;
   }
 
+  .tile-matiere,
+  .tile-classes-3e {
+    font-size: 9px;
+  }
+
   .tile-count {
     padding: 2px 6px;
-    font-size: 11px;
+    font-size: 10px;
   }
 
   /* Pastille de charge plus petite */
@@ -1053,6 +1131,25 @@
 
   .charge-indicator-wrapper {
     margin-right: 4px;
+  }
+
+  /* Tooltip adapté mobile */
+  .charge-tooltip {
+    width: 150px;
+    padding: 8px;
+    left: auto;
+    right: -4px;
+    transform: translateY(-4px);
+  }
+
+  .charge-indicator-wrapper:hover .charge-tooltip {
+    transform: translateY(0);
+  }
+
+  .charge-tooltip::before {
+    left: auto;
+    right: 8px;
+    transform: none;
   }
 }
 
