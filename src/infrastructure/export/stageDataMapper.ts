@@ -269,9 +269,12 @@ export function mapToStageExportData(
   exportEnseignants.sort((a, b) => a.nom.localeCompare(b.nom));
 
   // ========== ÉLÈVES NON AFFECTÉS ==========
+  // Filtrer seulement les élèves de 3ème pour le suivi de stage
   const unassigned: StageExportUnassignedData[] = [];
 
   for (const eleve of eleves) {
+    // Ne prendre que les 3èmes pour le suivi de stage
+    if (!eleve.classe.startsWith('3')) continue;
     if (elevesAffectes.has(eleve.id)) continue;
 
     const stage = stageMap.get(eleve.id);
