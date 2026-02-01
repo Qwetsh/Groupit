@@ -74,12 +74,12 @@ export const CRITERE_DEFINITIONS: CritereDefinition[] = [
   
   // ========== CRITÈRES OPTIONNELS ==========
   
-  // Équilibrage (commun aux deux)
+  // Équilibrage (commun à tous)
   {
     id: 'equilibrage',
     nom: 'Équilibrage des charges',
     description: 'Répartit équitablement les élèves entre enseignants/jurys',
-    scenarioTypes: ['oral_dnb', 'suivi_stage'],
+    scenarioTypes: ['oral_dnb', 'suivi_stage', 'custom'],
     isForced: false,
     canBeHardConstraint: false,
     defaultPriority: 'normal',
@@ -88,12 +88,12 @@ export const CRITERE_DEFINITIONS: CritereDefinition[] = [
     engineKey: 'equilibrage',
   },
   
-  // Mixité (commun aux deux)
+  // Mixité (commun à tous)
   {
     id: 'mixite',
     nom: 'Mixité filles/garçons',
     description: 'Équilibre la répartition par sexe dans chaque groupe/jury',
-    scenarioTypes: ['oral_dnb', 'suivi_stage'],
+    scenarioTypes: ['oral_dnb', 'suivi_stage', 'custom'],
     isForced: false,
     canBeHardConstraint: false,
     defaultPriority: 'off',
@@ -101,12 +101,12 @@ export const CRITERE_DEFINITIONS: CritereDefinition[] = [
     engineKey: 'parite',
   },
   
-  // Professeur principal (Stage seulement)
+  // Professeur principal (Stage et Custom)
   {
     id: 'prof_principal',
     nom: 'Professeur principal',
     description: 'Favorise l\'affectation de l\'élève à son professeur principal',
-    scenarioTypes: ['suivi_stage'],
+    scenarioTypes: ['suivi_stage', 'custom'],
     isForced: false,
     canBeHardConstraint: false,
     defaultPriority: 'low',
@@ -114,12 +114,12 @@ export const CRITERE_DEFINITIONS: CritereDefinition[] = [
     engineKey: 'profPrincipal',
   },
 
-  // Élèves en cours (Stage et Oral DNB)
+  // Élèves en cours (tous types)
   {
     id: 'eleves_en_cours',
     nom: 'Élèves en cours',
     description: 'Favorise l\'affectation aux enseignants qui ont l\'élève dans une de leurs classes',
-    scenarioTypes: ['suivi_stage', 'oral_dnb'],
+    scenarioTypes: ['suivi_stage', 'oral_dnb', 'custom'],
     isForced: false,
     canBeHardConstraint: false,
     defaultPriority: 'normal',
@@ -127,12 +127,12 @@ export const CRITERE_DEFINITIONS: CritereDefinition[] = [
     engineKey: 'elevesEnCours',
   },
   
-  // Poids pédagogique (Oral DNB seulement)
+  // Poids pédagogique (Oral DNB et Custom)
   {
     id: 'poids_pedagogique',
     nom: 'Poids pédagogique',
     description: 'Pondère par le nombre d\'heures hebdomadaires de la matière (ex: Français > Arts plastiques)',
-    scenarioTypes: ['oral_dnb'],
+    scenarioTypes: ['oral_dnb', 'custom'],
     isForced: false,
     canBeHardConstraint: false,
     defaultPriority: 'off',
@@ -140,12 +140,12 @@ export const CRITERE_DEFINITIONS: CritereDefinition[] = [
     engineKey: 'poidsPedagogique',
   },
   
-  // Capacité restante (Oral DNB seulement)
+  // Capacité restante (Oral DNB et Custom)
   {
     id: 'capacite',
     nom: 'Capacité restante',
     description: 'Favorise les jurys ayant plus de places disponibles',
-    scenarioTypes: ['oral_dnb'],
+    scenarioTypes: ['oral_dnb', 'custom'],
     isForced: false,
     canBeHardConstraint: false,
     defaultPriority: 'normal',
