@@ -243,6 +243,39 @@
   border-radius: 8px;
 }
 
+/* Drag hint */
+.drag-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: linear-gradient(90deg, #fef3c7, #fef9c3);
+  border-bottom: 1px solid #fde047;
+  font-size: 12px;
+  color: #854d0e;
+  animation: dragHintPulse 2s ease-in-out infinite;
+}
+
+.drag-hint-icon {
+  font-size: 14px;
+}
+
+@keyframes dragHintPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Empty state success */
+.empty-state.success {
+  background: #dcfce7;
+  border: 1px dashed #86efac;
+  color: #166534;
+}
+
+.empty-state.success p {
+  color: #166534;
+}
+
 /* Column specific styles */
 .eleves-column {
   border-top: 3px solid #f59e0b;
@@ -454,6 +487,48 @@
 .charge-dot.charge-overload {
   background: #ef4444;
   box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+}
+
+/* Badge de charge avec nombre d'élèves */
+.charge-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 11px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  cursor: help;
+  transition: transform 0.15s ease;
+  flex-shrink: 0;
+  margin-right: 6px;
+}
+
+.charge-badge:hover {
+  transform: scale(1.1);
+}
+
+.charge-badge.charge-ok {
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+}
+
+.charge-badge.charge-warning {
+  background: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+}
+
+.charge-badge.charge-overload {
+  background: #ef4444;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
+}
+
+.charge-badge.charge-neutral {
+  background: #64748b;
+  box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.25);
 }
 
 /* Tooltip de charge - rendu via portal avec position fixed */
@@ -683,10 +758,20 @@
 .tile-empty {
   width: 100%;
   text-align: center;
-  padding: 8px;
-  color: #94a3b8;
+  padding: 12px 8px;
+  color: #64748b;
   font-size: 12px;
   font-style: italic;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 4px,
+    rgba(148, 163, 184, 0.1) 4px,
+    rgba(148, 163, 184, 0.1) 8px
+  );
+  border: 1px dashed #cbd5e1;
+  border-radius: 4px;
+  margin: 4px;
 }
 
 /* Affectation groups - keep for backwards compat */

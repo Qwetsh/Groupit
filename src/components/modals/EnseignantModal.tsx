@@ -142,6 +142,7 @@ export function EnseignantModal({ onClose }: EnseignantModalProps) {
         adresse: enseignant.adresse || '',
         commune: enseignant.commune || '',
         capaciteBase: enseignant.capaciteBase,
+        heures3eReelles: enseignant.heures3eReelles,
         tags: enseignant.tags || [],
       };
     }
@@ -155,6 +156,7 @@ export function EnseignantModal({ onClose }: EnseignantModalProps) {
       adresse: '',
       commune: '',
       capaciteBase: undefined as number | undefined,
+      heures3eReelles: undefined as number | undefined,
       tags: [] as string[],
     };
   });
@@ -187,6 +189,7 @@ export function EnseignantModal({ onClose }: EnseignantModalProps) {
         adresse: enseignant.adresse || '',
         commune: enseignant.commune || '',
         capaciteBase: enseignant.capaciteBase,
+        heures3eReelles: enseignant.heures3eReelles,
         tags: enseignant.tags || [],
       });
       setClassesInput(enseignant.classesEnCharge?.join(', ') || '');
@@ -204,6 +207,7 @@ export function EnseignantModal({ onClose }: EnseignantModalProps) {
         adresse: '',
         commune: '',
         capaciteBase: undefined,
+        heures3eReelles: undefined,
         tags: [],
       });
       setClassesInput('');
@@ -299,6 +303,7 @@ export function EnseignantModal({ onClose }: EnseignantModalProps) {
         adresse: formData.adresse || undefined,
         commune: formData.commune || undefined,
         capaciteBase: formData.capaciteBase,
+        heures3eReelles: formData.heures3eReelles,
         tags,
         // Champs personnalisés
         customFields: Object.keys(customValues).length > 0 ? customValues : undefined,
@@ -466,20 +471,38 @@ export function EnseignantModal({ onClose }: EnseignantModalProps) {
               </div>
             )}
 
-            <div className="form-group">
-              <label htmlFor="capacite">Capacité max (optionnel)</label>
-              <input
-                type="number"
-                id="capacite"
-                min="0"
-                value={formData.capaciteBase ?? ''}
-                onChange={e => setFormData({ 
-                  ...formData, 
-                  capaciteBase: e.target.value ? Number(e.target.value) : undefined 
-                })}
-                placeholder="Laissez vide pour calcul automatique"
-              />
-              <span className="form-hint">Nombre max d'élèves à superviser</span>
+            <div className="form-row">
+              <div className="form-group">
+                <label htmlFor="capacite">Capacité max</label>
+                <input
+                  type="number"
+                  id="capacite"
+                  min="0"
+                  value={formData.capaciteBase ?? ''}
+                  onChange={e => setFormData({
+                    ...formData,
+                    capaciteBase: e.target.value ? Number(e.target.value) : undefined
+                  })}
+                  placeholder="Auto"
+                />
+                <span className="form-hint">Nb max d'élèves</span>
+              </div>
+              <div className="form-group">
+                <label htmlFor="heures3e">Heures 3e réelles</label>
+                <input
+                  type="number"
+                  id="heures3e"
+                  min="0"
+                  step="0.5"
+                  value={formData.heures3eReelles ?? ''}
+                  onChange={e => setFormData({
+                    ...formData,
+                    heures3eReelles: e.target.value ? Number(e.target.value) : undefined
+                  })}
+                  placeholder="Auto"
+                />
+                <span className="form-hint">Pour groupes multi-classes</span>
+              </div>
             </div>
 
             <div className="form-group">

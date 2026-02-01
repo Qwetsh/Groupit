@@ -23,6 +23,33 @@ import type { Enseignant } from '../../domain/models';
 import type { EnseignantHistoryEntry } from '../../infrastructure/repositories/scenarioArchiveRepository';
 import './EnseignantProfileDrawer.css';
 
+// Palette de couleurs par matière (cohérent avec EnseignantsPage)
+const MATIERE_COLORS: Record<string, { gradient: string; light: string }> = {
+  'Français': { gradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', light: '#dbeafe' },
+  'Mathématiques': { gradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', light: '#ede9fe' },
+  'Histoire-Géographie': { gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', light: '#fef3c7' },
+  'Histoire-Géo': { gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', light: '#fef3c7' },
+  'Anglais': { gradient: 'linear-gradient(135deg, #ec4899, #be185d)', light: '#fce7f3' },
+  'Espagnol': { gradient: 'linear-gradient(135deg, #f97316, #ea580c)', light: '#ffedd5' },
+  'Allemand': { gradient: 'linear-gradient(135deg, #64748b, #475569)', light: '#f1f5f9' },
+  'SVT': { gradient: 'linear-gradient(135deg, #22c55e, #16a34a)', light: '#dcfce7' },
+  'Physique-Chimie': { gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)', light: '#cffafe' },
+  'Technologie': { gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)', light: '#e0e7ff' },
+  'EPS': { gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', light: '#fee2e2' },
+  'Arts Plastiques': { gradient: 'linear-gradient(135deg, #a855f7, #9333ea)', light: '#f3e8ff' },
+  'Éducation Musicale': { gradient: 'linear-gradient(135deg, #14b8a6, #0d9488)', light: '#ccfbf1' },
+  'Latin': { gradient: 'linear-gradient(135deg, #78716c, #57534e)', light: '#f5f5f4' },
+  'Grec': { gradient: 'linear-gradient(135deg, #78716c, #57534e)', light: '#f5f5f4' },
+};
+
+const DEFAULT_MATIERE_COLOR = { gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)', light: '#e0e7ff' };
+const NOT_GEOCODED_COLOR = { gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', light: '#fee2e2' };
+
+function getMatiereColor(matiere: string | undefined) {
+  if (!matiere) return DEFAULT_MATIERE_COLOR;
+  return MATIERE_COLORS[matiere] || DEFAULT_MATIERE_COLOR;
+}
+
 // ============================================================
 // TYPES
 // ============================================================
@@ -193,6 +220,11 @@ export function EnseignantProfileDrawer({
 
   const fullName = `${enseignant.prenom || ''} ${enseignant.nom}`.trim();
 
+  // Couleurs basées sur la matière et l'état de géocodage
+  const isNotGeocoded = !enseignant.adresse || !enseignant.lat || !enseignant.lon;
+  const matiereColor = getMatiereColor(enseignant.matierePrincipale);
+  const avatarColor = isNotGeocoded ? NOT_GEOCODED_COLOR : matiereColor;
+
   return (
     <>
       {/* Backdrop */}
@@ -200,14 +232,14 @@ export function EnseignantProfileDrawer({
 
       {/* Drawer */}
       <div className={`profile-drawer ${isOpen ? 'open' : ''}`}>
-        {/* Header */}
-        <div className="drawer-header">
+        {/* Header avec couleur matière */}
+        <div className="drawer-header" style={{ background: matiereColor.gradient }}>
           <button className="close-btn" onClick={onClose}>
             <X size={20} />
           </button>
 
           <div className="profile-hero">
-            <div className="avatar-large">
+            <div className="avatar-large" style={{ background: avatarColor.gradient }}>
               {enseignant.prenom?.[0]}{enseignant.nom[0]}
             </div>
             <div className="hero-info">
@@ -327,22 +359,31 @@ export function EnseignantProfileDrawer({
               </section>
 
               {/* Section Heures */}
-              {enseignant.heuresParNiveau && Object.keys(enseignant.heuresParNiveau).length > 0 && (
+              {(enseignant.heuresParNiveau && Object.keys(enseignant.heuresParNiveau).length > 0) || enseignant.heures3eReelles ? (
                 <section className="info-section">
                   <h3>
                     <Clock size={16} />
-                    Heures par niveau
+                    Heures
                   </h3>
-                  <div className="heures-grid">
-                    {Object.entries(enseignant.heuresParNiveau).map(([niveau, heures]) => (
-                      <div key={niveau} className="heure-item">
-                        <span className="niveau-label">{niveau}</span>
-                        <span className="heures-value">{heures}h</span>
-                      </div>
-                    ))}
-                  </div>
+                  {enseignant.heures3eReelles !== undefined && (
+                    <div className="heures-reelles-info">
+                      <span className="heures-label">Heures 3e réelles</span>
+                      <span className="heures-value highlight">{enseignant.heures3eReelles}h</span>
+                      <span className="heures-hint">(saisie manuelle)</span>
+                    </div>
+                  )}
+                  {enseignant.heuresParNiveau && Object.keys(enseignant.heuresParNiveau).length > 0 && (
+                    <div className="heures-grid">
+                      {Object.entries(enseignant.heuresParNiveau).map(([niveau, heures]) => (
+                        <div key={niveau} className="heure-item">
+                          <span className="niveau-label">{niveau}</span>
+                          <span className="heures-value">{heures}h</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </section>
-              )}
+              ) : null}
 
               {/* Section Tags */}
               {enseignant.tags && enseignant.tags.length > 0 && (
