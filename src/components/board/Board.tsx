@@ -102,7 +102,8 @@ export const Board: React.FC = () => {
 
   // Scenario type flags
   const isStageScenario = activeScenario?.type === 'suivi_stage';
-  const isJuryMode = activeScenario?.type === 'oral_dnb' && activeScenario?.parametres?.oralDnb?.utiliserJurys;
+  // Pour oral_dnb, utiliser le mode jury par défaut (true si non défini)
+  const isJuryMode = activeScenario?.type === 'oral_dnb' && (activeScenario?.parametres?.oralDnb?.utiliserJurys ?? true);
 
   // Scenario jurys
   const scenarioJurys = useMemo(() => {
@@ -258,7 +259,7 @@ export const Board: React.FC = () => {
   const utiliserCapaciteCalculee = activeScenario?.parametres?.suiviStage?.utiliserCapaciteCalculee ?? true;
 
   // Heures de 3e par enseignant (pour indicateur de charge)
-  // Calcul : heures de la matière × nombre de classes de 3e
+  // Utilise heures3eReelles si renseigné, sinon calcul automatique
   const heures3eParEnseignant = useMemo(() => {
     const map = new Map<string, number>();
     if (!isStageScenario) return map;
@@ -267,8 +268,14 @@ export const Board: React.FC = () => {
       if (!ens.id) continue;
       const nbClasses3e = (ens.classesEnCharge || []).filter(c => c.startsWith('3')).length;
       if (nbClasses3e === 0) continue;
-      const heuresMatiere = getHeuresMatiere(ens.matierePrincipale);
-      map.set(ens.id, heuresMatiere * nbClasses3e);
+
+      // Utiliser heures3eReelles si renseigné (pour groupes multi-classes)
+      if (ens.heures3eReelles !== undefined && ens.heures3eReelles > 0) {
+        map.set(ens.id, ens.heures3eReelles);
+      } else {
+        const heuresMatiere = getHeuresMatiere(ens.matierePrincipale);
+        map.set(ens.id, heuresMatiere * nbClasses3e);
+      }
     }
     return map;
   }, [isStageScenario, enseignants]);
@@ -286,15 +293,15 @@ export const Board: React.FC = () => {
     || (isStageScenario && !stageReadyForMatching);
 
   const runButtonTitle = !activeScenario
-    ? 'Sélectionnez un scénario pour lancer le matching'
+    ? 'Sélectionnez une configuration pour lancer la répartition'
     : isJuryMode && scenarioJurys.length === 0
-      ? 'Créez d\'abord des jurys dans la page Scénarios'
+      ? 'Créez d\'abord des jurys dans la page Configurations'
       : isJuryMode && hasJurysWithoutEnseignants
         ? `Associez au moins un enseignant à chaque jury`
         : isStageScenario && geocodedStagesCount === 0
-          ? 'Géocodez d\'abord les stages dans la page Scénarios'
+          ? 'Localisez d\'abord les stages dans la page Configurations'
           : isStageScenario && geocodedEnseignantsCount === 0
-            ? 'Les enseignants doivent avoir une adresse géocodée'
+            ? 'Les enseignants doivent avoir une adresse localisée'
             : '';
 
   // Stages for selected teacher map
@@ -658,7 +665,7 @@ export const Board: React.FC = () => {
   // Run matching algorithm
   const runMatching = useCallback(async () => {
     if (!activeScenario) {
-      setMatchingError('Aucun scénario actif.');
+      setMatchingError('Aucune configuration active.');
       return;
     }
 
@@ -675,7 +682,7 @@ export const Board: React.FC = () => {
 
     if (isJuryMode) {
       if (scenarioJurys.length === 0) {
-        setMatchingError('⚠️ Aucun jury configuré. Rendez-vous dans "Scénarios" > "Jurys" pour en créer.');
+        setMatchingError('⚠️ Aucun jury configuré. Rendez-vous dans "Configurations" > "Jurys" pour en créer.');
         return;
       }
       const jurysSansEnseignant = scenarioJurys.filter(j => !j.enseignantIds || j.enseignantIds.length === 0);
@@ -763,7 +770,15 @@ export const Board: React.FC = () => {
           }
         }
 
-        const result = solveStageMatching(stagesGeoInfo, enseignantsGeoInfo, pairs, { ...stageOptions, useLocalSearch: true, verbose: false });
+        const result = solveStageMatching(stagesGeoInfo, enseignantsGeoInfo, pairs, {
+          ...stageOptions,
+          useLocalSearch: true,
+          verbose: false,
+          // Fallback: affecter les stages restants aux enseignants avec places
+          collegeGeo: COLLEGE_GEO,
+          fallbackCollegeActif: true,
+          fallbackAngleMaxDeg: 45, // Cône de 90° vers le domicile
+        });
 
         // Clear and create affectations
         const existingForScenario = affectations.filter(a => a.scenarioId === activeScenario.id);
@@ -896,7 +911,7 @@ export const Board: React.FC = () => {
 
   const handleValidateClick = useCallback(() => {
     if (scenarioAffectations.length === 0) {
-      setMatchingError('Aucune affectation à valider. Lancez d\'abord le matching.');
+      setMatchingError('Aucune affectation à valider. Lancez d\'abord la répartition.');
       return;
     }
     setShowValidationModal(true);
@@ -1022,12 +1037,18 @@ export const Board: React.FC = () => {
               <HelpTooltip content={HELP_TEXTS.board.dragDrop} />
               <span className="count-badge">{unassignedEleves.length}</span>
             </div>
+            {unassignedEleves.length > 0 && (
+              <div className="drag-hint">
+                <span className="drag-hint-icon">👆</span>
+                <span>Glissez les élèves vers un enseignant →</span>
+              </div>
+            )}
             <UnassignedDropZone>
               {unassignedEleves.map(eleve => (
                 <DraggableEleve key={eleve.id} eleve={eleve} onContextMenu={handleContextMenuUnassigned} nonAffectationInfo={computedNonAffectesInfo.get(eleve.id!)} distanceFromEnseignantKm={distancesByEleveFromEnseignant.get(eleve.id!)} />
               ))}
               {unassignedEleves.length === 0 && (
-                <div className="empty-state"><p>Tous les élèves sont affectés</p></div>
+                <div className="empty-state success"><p>✓ Tous les élèves sont affectés</p></div>
               )}
             </UnassignedDropZone>
           </div>
@@ -1068,7 +1089,7 @@ export const Board: React.FC = () => {
                   <div className="empty-state jury-setup-required">
                     <Users size={48} />
                     <h3>Configuration des jurys requise</h3>
-                    <p>Aucun jury n'a été créé pour ce scénario.</p>
+                    <p>Aucun jury n'a été créé pour cette configuration.</p>
                   </div>
                 )
               ) : (
@@ -1093,7 +1114,6 @@ export const Board: React.FC = () => {
                       distancesByEleve={distancesByEleveFromEnseignant}
                       hasEleveInClass={enseignantsWithDraggedEleveClass.has(enseignant.id!)}
                       heures3e={heures3eParEnseignant.get(enseignant.id!)}
-                      hasMatchingRun={matchingStats !== null}
                     />
                   );
                 })

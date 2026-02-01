@@ -35,6 +35,86 @@ interface SolverState {
 }
 
 // ============================================================
+// HELPERS GÉOMÉTRIQUES
+// ============================================================
+
+/**
+ * Calcule le bearing (direction) en degrés de point1 vers point2
+ * Retourne un angle entre 0 et 360°
+ */
+function calculateBearing(
+  lat1: number, lon1: number,
+  lat2: number, lon2: number
+): number {
+  const toRad = (deg: number) => deg * Math.PI / 180;
+  const toDeg = (rad: number) => rad * 180 / Math.PI;
+
+  const dLon = toRad(lon2 - lon1);
+  const lat1Rad = toRad(lat1);
+  const lat2Rad = toRad(lat2);
+
+  const x = Math.sin(dLon) * Math.cos(lat2Rad);
+  const y = Math.cos(lat1Rad) * Math.sin(lat2Rad) -
+            Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLon);
+
+  let bearing = toDeg(Math.atan2(x, y));
+  return (bearing + 360) % 360; // Normaliser entre 0 et 360
+}
+
+/**
+ * Calcule la distance entre deux points en km (formule Haversine)
+ */
+function calculateDistanceKm(
+  lat1: number, lon1: number,
+  lat2: number, lon2: number
+): number {
+  const R = 6371; // Rayon de la Terre en km
+  const toRad = (deg: number) => deg * Math.PI / 180;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+/**
+ * Vérifie si un stage est dans le cône directionnel depuis le collège vers le domicile de l'enseignant
+ * @param collegeGeo Position du collège
+ * @param enseignantGeo Position du domicile de l'enseignant
+ * @param stageGeo Position du stage
+ * @param maxAngleDeg Demi-angle du cône (ex: 45° pour un cône de 90°)
+ */
+function isInDirectionalCone(
+  collegeGeo: { lat: number; lon: number },
+  enseignantGeo: { lat: number; lon: number },
+  stageGeo: { lat: number; lon: number },
+  maxAngleDeg: number
+): boolean {
+  // Calculer le bearing collège → enseignant (direction de référence)
+  const bearingToEnseignant = calculateBearing(
+    collegeGeo.lat, collegeGeo.lon,
+    enseignantGeo.lat, enseignantGeo.lon
+  );
+
+  // Calculer le bearing collège → stage
+  const bearingToStage = calculateBearing(
+    collegeGeo.lat, collegeGeo.lon,
+    stageGeo.lat, stageGeo.lon
+  );
+
+  // Calculer la différence d'angle (prendre le plus petit angle)
+  let angleDiff = Math.abs(bearingToEnseignant - bearingToStage);
+  if (angleDiff > 180) {
+    angleDiff = 360 - angleDiff;
+  }
+
+  return angleDiff <= maxAngleDeg;
+}
+
+// ============================================================
 // HELPERS
 // ============================================================
 
@@ -372,8 +452,155 @@ function localSearch(
   if (options.verbose) {
     console.log(`[StageSolver] Local search: ${iterations} iterations`);
   }
-  
+
   return state;
+}
+
+// ============================================================
+// FALLBACK COLLÈGE - Phase 3
+// ============================================================
+
+/**
+ * Affecte les stages non affectés aux enseignants avec places restantes
+ * en utilisant un cône directionnel depuis le collège vers leur domicile.
+ * Priorité aux stages les plus proches du collège.
+ */
+function fallbackCollegeAssignment(
+  state: SolverState,
+  stages: StageGeoInfo[],
+  enseignants: EnseignantGeoInfo[],
+  options: StageMatchingOptions
+): { state: SolverState; fallbackCollegeCount: number } {
+  if (!options.collegeGeo || options.fallbackCollegeActif === false) {
+    return { state, fallbackCollegeCount: 0 };
+  }
+
+  const collegeGeo = options.collegeGeo;
+  const maxAngleDeg = options.fallbackAngleMaxDeg ?? 45;
+  let fallbackCollegeCount = 0;
+
+  // Stages non affectés avec géolocalisation, triés par distance au collège (plus proches d'abord)
+  const unassignedStages = stages
+    .filter(s => !state.affectations.has(s.stageId) && s.geo)
+    .map(s => ({
+      stage: s,
+      distanceFromCollege: calculateDistanceKm(collegeGeo.lat, collegeGeo.lon, s.geo!.lat, s.geo!.lon),
+    }))
+    .sort((a, b) => a.distanceFromCollege - b.distanceFromCollege);
+
+  if (unassignedStages.length === 0) {
+    return { state, fallbackCollegeCount: 0 };
+  }
+
+  if (options.verbose) {
+    console.log(`[StageSolver] Fallback collège: ${unassignedStages.length} stages non affectés`);
+  }
+
+  // Pour chaque stage non affecté (du plus proche au plus loin du collège)
+  for (const { stage, distanceFromCollege } of unassignedStages) {
+    // Trouver les enseignants avec places, dont le cône contient ce stage
+    const candidats = enseignants
+      .filter(e => {
+        if (!e.homeGeo) return false;
+        const currentLoad = state.loads.get(e.enseignantId) || 0;
+        if (currentLoad >= e.capacityMax) return false;
+
+        // Vérifier compatibilité options
+        const optionCheck = isEleveOptionCompatible(stage.eleveOptions, e.matierePrincipale);
+        if (!optionCheck.compatible) return false;
+
+        // Vérifier si dans le cône
+        return isInDirectionalCone(collegeGeo, e.homeGeo, stage.geo!, maxAngleDeg);
+      })
+      .map(e => ({
+        enseignant: e,
+        currentLoad: state.loads.get(e.enseignantId) || 0,
+        remaining: e.capacityMax - (state.loads.get(e.enseignantId) || 0),
+      }))
+      // Prioriser ceux avec le plus de places restantes
+      .sort((a, b) => b.remaining - a.remaining);
+
+    if (candidats.length > 0) {
+      const best = candidats[0];
+      state.affectations.set(stage.stageId, best.enseignant.enseignantId);
+      state.loads.set(best.enseignant.enseignantId, best.currentLoad + 1);
+      fallbackCollegeCount++;
+
+      if (options.verbose) {
+        console.log(`[StageSolver] Fallback collège: ${stage.stageId} -> ${best.enseignant.enseignantId} (${distanceFromCollege.toFixed(1)}km du collège)`);
+      }
+    }
+  }
+
+  if (options.verbose) {
+    console.log(`[StageSolver] Fallback collège: ${fallbackCollegeCount} affectations`);
+  }
+
+  return { state, fallbackCollegeCount };
+}
+
+// ============================================================
+// FALLBACK ALÉATOIRE - Phase 4
+// ============================================================
+
+/**
+ * Affecte les stages restants aux enseignants avec places disponibles,
+ * sans critère géographique (distribution équilibrée).
+ */
+function fallbackRandomAssignment(
+  state: SolverState,
+  stages: StageGeoInfo[],
+  enseignants: EnseignantGeoInfo[],
+  options: StageMatchingOptions
+): { state: SolverState; fallbackRandomCount: number } {
+  let fallbackRandomCount = 0;
+
+  // Stages non affectés avec géolocalisation
+  const unassignedStages = stages.filter(s => !state.affectations.has(s.stageId) && s.geo);
+
+  if (unassignedStages.length === 0) {
+    return { state, fallbackRandomCount: 0 };
+  }
+
+  if (options.verbose) {
+    console.log(`[StageSolver] Fallback aléatoire: ${unassignedStages.length} stages restants`);
+  }
+
+  for (const stage of unassignedStages) {
+    // Trouver les enseignants avec places, triés par charge (moins chargés d'abord pour équilibrer)
+    const candidats = enseignants
+      .filter(e => {
+        const currentLoad = state.loads.get(e.enseignantId) || 0;
+        if (currentLoad >= e.capacityMax) return false;
+
+        // Vérifier compatibilité options
+        const optionCheck = isEleveOptionCompatible(stage.eleveOptions, e.matierePrincipale);
+        return optionCheck.compatible;
+      })
+      .map(e => ({
+        enseignant: e,
+        currentLoad: state.loads.get(e.enseignantId) || 0,
+      }))
+      // Prioriser les moins chargés pour équilibrer
+      .sort((a, b) => a.currentLoad - b.currentLoad);
+
+    if (candidats.length > 0) {
+      const best = candidats[0];
+      state.affectations.set(stage.stageId, best.enseignant.enseignantId);
+      state.loads.set(best.enseignant.enseignantId, best.currentLoad + 1);
+      fallbackRandomCount++;
+
+      if (options.verbose) {
+        console.log(`[StageSolver] Fallback aléatoire: ${stage.stageId} -> ${best.enseignant.enseignantId}`);
+      }
+    }
+  }
+
+  if (options.verbose) {
+    console.log(`[StageSolver] Fallback aléatoire: ${fallbackRandomCount} affectations`);
+  }
+
+  return { state, fallbackRandomCount };
 }
 
 // ============================================================
@@ -410,7 +637,34 @@ export function solveStageMatching(
   if (opts.useLocalSearch) {
     state = localSearch(state, stages, enseignants, pairsMap, opts);
   }
-  
+
+  // Phase 3: Fallback collège - stages dans le cône directionnel collège → domicile enseignant
+  const affectationsAvantFallback = new Set(state.affectations.keys());
+  let fallbackCollegeCount = 0;
+  let fallbackRandomCount = 0;
+
+  if (opts.collegeGeo) {
+    const collegeResult = fallbackCollegeAssignment(state, stages, enseignants, opts);
+    state = collegeResult.state;
+    fallbackCollegeCount = collegeResult.fallbackCollegeCount;
+
+    if (opts.verbose && fallbackCollegeCount > 0) {
+      console.log(`[StageSolver] Après fallback collège: ${state.affectations.size}/${stages.length} affectés (+${fallbackCollegeCount})`);
+    }
+  }
+
+  // Tracker les stages après fallback collège (pour distinguer des fallback aléatoires)
+  const affectationsApresCollegeFallback = new Set(state.affectations.keys());
+
+  // Phase 4: Fallback aléatoire - stages restants distribués aux enseignants avec places
+  const randomResult = fallbackRandomAssignment(state, stages, enseignants, opts);
+  state = randomResult.state;
+  fallbackRandomCount = randomResult.fallbackRandomCount;
+
+  if (opts.verbose && fallbackRandomCount > 0) {
+    console.log(`[StageSolver] Après fallback aléatoire: ${state.affectations.size}/${stages.length} affectés (+${fallbackRandomCount})`);
+  }
+
   // Construire le résultat
   const affectations: StageAffectationResult[] = [];
   const nonAffectes: Array<{ stageId: string; eleveId: string; raisons: string[] }> = [];
@@ -420,32 +674,67 @@ export function solveStageMatching(
   
   for (const stage of stages) {
     const enseignantId = state.affectations.get(stage.stageId);
-    
+
     if (enseignantId) {
       const pair = getRoutePair(pairsMap, stage.stageId, enseignantId);
       const ens = enseignants.find(e => e.enseignantId === enseignantId);
-      
-      if (pair && ens) {
-        dureeTotale += pair.durationMin;
-        distanceTotale += pair.distanceKm;
+      const isNormalAffectation = affectationsAvantFallback.has(stage.stageId);
+      const isFallbackCollege = !isNormalAffectation && affectationsApresCollegeFallback.has(stage.stageId);
+      const isFallbackRandom = !isNormalAffectation && !isFallbackCollege;
 
-        const isEleveEnCours = isEleveEnCoursForEnseignant(stage.eleveClasse, ens.classesEnCharge);
+      if (ens) {
+        // Cas normal avec paire existante (proximité domicile)
+        if (pair && isNormalAffectation) {
+          dureeTotale += pair.durationMin;
+          distanceTotale += pair.distanceKm;
 
-        affectations.push({
-          stageId: stage.stageId,
-          eleveId: stage.eleveId,
-          enseignantId,
-          distanceKm: pair.distanceKm,
-          durationMin: pair.durationMin,
-          score: computeCandidateScore(
-            pair,
-            state.loads.get(enseignantId) || 0,
-            enseignants.length > 0 ? stages.length / enseignants.length : 0,
-            opts,
-            isEleveEnCours
-          ),
-          explication: `${ens.prenom} ${ens.nom} - Trajet: ${Math.round(pair.distanceKm)}km, ${Math.round(pair.durationMin)}min`,
-        });
+          const isEleveEnCours = isEleveEnCoursForEnseignant(stage.eleveClasse, ens.classesEnCharge);
+
+          affectations.push({
+            stageId: stage.stageId,
+            eleveId: stage.eleveId,
+            enseignantId,
+            distanceKm: pair.distanceKm,
+            durationMin: pair.durationMin,
+            score: computeCandidateScore(
+              pair,
+              state.loads.get(enseignantId) || 0,
+              enseignants.length > 0 ? stages.length / enseignants.length : 0,
+              opts,
+              isEleveEnCours
+            ),
+            explication: `${ens.prenom} ${ens.nom} - Trajet: ${Math.round(pair.distanceKm)}km, ${Math.round(pair.durationMin)}min`,
+          });
+        }
+        // Cas fallback collège (dans le cône directionnel)
+        else if (isFallbackCollege && opts.collegeGeo && stage.geo) {
+          const distanceFromCollege = calculateDistanceKm(
+            opts.collegeGeo.lat, opts.collegeGeo.lon,
+            stage.geo.lat, stage.geo.lon
+          );
+
+          affectations.push({
+            stageId: stage.stageId,
+            eleveId: stage.eleveId,
+            enseignantId,
+            distanceKm: Math.round(distanceFromCollege * 10) / 10,
+            durationMin: 0, // Non pertinent pour fallback
+            score: 50,
+            explication: `${ens.prenom} ${ens.nom} - 📍 Proche collège (${Math.round(distanceFromCollege)}km)`,
+          });
+        }
+        // Cas fallback aléatoire (distribution équilibrée)
+        else if (isFallbackRandom && stage.geo) {
+          affectations.push({
+            stageId: stage.stageId,
+            eleveId: stage.eleveId,
+            enseignantId,
+            distanceKm: 0,
+            durationMin: 0,
+            score: 75, // Score plus bas pour aléatoire
+            explication: `${ens.prenom} ${ens.nom} - 🎲 Affectation équilibrée`,
+          });
+        }
       }
     } else {
       // Déterminer les raisons du non-affectation

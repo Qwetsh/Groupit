@@ -46,7 +46,6 @@ export const DroppableEnseignantTile: React.FC<DroppableEnseignantTileProps> = (
   distancesByEleve,
   hasEleveInClass,
   heures3e,
-  hasMatchingRun,
 }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: `enseignant:${enseignant.id}`,
@@ -121,17 +120,19 @@ export const DroppableEnseignantTile: React.FC<DroppableEnseignantTileProps> = (
               {dragDistanceKm! < 1 ? '<1' : Math.round(dragDistanceKm!)} km
             </span>
           )}
-          {/* Badge de charge : affiché seulement en mode stage après matching */}
-          {isStageScenario && hasMatchingRun && heures3e !== undefined && heures3e > 0 && (
+          {/* Badge de charge avec nombre d'élèves : affiché en mode stage */}
+          {isStageScenario && (
             <>
               <span
                 ref={dotRef}
-                className={`charge-dot ${getChargeColorClass(affectations.length, heures3e)}`}
+                className={`charge-badge ${heures3e && heures3e > 0 ? getChargeColorClass(affectations.length, heures3e) : 'charge-neutral'}`}
                 onMouseEnter={handleDotMouseEnter}
                 onMouseLeave={handleDotMouseLeave}
-                style={{ marginRight: 6, cursor: 'help' }}
-              />
-              {tooltipPos && createPortal(
+                title={`${affectations.length} élève${affectations.length > 1 ? 's' : ''} affecté${affectations.length > 1 ? 's' : ''}`}
+              >
+                {affectations.length}
+              </span>
+              {tooltipPos && heures3e !== undefined && heures3e > 0 && createPortal(
                 <div
                   className="charge-tooltip charge-tooltip-portal"
                   style={{

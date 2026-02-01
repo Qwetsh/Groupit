@@ -290,6 +290,11 @@ export interface StageMatchingOptions {
   maxIterations?: number;         // Itérations max pour local search
   localSearchTimeoutMs?: number;  // Timeout pour éviter freeze UI
 
+  // Fallback pour enseignants éloignés des stages
+  collegeGeo?: GeoPoint;          // Position du collège
+  fallbackCollegeActif?: boolean; // Activer le fallback collège (défaut: true si collegeGeo fourni)
+  fallbackAngleMaxDeg?: number;   // Demi-angle du cône directionnel (défaut: 45° = cône de 90°)
+
   verbose?: boolean;
 }
 
@@ -304,6 +309,9 @@ export const DEFAULT_STAGE_MATCHING_OPTIONS: StageMatchingOptions = {
   useLocalSearch: true,
   maxIterations: 50, // Réduit de 100 à 50 pour meilleures performances
   localSearchTimeoutMs: 3000, // 3 secondes max
+  // Fallback pour enseignants éloignés
+  fallbackCollegeActif: true,     // Actif par défaut si collegeGeo fourni
+  fallbackAngleMaxDeg: 45,        // Cône de 90° (±45°)
   verbose: false,
 };
 
