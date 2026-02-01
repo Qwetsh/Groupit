@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useEleveStore } from '../stores/eleveStore';
 import { useStageStore } from '../stores/stageStore';
 import { useUIStore } from '../stores/uiStore';
@@ -29,9 +30,11 @@ import './ElevesPage.css';
 const MATIERES_ORAL = MATIERES_HEURES_3E.map(m => m.matiere);
 
 export const ElevesPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const eleves = useEleveStore(state => state.eleves);
   const updateEleve = useEleveStore(state => state.updateEleve);
   const openModal = useUIStore(state => state.openModal);
+  const addNotification = useUIStore(state => state.addNotification);
 
   // Confirm modal
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirm();
@@ -41,6 +44,14 @@ export const ElevesPage: React.FC = () => {
   const [sortBy, setSortBy] = useState<'nom' | 'classe' | 'dateNaissance' | 'matiere'>('nom');
   const [filterMatiere, setFilterMatiere] = useState<'all' | 'with' | 'without'>('all');
   const [activeTab, setActiveTab] = useState<'liste' | 'matieres' | 'stage'>('liste');
+
+  // Lire le paramètre tab de l'URL pour ouvrir l'onglet correspondant
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'stage' || tabParam === 'matieres' || tabParam === 'liste') {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
   
   // Pour édition en ligne des matières
   const [editingEleveId, setEditingEleveId] = useState<string | null>(null);
@@ -127,7 +138,7 @@ export const ElevesPage: React.FC = () => {
 
   const handleExport = () => {
     if (eleves.length === 0) {
-      alert('Aucun élève à exporter');
+      addNotification({ type: 'warning', message: 'Aucun élève à exporter' });
       return;
     }
     const headers = ['Nom', 'Prénom', 'Classe', 'Date de naissance', 'Sexe', 'Options', 'Matières Oral', 'Tags'];
@@ -242,7 +253,7 @@ export const ElevesPage: React.FC = () => {
           </button>
           <button className="btn-primary" onClick={() => openModal('import')}>
             <Upload size={18} />
-            Importer CSV
+            Importer des élèves (CSV)
           </button>
         </div>
       </div>
@@ -408,7 +419,7 @@ export const ElevesPage: React.FC = () => {
               onClick={() => setShowImportMatiereModal(true)}
             >
               <Upload size={18} />
-              Importer CSV
+              Importer les sujets des élèves (CSV)
             </button>
             <button 
               className="btn-secondary"

@@ -6,6 +6,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from '../database/db';
 import type { Affectation, AffectationMetadata } from '../../domain/models';
 
+// Note: Les timestamps (createdAt, updatedAt) sont gérés automatiquement
+// par les hooks Dexie dans db.ts - ne pas les définir ici.
+
 export class AffectationRepository {
   async getAll(): Promise<Affectation[]> {
     return db.affectations.toArray();
@@ -50,33 +53,29 @@ export class AffectationRepository {
   }
 
   async create(affectation: Omit<Affectation, 'id' | 'createdAt' | 'updatedAt'>): Promise<Affectation> {
-    const newAffectation: Affectation = {
+    const newAffectation = {
       ...affectation,
       id: uuidv4(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    } as Affectation;
     await db.affectations.add(newAffectation);
     return newAffectation;
   }
 
   async createMany(affectations: Omit<Affectation, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<Affectation[]> {
-    const newAffectations: Affectation[] = affectations.map(a => ({
+    const newAffectations = affectations.map(a => ({
       ...a,
       id: uuidv4(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }));
+    } as Affectation));
     await db.affectations.bulkAdd(newAffectations);
     return newAffectations;
   }
 
   async update(id: string, updates: Partial<Omit<Affectation, 'id' | 'createdAt'>>): Promise<void> {
-    await db.affectations.update(id, { ...updates, updatedAt: new Date() });
+    await db.affectations.update(id, updates);
   }
 
   async updateMetadata(id: string, metadata: AffectationMetadata): Promise<void> {
-    await db.affectations.update(id, { metadata, updatedAt: new Date() });
+    await db.affectations.update(id, { metadata });
   }
 
   async delete(id: string): Promise<void> {

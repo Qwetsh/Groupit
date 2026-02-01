@@ -6,6 +6,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from '../database/db';
 import type { Groupe } from '../../domain/models';
 
+// Note: Les timestamps (createdAt, updatedAt) sont gérés automatiquement
+// par les hooks Dexie dans db.ts - ne pas les définir ici.
+
 export class GroupeRepository {
   async getAll(): Promise<Groupe[]> {
     return db.groupes.toArray();
@@ -20,35 +23,31 @@ export class GroupeRepository {
   }
 
   async create(groupe: Omit<Groupe, 'id' | 'createdAt' | 'updatedAt'>): Promise<Groupe> {
-    const newGroupe: Groupe = {
+    const newGroupe = {
       ...groupe,
       id: uuidv4(),
       eleveIds: groupe.eleveIds || [],
       enseignantIds: groupe.enseignantIds || [],
       contraintes: groupe.contraintes || [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    } as Groupe;
     await db.groupes.add(newGroupe);
     return newGroupe;
   }
 
   async createMany(groupes: Omit<Groupe, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<Groupe[]> {
-    const newGroupes: Groupe[] = groupes.map(g => ({
+    const newGroupes = groupes.map(g => ({
       ...g,
       id: uuidv4(),
       eleveIds: g.eleveIds || [],
       enseignantIds: g.enseignantIds || [],
       contraintes: g.contraintes || [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }));
+    } as Groupe));
     await db.groupes.bulkAdd(newGroupes);
     return newGroupes;
   }
 
   async update(id: string, updates: Partial<Omit<Groupe, 'id' | 'createdAt'>>): Promise<void> {
-    await db.groupes.update(id, { ...updates, updatedAt: new Date() });
+    await db.groupes.update(id, updates);
   }
 
   async addEleve(groupeId: string, eleveId: string): Promise<void> {

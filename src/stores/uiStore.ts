@@ -6,7 +6,7 @@ import { create } from 'zustand';
 import type { ConstraintViolation } from '../domain/models';
 
 type Tab = 'matching' | 'groupes';
-type Modal = 'import' | 'importMatiereOral' | 'editEleve' | 'editEnseignant' | 'editAffectation' | 'editGroupe' | 'editScenario' | 'confirmDelete' | null;
+type Modal = 'import' | 'importMatiereOral' | 'editEleve' | 'editEnseignant' | 'editAffectation' | 'editGroupe' | 'editScenario' | 'newScenario' | 'confirmDelete' | null;
 
 // Dashboard card visibility preferences
 export interface DashboardPreferences {

@@ -211,10 +211,8 @@ export interface DroppableEnseignantTileProps {
   distancesByEleve?: Map<string, number>;
   /** Indique si l'enseignant a l'élève dragué dans une de ses classes */
   hasEleveInClass?: boolean;
-  /** Heures de 3e de l'enseignant (pour indicateur de charge) - undefined si pas de matching effectué */
+  /** Heures de 3e de l'enseignant (pour indicateur de charge) */
   heures3e?: number;
-  /** Indique si le matching a été effectué (pour afficher l'indicateur de charge) */
-  hasMatchingRun?: boolean;
 }
 
 export interface DroppableJuryTileProps {

@@ -5,6 +5,7 @@
 import { create } from 'zustand';
 import type { Affectation, AffectationMetadata } from '../domain/models';
 import { affectationRepository } from '../infrastructure/repositories';
+import { extractErrorMessage } from '../utils/errorUtils';
 
 interface AffectationState {
   affectations: Affectation[];
@@ -43,7 +44,7 @@ export const useAffectationStore = create<AffectationState>((set, get) => ({
       const affectations = await affectationRepository.getAll();
       set({ affectations, loading: false });
     } catch (error) {
-      set({ error: String(error), loading: false });
+      set({ error: extractErrorMessage(error), loading: false });
     }
   },
   
@@ -53,7 +54,7 @@ export const useAffectationStore = create<AffectationState>((set, get) => ({
       const affectations = await affectationRepository.getByScenario(scenarioId);
       set({ affectations, loading: false });
     } catch (error) {
-      set({ error: String(error), loading: false });
+      set({ error: extractErrorMessage(error), loading: false });
     }
   },
   
@@ -63,7 +64,7 @@ export const useAffectationStore = create<AffectationState>((set, get) => ({
       set(state => ({ affectations: [...state.affectations, newAffectation] }));
       return newAffectation;
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -74,7 +75,7 @@ export const useAffectationStore = create<AffectationState>((set, get) => ({
       set(state => ({ affectations: [...state.affectations, ...newAffectations] }));
       return newAffectations;
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -88,7 +89,7 @@ export const useAffectationStore = create<AffectationState>((set, get) => ({
         ),
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -102,7 +103,7 @@ export const useAffectationStore = create<AffectationState>((set, get) => ({
         ),
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -114,7 +115,7 @@ export const useAffectationStore = create<AffectationState>((set, get) => ({
         affectations: state.affectations.filter(a => a.id !== id),
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -126,7 +127,7 @@ export const useAffectationStore = create<AffectationState>((set, get) => ({
         affectations: state.affectations.filter(a => a.scenarioId !== scenarioId),
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -136,7 +137,7 @@ export const useAffectationStore = create<AffectationState>((set, get) => ({
       await affectationRepository.deleteAll();
       set({ affectations: [] });
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },

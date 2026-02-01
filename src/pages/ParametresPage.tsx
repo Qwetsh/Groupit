@@ -39,7 +39,7 @@ export const ParametresPage: React.FC = () => {
           <span>Mode expert</span>
         </div>
         <p className="info-note">
-          Active l'affichage des critères système (forcés) dans l'éditeur de scénario.
+          Active l'affichage des critères système (forcés) dans l'éditeur de configuration.
           Ces critères sont appliqués automatiquement mais normalement masqués.
         </p>
         <label className="toggle-switch">
@@ -71,9 +71,9 @@ export const ParametresPage: React.FC = () => {
       <div className="info-card">
         <div className="card-title">
           <SlidersHorizontal size={18} />
-          <span>Scénarios</span>
+          <span>Configurations</span>
         </div>
-        <p className="info-note">Les paramètres par scénario se règlent aujourd'hui dans la page Scénarios.</p>
+        <p className="info-note">Les paramètres par configuration se règlent aujourd'hui dans la page Configurations.</p>
       </div>
 
       <div className="info-card">

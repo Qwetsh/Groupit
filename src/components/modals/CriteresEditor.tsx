@@ -75,9 +75,10 @@ export function CriteresEditor({ scenarioType, criteres, onChange }: CriteresEdi
     const isDisabled = currentPriority === 'off';
     
     return (
-      <div 
-        key={id} 
-        className={`critere-card ${isForced ? 'forced' : ''} ${isDisabled ? 'disabled' : ''}`}
+      <div
+        key={id}
+        className={`critere-card ${isForced ? 'forced' : ''} ${isDisabled ? 'disabled' : 'active'}`}
+        data-priority={currentPriority}
       >
         <div className="critere-card-header">
           <div className="critere-card-info">

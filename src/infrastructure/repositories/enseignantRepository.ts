@@ -7,9 +7,89 @@ import { db } from '../database/db';
 import type { Enseignant, CapaciteConfig } from '../../domain/models';
 import { geocodeWithFallback, toGeoStatus } from '../geo/geocodeFallback';
 
+// ============================================================
+// Utilitaire de déduplication
+// ============================================================
+
+interface DedupeResult {
+  unique: Enseignant[];
+  duplicateIds: string[];
+}
+
+/**
+ * Génère une clé unique pour identifier un enseignant (hors id)
+ */
+function getEnseignantKey(enseignant: Enseignant): string {
+  return `${enseignant.nom?.toLowerCase() || ''}|${enseignant.prenom?.toLowerCase() || ''}|${enseignant.matierePrincipale?.toLowerCase() || ''}`;
+}
+
+/**
+ * Supprime les doublons d'une liste d'enseignants
+ */
+function dedupeEnseignants(enseignants: Enseignant[]): DedupeResult {
+  const seen = new Set<string>();
+  const unique: Enseignant[] = [];
+  const duplicateIds: string[] = [];
+
+  for (const enseignant of enseignants) {
+    const key = getEnseignantKey(enseignant);
+    if (seen.has(key)) {
+      if (enseignant.id) duplicateIds.push(enseignant.id);
+    } else {
+      seen.add(key);
+      unique.push(enseignant);
+    }
+  }
+
+  return { unique, duplicateIds };
+}
+
+// ============================================================
+// Repository
+// ============================================================
+
 export class EnseignantRepository {
+  /**
+   * Récupère tous les enseignants
+   */
   async getAll(): Promise<Enseignant[]> {
     return db.enseignants.toArray();
+  }
+
+  /**
+   * Récupère tous les enseignants en supprimant les doublons de la base
+   */
+  async getAllAndDedupe(): Promise<Enseignant[]> {
+    const enseignants = await db.enseignants.toArray();
+    const { unique, duplicateIds } = dedupeEnseignants(enseignants);
+
+    if (duplicateIds.length > 0) {
+      await this.deleteMany(duplicateIds);
+      console.info(`[EnseignantRepository] ${duplicateIds.length} doublon(s) supprimé(s)`);
+    }
+
+    return unique;
+  }
+
+  // Note: Les timestamps (createdAt, updatedAt) sont gérés automatiquement
+  // par les hooks Dexie dans db.ts - ne pas les définir ici.
+
+  /**
+   * Restaure des enseignants depuis un backup
+   * Note: Ne fait PAS de géocodage automatique pour éviter les appels API
+   */
+  async restoreFromBackup(enseignants: Enseignant[]): Promise<Enseignant[]> {
+    const { unique } = dedupeEnseignants(enseignants);
+
+    const restored = unique.map(e => ({
+      ...e,
+      id: uuidv4(),
+      classesEnCharge: e.classesEnCharge || [],
+      tags: e.tags || [],
+    } as Enseignant));
+
+    await db.enseignants.bulkAdd(restored);
+    return restored;
   }
 
   async getById(id: string): Promise<Enseignant | undefined> {
@@ -46,14 +126,12 @@ export class EnseignantRepository {
   }
 
   async create(enseignant: Omit<Enseignant, 'id' | 'createdAt' | 'updatedAt'>): Promise<Enseignant> {
-    const newEnseignant: Enseignant = {
+    const newEnseignant = {
       ...enseignant,
       id: uuidv4(),
       classesEnCharge: enseignant.classesEnCharge || [],
       tags: enseignant.tags || [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    } as Enseignant;
 
     // Géocodage automatique si adresse fournie mais pas de coordonnées
     if (newEnseignant.adresse && !newEnseignant.lat && !newEnseignant.lon) {
@@ -83,14 +161,12 @@ export class EnseignantRepository {
   }
 
   async createMany(enseignants: Omit<Enseignant, 'id' | 'createdAt' | 'updatedAt'>[]): Promise<Enseignant[]> {
-    const newEnseignants: Enseignant[] = enseignants.map(e => ({
+    const newEnseignants = enseignants.map(e => ({
       ...e,
       id: uuidv4(),
       classesEnCharge: e.classesEnCharge || [],
       tags: e.tags || [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }));
+    } as Enseignant));
 
     // Géocodage automatique pour ceux qui ont une adresse mais pas de coordonnées
     const toGeocode = newEnseignants.filter(e => e.adresse && !e.lat && !e.lon);
@@ -159,7 +235,7 @@ export class EnseignantRepository {
       }
     }
 
-    await db.enseignants.update(id, { ...updates, updatedAt: new Date() });
+    await db.enseignants.update(id, updates);
   }
 
   async delete(id: string): Promise<void> {

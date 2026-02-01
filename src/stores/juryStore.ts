@@ -6,6 +6,7 @@ import { create } from 'zustand';
 import type { Jury, JuryStats, Enseignant, Scenario } from '../domain/models';
 import { MATIERES_HEURES_3E } from '../domain/models';
 import { juryRepository } from '../infrastructure/repositories';
+import { extractErrorMessage } from '../utils/errorUtils';
 
 // ============================================================
 // ALGORITHME DE GÉNÉRATION AUTOMATIQUE DES JURYS
@@ -148,7 +149,7 @@ export const useJuryStore = create<JuryState>((set, get) => ({
       const jurys = await juryRepository.getAll();
       set({ jurys, loading: false });
     } catch (error) {
-      set({ error: String(error), loading: false });
+      set({ error: extractErrorMessage(error), loading: false });
     }
   },
 
@@ -160,7 +161,7 @@ export const useJuryStore = create<JuryState>((set, get) => ({
       }));
       return newJury.id!;
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -176,7 +177,7 @@ export const useJuryStore = create<JuryState>((set, get) => ({
         )
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -188,7 +189,7 @@ export const useJuryStore = create<JuryState>((set, get) => ({
         jurys: state.jurys.filter(j => j.id !== id)
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -204,7 +205,7 @@ export const useJuryStore = create<JuryState>((set, get) => ({
         )
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -220,7 +221,7 @@ export const useJuryStore = create<JuryState>((set, get) => ({
         )
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -248,7 +249,7 @@ export const useJuryStore = create<JuryState>((set, get) => ({
         })
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -264,7 +265,7 @@ export const useJuryStore = create<JuryState>((set, get) => ({
         )
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
     }
   },
 
@@ -287,7 +288,7 @@ export const useJuryStore = create<JuryState>((set, get) => ({
         jurys: state.jurys.filter(j => j.scenarioId !== scenarioId)
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
     }
   },
 

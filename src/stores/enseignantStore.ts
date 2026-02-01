@@ -5,6 +5,8 @@
 import { create } from 'zustand';
 import type { Enseignant, FilterEnseignants, CapaciteConfig } from '../domain/models';
 import { enseignantRepository } from '../infrastructure/repositories';
+import { enseignantBackupService } from '../services/backupService';
+import { extractErrorMessage } from '../utils/errorUtils';
 
 interface EnseignantState {
   enseignants: Enseignant[];
@@ -59,81 +61,114 @@ export const useEnseignantStore = create<EnseignantState>((set, get) => ({
   loadEnseignants: async () => {
     set({ loading: true, error: null });
     try {
-      const enseignants = await enseignantRepository.getAll();
+      // Charger et dédupliquer depuis la base
+      let enseignants = await enseignantRepository.getAllAndDedupe();
+
+      // Si la base est vide, tenter de restaurer depuis le backup
+      if (enseignants.length === 0) {
+        const backup = enseignantBackupService.restore();
+        if (backup && backup.length > 0) {
+          enseignants = await enseignantRepository.restoreFromBackup(backup);
+          console.info(`[EnseignantStore] ${enseignants.length} enseignant(s) restauré(s) depuis le backup`);
+        }
+      }
+
+      // Mettre à jour le backup
+      enseignantBackupService.persist(enseignants);
+
       set({ enseignants, loading: false });
     } catch (error) {
-      set({ error: String(error), loading: false });
+      set({ error: extractErrorMessage(error), loading: false });
     }
   },
   
   addEnseignant: async (enseignant) => {
     try {
       const newEnseignant = await enseignantRepository.create(enseignant);
-      set(state => ({ enseignants: [...state.enseignants, newEnseignant] }));
+      set(state => {
+        const enseignants = [...state.enseignants, newEnseignant];
+        enseignantBackupService.persist(enseignants);
+        return { enseignants };
+      });
       return newEnseignant;
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   addEnseignants: async (enseignants) => {
     try {
       const newEnseignants = await enseignantRepository.createMany(enseignants);
-      set(state => ({ enseignants: [...state.enseignants, ...newEnseignants] }));
+      set(state => {
+        const allEnseignants = [...state.enseignants, ...newEnseignants];
+        enseignantBackupService.persist(allEnseignants);
+        return { enseignants: allEnseignants };
+      });
       return newEnseignants;
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   updateEnseignant: async (id, updates) => {
     try {
       await enseignantRepository.update(id, updates);
-      set(state => ({
-        enseignants: state.enseignants.map(e => 
+      set(state => {
+        const enseignants = state.enseignants.map(e =>
           e.id === id ? { ...e, ...updates, updatedAt: new Date() } : e
-        ),
-      }));
+        );
+        enseignantBackupService.persist(enseignants);
+        return { enseignants };
+      });
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   deleteEnseignant: async (id) => {
     try {
       await enseignantRepository.delete(id);
-      set(state => ({
-        enseignants: state.enseignants.filter(e => e.id !== id),
-        selectedEnseignantIds: state.selectedEnseignantIds.filter(i => i !== id),
-      }));
+      set(state => {
+        const enseignants = state.enseignants.filter(e => e.id !== id);
+        enseignantBackupService.persist(enseignants);
+        return {
+          enseignants,
+          selectedEnseignantIds: state.selectedEnseignantIds.filter(i => i !== id),
+        };
+      });
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   deleteEnseignants: async (ids) => {
     try {
       await enseignantRepository.deleteMany(ids);
-      set(state => ({
-        enseignants: state.enseignants.filter(e => !ids.includes(e.id)),
-        selectedEnseignantIds: state.selectedEnseignantIds.filter(i => !ids.includes(i)),
-      }));
+      set(state => {
+        const enseignants = state.enseignants.filter(e => !ids.includes(e.id));
+        enseignantBackupService.persist(enseignants);
+        return {
+          enseignants,
+          selectedEnseignantIds: state.selectedEnseignantIds.filter(i => !ids.includes(i)),
+        };
+      });
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   deleteAllEnseignants: async () => {
     try {
       await enseignantRepository.deleteAll();
+      enseignantBackupService.clear();
       set({ enseignants: [], selectedEnseignantIds: [] });
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },

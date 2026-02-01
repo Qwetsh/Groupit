@@ -41,7 +41,6 @@
 /* Header */
 .drawer-header {
   padding: 1.5rem;
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
   color: white;
   position: relative;
 }
@@ -74,15 +73,16 @@
 .avatar-large {
   width: 64px;
   height: 64px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.5rem;
-  font-weight: 600;
+  font-weight: 700;
   color: white;
   text-transform: uppercase;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .hero-info h2 {
@@ -543,7 +543,7 @@
   .avatar-large {
     width: 52px;
     height: 52px;
-    font-size: 1.25rem;
+    font-size: 1.1rem;
   }
 
   .hero-info h2 {

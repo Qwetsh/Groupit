@@ -5,10 +5,11 @@
 import { create } from 'zustand';
 import { db } from '../infrastructure/database/db';
 import type { Stage, GeoPrecision, GeoStatusExtended } from '../domain/models';
+import { extractErrorMessage } from '../utils/errorUtils';
 
 interface StageState {
   stages: Stage[];
-  isLoading: boolean;
+  loading: boolean;
   error: string | null;
 
   // Actions
@@ -49,38 +50,38 @@ function generateId(): string {
 
 export const useStageStore = create<StageState>((set) => ({
   stages: [],
-  isLoading: false,
+  loading: false,
   error: null,
   
   loadStages: async () => {
-    set({ isLoading: true, error: null });
+    set({ loading: true, error: null });
     try {
       const stages = await db.stages.toArray();
-      set({ stages, isLoading: false });
+      set({ stages, loading: false });
     } catch (error) {
-      set({ error: String(error), isLoading: false });
+      set({ error: extractErrorMessage(error), loading: false });
     }
   },
   
   loadStagesByScenario: async (scenarioId: string) => {
-    set({ isLoading: true, error: null });
+    set({ loading: true, error: null });
     try {
       const stages = await db.stages.where('scenarioId').equals(scenarioId).toArray();
-      set({ stages, isLoading: false });
+      set({ stages, loading: false });
     } catch (error) {
-      set({ error: String(error), isLoading: false });
+      set({ error: extractErrorMessage(error), loading: false });
     }
   },
 
   loadGlobalStages: async () => {
-    set({ isLoading: true, error: null });
+    set({ loading: true, error: null });
     try {
       // Charger les stages sans scenarioId (stages globaux liés aux élèves)
       const allStages = await db.stages.toArray();
       const globalStages = allStages.filter(s => !s.scenarioId);
-      set({ stages: globalStages, isLoading: false });
+      set({ stages: globalStages, loading: false });
     } catch (error) {
-      set({ error: String(error), isLoading: false });
+      set({ error: extractErrorMessage(error), loading: false });
     }
   },
   

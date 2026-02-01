@@ -761,8 +761,6 @@ export function SuiviStagePage() {
 
   // ----- Geocoding Handler (avec stratégie de fallback) -----
   const handleGeocodeAll = useCallback(async () => {
-    // DEBUG - Devrait TOUJOURS apparaître si la fonction est appelée
-    alert('handleGeocodeAll appelé!');
     console.log('=== DÉBUT GÉOCODAGE ===');
     setIsGeocoding(true);
     setProgress({ total: 0, completed: 0, errors: 0, phase: 'Préparation...', currentAddress: null });

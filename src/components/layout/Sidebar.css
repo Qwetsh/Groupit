@@ -53,7 +53,9 @@
 .collapse-btn {
   background: #334155;
   border: none;
-  padding: 6px;
+  padding: 8px;
+  min-width: 36px;
+  min-height: 36px;
   border-radius: 6px;
   color: #94a3b8;
   cursor: pointer;
@@ -132,6 +134,37 @@
   height: 1px;
   background: #334155;
   margin: 16px 4px;
+}
+
+/* Section labels */
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  padding: 0 12px;
+  margin-bottom: 8px;
+}
+
+/* Highlighted nav link (action principale) */
+.nav-link.highlight {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(139, 92, 246, 0.15));
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.nav-link.highlight:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(139, 92, 246, 0.25));
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.nav-link.highlight .nav-icon {
+  color: #60a5fa;
+}
+
+.nav-link.highlight.active {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3), rgba(139, 92, 246, 0.3));
+  border-color: rgba(59, 130, 246, 0.6);
 }
 
 /* Footer */

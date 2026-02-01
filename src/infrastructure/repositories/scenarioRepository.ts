@@ -46,6 +46,13 @@ export function getDefaultParametres(type: ScenarioType): ScenarioParametres {
           { id: 'contraintes_relationnelles', nom: 'Contraintes relationnelles', actif: true, poids: 100, estContrainteDure: true },
         ],
         matieresOralPossibles: ['SVT', 'Physique-Chimie', 'Technologie', 'Histoire-Géo', 'Français', 'Arts Plastiques', 'Éducation Musicale', 'EPS'],
+        oralDnb: {
+          matieresAutorisees: ['SVT', 'Physique-Chimie', 'Technologie', 'Histoire-Géo', 'Français', 'Arts Plastiques', 'Éducation Musicale', 'EPS'],
+          utiliserJurys: true,
+          poidsMatiere: 100,
+          criteresSecondaires: ['equilibrage', 'capacite'],
+          capaciteJuryDefaut: 15,
+        },
       };
 
     case 'custom':
@@ -77,14 +84,15 @@ export class ScenarioRepository {
     return db.scenarios.where('mode').equals(mode).toArray();
   }
 
+  // Note: Les timestamps (createdAt, updatedAt) sont gérés automatiquement
+  // par les hooks Dexie dans db.ts - ne pas les définir ici.
+
   async create(scenario: Omit<Scenario, 'id' | 'createdAt' | 'updatedAt'>): Promise<Scenario> {
-    const newScenario: Scenario = {
+    const newScenario = {
       ...scenario,
       id: uuidv4(),
       parametres: scenario.parametres || getDefaultParametres(scenario.type),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    } as Scenario;
     await db.scenarios.add(newScenario);
     return newScenario;
   }
@@ -99,14 +107,14 @@ export class ScenarioRepository {
   }
 
   async update(id: string, updates: Partial<Omit<Scenario, 'id' | 'createdAt'>>): Promise<void> {
-    await db.scenarios.update(id, { ...updates, updatedAt: new Date() });
+    await db.scenarios.update(id, updates);
   }
 
   async updateParametres(id: string, parametres: Partial<ScenarioParametres>): Promise<void> {
     const scenario = await this.getById(id);
     if (scenario) {
       const updatedParametres = { ...scenario.parametres, ...parametres };
-      await db.scenarios.update(id, { parametres: updatedParametres, updatedAt: new Date() });
+      await db.scenarios.update(id, { parametres: updatedParametres });
     }
   }
 
