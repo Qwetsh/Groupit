@@ -17,6 +17,9 @@ function generateKey(label: string): string {
     .substring(0, 50);               // Max 50 chars
 }
 
+// Note: Les timestamps (createdAt, updatedAt) sont gérés automatiquement
+// par les hooks Dexie dans db.ts - ne pas les définir ici.
+
 export class FieldDefinitionRepository {
   async getAll(): Promise<FieldDefinition[]> {
     return db.fieldDefinitions.orderBy('order').toArray();
@@ -55,14 +58,12 @@ export class FieldDefinitionRepository {
     const allFields = await this.getAll();
     const maxOrder = allFields.reduce((max, f) => Math.max(max, f.order || 0), 0);
 
-    const newField: FieldDefinition = {
+    const newField = {
       ...field,
       id: uuidv4(),
       key,
       order: field.order ?? maxOrder + 1,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    } as FieldDefinition;
 
     await db.fieldDefinitions.add(newField);
     return newField;
@@ -72,7 +73,7 @@ export class FieldDefinitionRepository {
     id: string,
     updates: Partial<Omit<FieldDefinition, 'id' | 'key' | 'createdAt'>>
   ): Promise<void> {
-    await db.fieldDefinitions.update(id, { ...updates, updatedAt: new Date() });
+    await db.fieldDefinitions.update(id, updates);
   }
 
   async delete(id: string): Promise<void> {
@@ -86,7 +87,7 @@ export class FieldDefinitionRepository {
   async reorder(orderedIds: string[]): Promise<void> {
     await db.transaction('rw', db.fieldDefinitions, async () => {
       for (let i = 0; i < orderedIds.length; i++) {
-        await db.fieldDefinitions.update(orderedIds[i], { order: i, updatedAt: new Date() });
+        await db.fieldDefinitions.update(orderedIds[i], { order: i });
       }
     });
   }

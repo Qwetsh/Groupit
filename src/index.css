@@ -17,6 +17,12 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Couleurs primaires unifiées */
+  --primary: #1d4ed8;
+  --primary-dark: #1e40af;
+  --primary-light: #dbeafe;
+  --color-primary: #1d4ed8;
 }
 
 body {
@@ -34,12 +40,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 a {
-  color: #3b82f6;
+  color: var(--primary);
   text-decoration: none;
 }
 
 a:hover {
-  color: #2563eb;
+  color: var(--primary-dark);
 }
 
 button {

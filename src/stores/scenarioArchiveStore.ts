@@ -4,14 +4,15 @@
 // ============================================================
 
 import { create } from 'zustand';
-import { 
-  scenarioArchiveRepository, 
-  type EnseignantHistoryEntry 
+import {
+  scenarioArchiveRepository,
+  type EnseignantHistoryEntry
 } from '../infrastructure/repositories/scenarioArchiveRepository';
-import type { 
-  ScenarioArchive, 
+import type {
+  ScenarioArchive,
   ScenarioType
 } from '../domain/models';
+import { extractErrorMessage } from '../utils/errorUtils';
 
 // ============================================================
 // TYPES
@@ -20,7 +21,7 @@ import type {
 interface ScenarioArchiveState {
   // State
   archives: ScenarioArchive[];
-  isLoading: boolean;
+  loading: boolean;
   error: string | null;
   
   // Cache pour l'historique enseignant (évite les requêtes répétées)
@@ -53,29 +54,29 @@ interface ScenarioArchiveState {
 export const useScenarioArchiveStore = create<ScenarioArchiveState>((set, get) => ({
   // Initial state
   archives: [],
-  isLoading: false,
+  loading: false,
   error: null,
   enseignantHistoryCache: new Map(),
 
   // Load all archives
   loadArchives: async () => {
-    set({ isLoading: true, error: null });
+    set({ loading: true, error: null });
     try {
       const archives = await scenarioArchiveRepository.getAll();
-      set({ archives, isLoading: false });
+      set({ archives, loading: false });
     } catch (error) {
-      set({ error: String(error), isLoading: false });
+      set({ error: extractErrorMessage(error), loading: false });
     }
   },
 
   // Load archives by type
   loadArchivesByType: async (type: ScenarioType) => {
-    set({ isLoading: true, error: null });
+    set({ loading: true, error: null });
     try {
       const archives = await scenarioArchiveRepository.getByType(type);
-      set({ archives, isLoading: false });
+      set({ archives, loading: false });
     } catch (error) {
-      set({ error: String(error), isLoading: false });
+      set({ error: extractErrorMessage(error), loading: false });
     }
   },
 
@@ -129,7 +130,7 @@ export const useScenarioArchiveStore = create<ScenarioArchiveState>((set, get) =
 
   // Create archive
   createArchive: async (archive) => {
-    set({ isLoading: true, error: null });
+    set({ loading: true, error: null });
     try {
       const id = await scenarioArchiveRepository.create(archive);
       
@@ -139,32 +140,32 @@ export const useScenarioArchiveStore = create<ScenarioArchiveState>((set, get) =
       
       return id;
     } catch (error) {
-      set({ error: String(error), isLoading: false });
+      set({ error: extractErrorMessage(error), loading: false });
       throw error;
     }
   },
 
   // Delete archive
   deleteArchive: async (id: string) => {
-    set({ isLoading: true, error: null });
+    set({ loading: true, error: null });
     try {
       await scenarioArchiveRepository.delete(id);
       await get().loadArchives();
       get().clearCache();
     } catch (error) {
-      set({ error: String(error), isLoading: false });
+      set({ error: extractErrorMessage(error), loading: false });
     }
   },
 
   // Delete archives by scenario
   deleteArchivesByScenario: async (scenarioId: string) => {
-    set({ isLoading: true, error: null });
+    set({ loading: true, error: null });
     try {
       await scenarioArchiveRepository.deleteByScenarioId(scenarioId);
       await get().loadArchives();
       get().clearCache();
     } catch (error) {
-      set({ error: String(error), isLoading: false });
+      set({ error: extractErrorMessage(error), loading: false });
     }
   },
 

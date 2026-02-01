@@ -5,6 +5,7 @@
 import { create } from 'zustand';
 import type { FieldDefinition, EntityType, FieldType } from '../domain/models';
 import { fieldDefinitionRepository } from '../infrastructure/repositories';
+import { extractErrorMessage } from '../utils/errorUtils';
 
 interface FieldDefinitionState {
   fieldDefinitions: FieldDefinition[];
@@ -42,7 +43,7 @@ export const useFieldDefinitionStore = create<FieldDefinitionState>((set, get) =
       const fieldDefinitions = await fieldDefinitionRepository.getAll();
       set({ fieldDefinitions, loading: false });
     } catch (error) {
-      set({ error: String(error), loading: false });
+      set({ error: extractErrorMessage(error), loading: false });
     }
   },
 
@@ -56,7 +57,7 @@ export const useFieldDefinitionStore = create<FieldDefinitionState>((set, get) =
       }));
       return newField;
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -70,7 +71,7 @@ export const useFieldDefinitionStore = create<FieldDefinitionState>((set, get) =
         ),
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -82,7 +83,7 @@ export const useFieldDefinitionStore = create<FieldDefinitionState>((set, get) =
         fieldDefinitions: state.fieldDefinitions.filter((f) => f.id !== id),
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -100,7 +101,7 @@ export const useFieldDefinitionStore = create<FieldDefinitionState>((set, get) =
         return { fieldDefinitions: reordered };
       });
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },

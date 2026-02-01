@@ -6,6 +6,9 @@ import { db } from '../database/db';
 import type { Jury } from '../../domain/models';
 import { v4 as uuidv4 } from 'uuid';
 
+// Note: Les timestamps (createdAt, updatedAt) sont gérés automatiquement
+// par les hooks Dexie dans db.ts - ne pas les définir ici.
+
 export const juryRepository = {
   /**
    * Récupère tous les jurys
@@ -32,16 +35,11 @@ export const juryRepository = {
    * Crée un nouveau jury
    */
   async create(data: Omit<Jury, 'id' | 'createdAt' | 'updatedAt'>): Promise<Jury> {
-    const id = uuidv4();
-    const now = new Date();
-    
-    const jury: Jury = {
+    const jury = {
       ...data,
-      id,
-      createdAt: now,
-      updatedAt: now,
-    };
-    
+      id: uuidv4(),
+    } as Jury;
+
     await db.jurys.add(jury);
     return jury;
   },
@@ -50,10 +48,7 @@ export const juryRepository = {
    * Met à jour un jury existant
    */
   async update(id: string, updates: Partial<Omit<Jury, 'id' | 'createdAt'>>): Promise<void> {
-    await db.jurys.update(id, {
-      ...updates,
-      updatedAt: new Date(),
-    });
+    await db.jurys.update(id, updates);
   },
 
   /**
@@ -78,7 +73,6 @@ export const juryRepository = {
     if (jury && !jury.enseignantIds.includes(enseignantId)) {
       await db.jurys.update(juryId, {
         enseignantIds: [...jury.enseignantIds, enseignantId],
-        updatedAt: new Date(),
       });
     }
   },
@@ -91,7 +85,6 @@ export const juryRepository = {
     if (jury) {
       await db.jurys.update(juryId, {
         enseignantIds: jury.enseignantIds.filter(id => id !== enseignantId),
-        updatedAt: new Date(),
       });
     }
   },

@@ -682,7 +682,7 @@
 
 .stage-tab .btn-primary:disabled,
 .stage-import-modal .btn-primary:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;

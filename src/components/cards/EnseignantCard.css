@@ -3,6 +3,7 @@
 /* ============================================================ */
 
 .enseignant-card {
+  position: relative;
   display: flex;
   align-items: stretch;
   background: white;
@@ -12,6 +13,19 @@
   transition: all 0.2s ease;
   cursor: pointer;
   overflow: hidden;
+}
+
+/* Pastille géocodage */
+.enseignant-card .geo-warning-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+  z-index: 1;
+  cursor: help;
 }
 
 .enseignant-card:hover {

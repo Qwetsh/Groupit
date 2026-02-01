@@ -109,13 +109,13 @@ export const ScenariosPage: React.FC = () => {
     <div className="scenarios-page">
       <div className="page-header">
         <div className="header-left">
-          <h1>Scénarios</h1>
-          <span className="count">{scenarios.length} scénario(s)</span>
+          <h1>Configurations</h1>
+          <span className="count">{scenarios.length} configuration(s)</span>
         </div>
         <div className="header-actions">
           <button className="btn-primary" onClick={handleCreateNew}>
             <Plus size={18} />
-            Nouveau scénario
+            Nouvelle configuration
           </button>
         </div>
       </div>
@@ -177,7 +177,7 @@ export const ScenariosPage: React.FC = () => {
                   <button 
                     className="btn-action activate"
                     onClick={(e) => { e.stopPropagation(); handleActivate(scenario.id!); }}
-                    title="Activer ce scénario"
+                    title="Activer cette configuration"
                   >
                     <Check size={16} />
                   </button>
@@ -304,11 +304,11 @@ export const ScenariosPage: React.FC = () => {
 
       {scenarios.length === 0 && (
         <div className="empty-state">
-          <p>Aucun scénario configuré</p>
-          <span>Créez un scénario pour définir les règles d'affectation</span>
+          <p>Aucune configuration créée</p>
+          <span>Créez une configuration pour définir les règles d'affectation</span>
           <button className="btn-primary" onClick={handleCreateNew}>
             <Plus size={18} />
-            Créer mon premier scénario
+            Créer ma première configuration
           </button>
         </div>
       )}

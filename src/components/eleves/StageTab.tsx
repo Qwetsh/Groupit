@@ -8,6 +8,7 @@ import { useEleveStore } from '../../stores/eleveStore';
 import { useStageStore } from '../../stores/stageStore';
 import { useAffectationStore } from '../../stores/affectationStore';
 import { useEnseignantStore } from '../../stores/enseignantStore';
+import { useUIStore } from '../../stores/uiStore';
 import {
   importStagesFromFile,
   convertMatchedRowsToStageData,
@@ -66,6 +67,7 @@ function StageImportModal({ onClose, onImportComplete }: ImportModalProps) {
   const bulkUpsertStagesForEleves = useStageStore(state => state.bulkUpsertStagesForEleves);
   const updateStage = useStageStore(state => state.updateStage);
   const loadGlobalStages = useStageStore(state => state.loadGlobalStages);
+  const addNotification = useUIStore(state => state.addNotification);
 
   const [_file, setFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
@@ -102,7 +104,7 @@ function StageImportModal({ onClose, onImportComplete }: ImportModalProps) {
       setStep('preview');
     } catch (error) {
       console.error('Erreur import:', error);
-      alert('Erreur lors de la lecture du fichier');
+      addNotification({ type: 'error', message: 'Erreur lors de la lecture du fichier' });
     } finally {
       setImporting(false);
     }
@@ -204,7 +206,7 @@ function StageImportModal({ onClose, onImportComplete }: ImportModalProps) {
       setStep('done');
     } catch (error) {
       console.error('Erreur sauvegarde:', error);
-      alert('Erreur lors de la sauvegarde des stages');
+      addNotification({ type: 'error', message: 'Erreur lors de la sauvegarde des stages' });
     } finally {
       setImporting(false);
     }
@@ -685,6 +687,7 @@ export const StageTab: React.FC = () => {
   const upsertStageForEleve = useStageStore(state => state.upsertStageForEleve);
   const affectations = useAffectationStore(state => state.affectations);
   const enseignants = useEnseignantStore(state => state.enseignants);
+  const addNotification = useUIStore(state => state.addNotification);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedNiveau, setSelectedNiveau] = useState('3e'); // Par défaut 3ème
@@ -877,9 +880,9 @@ export const StageTab: React.FC = () => {
       }
     } catch (error) {
       console.error('Erreur sauvegarde stage:', error);
-      alert('Erreur lors de la sauvegarde');
+      addNotification({ type: 'error', message: 'Erreur lors de la sauvegarde' });
     }
-  }, [upsertStageForEleve, updateStage, loadGlobalStages]);
+  }, [upsertStageForEleve, updateStage, loadGlobalStages, addNotification]);
 
   const handleImportComplete = useCallback((_result: { updated: number; created: number }) => {
     loadGlobalStages();

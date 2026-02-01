@@ -6,6 +6,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useEleveStore } from '../stores/eleveStore';
 import { useEnseignantStore } from '../stores/enseignantStore';
 import { useFieldDefinitionStore } from '../stores/fieldDefinitionStore';
+import { useUIStore } from '../stores/uiStore';
 import type { Eleve, Enseignant, FieldType, EntityType } from '../domain/models';
 import { calculateCapacitesStage } from '../domain/models';
 import {
@@ -361,6 +362,8 @@ export const DonneesPage: React.FC = () => {
   const addFieldDefinition = useFieldDefinitionStore(s => s.addFieldDefinition);
   const getFieldDefinitionsForEntity = useFieldDefinitionStore(s => s.getFieldDefinitionsForEntity);
 
+  const addNotification = useUIStore(s => s.addNotification);
+
   // Load data
   useEffect(() => {
     loadEleves();
@@ -583,7 +586,7 @@ export const DonneesPage: React.FC = () => {
     );
 
     if (toGeocode.length === 0) {
-      alert('Tous les enseignants sont déjà géocodés !');
+      addNotification({ type: 'info', message: 'Tous les enseignants sont déjà géocodés !' });
       return;
     }
 
@@ -627,10 +630,10 @@ export const DonneesPage: React.FC = () => {
         await new Promise(r => setTimeout(r, 100));
       }
 
-      alert(`Géocodage terminé ! ${toGeocode.length} adresses traitées.`);
+      addNotification({ type: 'success', message: `Géocodage terminé ! ${toGeocode.length} adresses traitées.` });
     } catch (error) {
       console.error('Erreur géocodage:', error);
-      alert('Erreur lors du géocodage: ' + String(error));
+      addNotification({ type: 'error', message: 'Erreur lors du géocodage: ' + String(error) });
     } finally {
       setIsGeocoding(false);
       setGeocodeProgress({ current: 0, total: 0 });
@@ -710,7 +713,7 @@ export const DonneesPage: React.FC = () => {
   return (
     <div className="donnees-page">
       <div className="donnees-header">
-        <h1>Données</h1>
+        <h1>Import / Export</h1>
         {isSaving && (
           <div className="autosave-indicator">
             <Loader2 size={14} className="spinner" />
@@ -778,7 +781,7 @@ export const DonneesPage: React.FC = () => {
             className="btn-geocode"
             onClick={handleGeocodeAllEnseignants}
             disabled={isGeocoding || isSaving}
-            title="Géocoder toutes les adresses des enseignants"
+            title="Localiser toutes les adresses des enseignants sur la carte"
           >
             {isGeocoding ? (
               <>
@@ -788,7 +791,7 @@ export const DonneesPage: React.FC = () => {
             ) : (
               <>
                 <MapPin size={16} />
-                Géocoder adresses
+                Localiser adresses
               </>
             )}
           </button>

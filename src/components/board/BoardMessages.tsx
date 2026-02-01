@@ -28,7 +28,7 @@ export const BoardMessages: React.FC<BoardMessagesProps> = ({
         <div className="matching-message warning">
           <AlertCircle size={18} />
           <span>
-            <strong>Configuration requise :</strong> Allez dans Scénarios → {activeScenarioNom} → Gestion des Jurys pour créer des jurys avant de lancer les affectations.
+            <strong>Configuration requise :</strong> Allez dans Configurations → {activeScenarioNom} → Gestion des Jurys pour créer des jurys avant de lancer les affectations.
           </span>
         </div>
       )}
@@ -38,7 +38,7 @@ export const BoardMessages: React.FC<BoardMessagesProps> = ({
         <div className="matching-message warning">
           <AlertCircle size={18} />
           <span>
-            <strong>Configuration requise :</strong> Allez dans Scénarios → {activeScenarioNom} → Suivi de Stage pour importer et géocoder les stages avant de lancer les affectations.
+            <strong>Configuration requise :</strong> Allez dans Configurations → {activeScenarioNom} → Suivi de Stage pour importer et localiser les stages avant de lancer les affectations.
             {geocodedStagesCount === 0 && ' (Aucun stage géocodé)'}
             {geocodedStagesCount > 0 && geocodedEnseignantsCount === 0 && ' (Aucun enseignant géocodé)'}
           </span>

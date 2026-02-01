@@ -9,7 +9,6 @@ import type {
   Affectation,
   Scenario,
   Groupe,
-  HistoriqueRun,
   Jury,
   Stage,
   FieldDefinition,
@@ -23,7 +22,6 @@ export class GroupitDB extends Dexie {
   affectations!: Table<Affectation, string>;
   scenarios!: Table<Scenario, string>;
   groupes!: Table<Groupe, string>;
-  historiqueRuns!: Table<HistoriqueRun, string>;
   jurys!: Table<Jury, string>;
   stages!: Table<Stage, string>;
   geoCache!: Table<GeoCacheEntry, string>;
@@ -126,6 +124,11 @@ export class GroupitDB extends Dexie {
       scenarioArchives: 'id, scenarioId, scenarioType, archivedAt, createdAt',
     });
 
+    // Version 8 - Suppression table historiqueRuns (code mort)
+    this.version(8).stores({
+      historiqueRuns: null, // Supprime la table
+    });
+
     // Hooks pour mise à jour automatique des timestamps
     this.eleves.hook('creating', (_primKey, obj) => {
       obj.createdAt = new Date();
@@ -189,6 +192,19 @@ export class GroupitDB extends Dexie {
     this.fieldDefinitions.hook('updating', (modifications) => {
       return { ...modifications, updatedAt: new Date() };
     });
+
+    this.stages.hook('creating', (_primKey, obj) => {
+      obj.createdAt = new Date();
+      obj.updatedAt = new Date();
+    });
+
+    this.stages.hook('updating', (modifications) => {
+      return { ...modifications, updatedAt: new Date() };
+    });
+
+    this.scenarioArchives.hook('creating', (_primKey, obj) => {
+      obj.createdAt = new Date();
+    });
   }
 }
 
@@ -197,53 +213,83 @@ export const db = new GroupitDB();
 
 // Export des fonctions utilitaires
 export async function clearAllData(): Promise<void> {
-  await db.transaction('rw', [db.eleves, db.enseignants, db.affectations, db.scenarios, db.groupes, db.historiqueRuns, db.jurys], async () => {
+  await db.transaction('rw', [
+    db.eleves,
+    db.enseignants,
+    db.affectations,
+    db.scenarios,
+    db.groupes,
+    db.jurys,
+    db.stages,
+    db.fieldDefinitions,
+    db.scenarioArchives,
+  ], async () => {
     await db.eleves.clear();
     await db.enseignants.clear();
     await db.affectations.clear();
     await db.scenarios.clear();
     await db.groupes.clear();
-    await db.historiqueRuns.clear();
     await db.jurys.clear();
+    await db.stages.clear();
+    await db.fieldDefinitions.clear();
+    await db.scenarioArchives.clear();
   });
 }
 
-export async function exportAllData(): Promise<{
+/** Efface uniquement les caches de géocodage et routage */
+export async function clearGeoCache(): Promise<void> {
+  await db.transaction('rw', [db.geoCache, db.routeCache], async () => {
+    await db.geoCache.clear();
+    await db.routeCache.clear();
+  });
+}
+
+export interface ExportedData {
   eleves: Eleve[];
   enseignants: Enseignant[];
   affectations: Affectation[];
   scenarios: Scenario[];
   groupes: Groupe[];
-  historiqueRuns: HistoriqueRun[];
   jurys: Jury[];
-}> {
+  stages: Stage[];
+  fieldDefinitions: FieldDefinition[];
+  scenarioArchives: ScenarioArchive[];
+}
+
+export async function exportAllData(): Promise<ExportedData> {
   return {
     eleves: await db.eleves.toArray(),
     enseignants: await db.enseignants.toArray(),
     affectations: await db.affectations.toArray(),
     scenarios: await db.scenarios.toArray(),
     groupes: await db.groupes.toArray(),
-    historiqueRuns: await db.historiqueRuns.toArray(),
     jurys: await db.jurys.toArray(),
+    stages: await db.stages.toArray(),
+    fieldDefinitions: await db.fieldDefinitions.toArray(),
+    scenarioArchives: await db.scenarioArchives.toArray(),
   };
 }
 
-export async function importAllData(data: {
-  eleves?: Eleve[];
-  enseignants?: Enseignant[];
-  affectations?: Affectation[];
-  scenarios?: Scenario[];
-  groupes?: Groupe[];
-  historiqueRuns?: HistoriqueRun[];
-  jurys?: Jury[];
-}): Promise<void> {
-  await db.transaction('rw', [db.eleves, db.enseignants, db.affectations, db.scenarios, db.groupes, db.historiqueRuns, db.jurys], async () => {
+export async function importAllData(data: Partial<ExportedData>): Promise<void> {
+  await db.transaction('rw', [
+    db.eleves,
+    db.enseignants,
+    db.affectations,
+    db.scenarios,
+    db.groupes,
+    db.jurys,
+    db.stages,
+    db.fieldDefinitions,
+    db.scenarioArchives,
+  ], async () => {
     if (data.eleves) await db.eleves.bulkPut(data.eleves);
     if (data.enseignants) await db.enseignants.bulkPut(data.enseignants);
     if (data.affectations) await db.affectations.bulkPut(data.affectations);
     if (data.scenarios) await db.scenarios.bulkPut(data.scenarios);
     if (data.groupes) await db.groupes.bulkPut(data.groupes);
-    if (data.historiqueRuns) await db.historiqueRuns.bulkPut(data.historiqueRuns);
     if (data.jurys) await db.jurys.bulkPut(data.jurys);
+    if (data.stages) await db.stages.bulkPut(data.stages);
+    if (data.fieldDefinitions) await db.fieldDefinitions.bulkPut(data.fieldDefinitions);
+    if (data.scenarioArchives) await db.scenarioArchives.bulkPut(data.scenarioArchives);
   });
 }

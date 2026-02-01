@@ -5,6 +5,7 @@
 import { create } from 'zustand';
 import type { Scenario, ScenarioMode, ScenarioType, ScenarioParametres, CritereConfig } from '../domain/models';
 import { scenarioRepository } from '../infrastructure/repositories';
+import { extractErrorMessage } from '../utils/errorUtils';
 
 interface ScenarioState {
   scenarios: Scenario[];
@@ -50,7 +51,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
         set({ currentScenarioId: scenarios[0].id });
       }
     } catch (error) {
-      set({ error: String(error), loading: false });
+      set({ error: extractErrorMessage(error), loading: false });
     }
   },
   
@@ -59,7 +60,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       await scenarioRepository.ensureDefaults();
       await get().loadScenarios();
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
     }
   },
   
@@ -69,7 +70,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       set(state => ({ scenarios: [...state.scenarios, newScenario] }));
       return newScenario;
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -80,7 +81,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       set(state => ({ scenarios: [...state.scenarios, newScenario] }));
       return newScenario;
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -94,7 +95,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
         ),
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -112,7 +113,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
         }));
       }
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -127,7 +128,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
         await get().updateParametres(scenarioId, { criteres });
       }
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -140,7 +141,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       }
       return newScenario;
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -159,7 +160,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
         };
       });
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -173,7 +174,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       // Simply set this scenario as the current one
       set({ currentScenarioId: id });
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },

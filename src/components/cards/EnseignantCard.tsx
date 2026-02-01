@@ -7,6 +7,7 @@ import clsx from 'clsx';
 import { UserCog, Edit2, Trash2, Award, MapPin, Users } from 'lucide-react';
 import type { Enseignant, CapaciteConfig } from '../../domain/models';
 import { calculateEnseignantCapacity } from '../../algorithms';
+import { Tooltip } from '../ui/Tooltip';
 import './EnseignantCard.css';
 
 interface EnseignantCardProps {
@@ -61,6 +62,11 @@ export function EnseignantCard({
       )}
       onClick={onClick}
     >
+      {(!enseignant.adresse || !enseignant.lat || !enseignant.lon) && (
+        <Tooltip content="Non géocodé" position="left">
+          <div className="geo-warning-badge" />
+        </Tooltip>
+      )}
       <div className="enseignant-card-content">
         <div className="enseignant-card-header">
           <div className="enseignant-card-avatar">

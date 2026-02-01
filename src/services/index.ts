@@ -3,6 +3,13 @@
 // ============================================================
 
 export {
+  createBackupService,
+  eleveBackupService,
+  enseignantBackupService,
+  type BackupService,
+} from './backupService';
+
+export {
   buildArchiveFromCurrentState,
   formatArchiveDate,
   getScenarioTypeLabel,

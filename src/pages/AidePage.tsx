@@ -174,10 +174,10 @@ function BoardSchema() {
           tooltipTitle="Barre d'outils"
           tooltipContent={
             <>
-              <strong>Titre & badges</strong> : nom du scénario actif et mode (Stage/Jury).<br />
+              <strong>Titre & badges</strong> : nom de la configuration active et mode (Stage/Jury).<br />
               <strong>Reset</strong> : supprime toutes les affectations.<br />
-              <strong>Lancer le matching</strong> : lance l'algorithme d'affectation automatique.<br />
-              <strong>Valider</strong> : archive le scénario une fois satisfait.
+              <strong>Lancer la répartition</strong> : lance l'algorithme d'affectation automatique.<br />
+              <strong>Valider</strong> : archive la configuration une fois satisfait.
             </>
           }
         >
@@ -323,7 +323,7 @@ function ScenarioSchema() {
         <div className="schema-modal-header">
           <div className="schema-modal-title">
             <Plus size={12} />
-            <span>Nouveau scénario</span>
+            <span>Nouvelle configuration</span>
           </div>
           <div className="schema-modal-close">×</div>
         </div>
@@ -343,7 +343,7 @@ function ScenarioSchema() {
           >
             <div className="schema-section-title">
               <span className="schema-step-num">1</span>
-              Type de scénario
+              Type de configuration
             </div>
             <div className="schema-type-cards">
               <div className="schema-type-card">
@@ -360,8 +360,8 @@ function ScenarioSchema() {
           {/* Étape 2: Nom */}
           <SchemaHotspot
             className="schema-section"
-            tooltipTitle="2. Nommer le scénario"
-            tooltipContent="Donnez un nom explicite à votre scénario (ex: 'Oral DNB 2025', 'Stage 3e Janvier'). Vous pouvez aussi ajouter une description optionnelle."
+            tooltipTitle="2. Nommer la configuration"
+            tooltipContent="Donnez un nom explicite à votre configuration (ex: 'Oral DNB 2025', 'Stage 3e Janvier'). Vous pouvez aussi ajouter une description optionnelle."
           >
             <div className="schema-section-title">
               <span className="schema-step-num">2</span>
@@ -486,12 +486,12 @@ function ScenarioSchema() {
         <SchemaHotspot
           className="schema-modal-footer"
           tooltipTitle="Enregistrer"
-          tooltipContent="Cliquez sur 'Créer' pour sauvegarder votre scénario. Vous pourrez le modifier à tout moment depuis la page Scénarios."
+          tooltipContent="Cliquez sur 'Créer' pour sauvegarder votre configuration. Vous pourrez la modifier à tout moment depuis la page Configurations."
         >
           <div className="schema-btn-cancel">Annuler</div>
           <div className="schema-btn-save">
             <Save size={10} />
-            Créer le scénario
+            Créer la configuration
           </div>
         </SchemaHotspot>
       </div>
@@ -552,9 +552,9 @@ export const AidePage: React.FC = () => {
           <div className="guide-step">
             <span className="step-number">4</span>
             <div className="step-content">
-              <div className="step-title">Créer un scénario</div>
+              <div className="step-title">Créer une configuration</div>
               <div className="step-desc">
-                Dans <strong>Scénarios</strong>, créez un nouveau scénario (ex: "Suivi de stage 3e").
+                Dans <strong>Configurations</strong>, créez une nouvelle configuration (ex: "Suivi de stage 3e").
                 Configurez les critères d'affectation et les filtres d'élèves.
               </div>
             </div>
@@ -588,10 +588,10 @@ export const AidePage: React.FC = () => {
         </p>
       </Accordion>
 
-      {/* Créer un scénario */}
+      {/* Créer une configuration */}
       <Accordion
         icon={<FileText size={18} />}
-        title="Créer un scénario"
+        title="Créer une configuration"
       >
         <p>
           Survolez les différentes sections pour comprendre chaque étape de la configuration :
@@ -654,15 +654,15 @@ export const AidePage: React.FC = () => {
       >
         <div className="glossaire-grid">
           <div className="glossaire-item">
-            <div className="glossaire-term">Scénario</div>
+            <div className="glossaire-term">Configuration</div>
             <div className="glossaire-def">
-              Configuration d'affectation : type (stage, oral), critères, filtres d'élèves.
+              Ensemble de règles d'affectation : type (stage, oral), critères, filtres d'élèves.
             </div>
           </div>
           <div className="glossaire-item">
             <div className="glossaire-term">Affectation</div>
             <div className="glossaire-def">
-              Lien entre un élève et un enseignant (ou jury) pour un scénario donné.
+              Lien entre un élève et un enseignant (ou jury) pour une configuration donnée.
             </div>
           </div>
           <div className="glossaire-item">
@@ -686,7 +686,7 @@ export const AidePage: React.FC = () => {
           <div className="glossaire-item">
             <div className="glossaire-term">Validation</div>
             <div className="glossaire-def">
-              Action d'archiver un scénario terminé. Les affectations deviennent définitives.
+              Action d'archiver une configuration terminée. Les affectations deviennent définitives.
             </div>
           </div>
         </div>

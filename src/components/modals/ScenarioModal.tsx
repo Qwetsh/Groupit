@@ -516,7 +516,7 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
     setError(null);
 
     if (!formData.nom.trim()) {
-      setError('Le nom du scénario est obligatoire');
+      setError('Le nom de la configuration est obligatoire');
       return;
     }
 
@@ -587,7 +587,7 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
           <div className="modal-header">
             <div className="modal-title">
               <Settings size={20} />
-              <h2>{isEditing ? 'Modifier le scénario' : 'Nouveau scénario'}</h2>
+              <h2>{isEditing ? 'Modifier la configuration' : 'Nouvelle configuration'}</h2>
             </div>
             <button type="button" className="modal-close" onClick={onClose}>
               <X size={20} />
@@ -630,7 +630,7 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
             {activeTab === 'general' && (
               <div className="form-section">
                 <div className="form-group">
-                  <label htmlFor="nom">Nom du scénario *</label>
+                  <label htmlFor="nom">Nom de la configuration *</label>
                   <input
                     id="nom"
                     type="text"
@@ -646,13 +646,13 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
                     id="description"
                     value={formData.description}
                     onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Décrivez l'objectif de ce scénario..."
+                    placeholder="Décrivez l'objectif de cette configuration..."
                     rows={2}
                   />
                 </div>
 
                 <div className="form-group">
-                  <label>Type de scénario</label>
+                  <label>Type de configuration</label>
                   <div className="scenario-type-cards">
                     {TYPES_SCENARIO.map(t => (
                       <button
@@ -1073,7 +1073,7 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
             </button>
             <button type="submit" className="btn-primary" disabled={saving}>
               <Save size={18} />
-              {saving ? 'Enregistrement...' : (isEditing ? 'Mettre à jour' : 'Créer le scénario')}
+              {saving ? 'Enregistrement...' : (isEditing ? 'Mettre à jour' : 'Créer la configuration')}
             </button>
           </div>
         </form>

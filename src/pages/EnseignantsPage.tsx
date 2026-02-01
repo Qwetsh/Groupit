@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { EnseignantProfileDrawer } from '../components/enseignant/EnseignantProfileDrawer';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
+import { Tooltip } from '../components/ui/Tooltip';
 import { useConfirmDelete } from '../hooks/useConfirm';
 import type { Enseignant } from '../domain/models';
 import './EnseignantsPage.css';
@@ -69,6 +70,33 @@ interface EnseignantCardProps {
   onDuplicate: () => void;
 }
 
+// Palette de couleurs par matière
+const MATIERE_COLORS: Record<string, { gradient: string; light: string }> = {
+  'Français': { gradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', light: '#dbeafe' },
+  'Mathématiques': { gradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', light: '#ede9fe' },
+  'Histoire-Géographie': { gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', light: '#fef3c7' },
+  'Histoire-Géo': { gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', light: '#fef3c7' },
+  'Anglais': { gradient: 'linear-gradient(135deg, #ec4899, #be185d)', light: '#fce7f3' },
+  'Espagnol': { gradient: 'linear-gradient(135deg, #f97316, #ea580c)', light: '#ffedd5' },
+  'Allemand': { gradient: 'linear-gradient(135deg, #64748b, #475569)', light: '#f1f5f9' },
+  'SVT': { gradient: 'linear-gradient(135deg, #22c55e, #16a34a)', light: '#dcfce7' },
+  'Physique-Chimie': { gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)', light: '#cffafe' },
+  'Technologie': { gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)', light: '#e0e7ff' },
+  'EPS': { gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', light: '#fee2e2' },
+  'Arts Plastiques': { gradient: 'linear-gradient(135deg, #a855f7, #9333ea)', light: '#f3e8ff' },
+  'Éducation Musicale': { gradient: 'linear-gradient(135deg, #14b8a6, #0d9488)', light: '#ccfbf1' },
+  'Latin': { gradient: 'linear-gradient(135deg, #78716c, #57534e)', light: '#f5f5f4' },
+  'Grec': { gradient: 'linear-gradient(135deg, #78716c, #57534e)', light: '#f5f5f4' },
+};
+
+const DEFAULT_MATIERE_COLOR = { gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)', light: '#e0e7ff' };
+const NOT_GEOCODED_COLOR = { gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', light: '#fee2e2' };
+
+function getMatiereColor(matiere: string | undefined) {
+  if (!matiere) return DEFAULT_MATIERE_COLOR;
+  return MATIERE_COLORS[matiere] || DEFAULT_MATIERE_COLOR;
+}
+
 function EnseignantCard({ enseignant, onClick, onEdit, onDelete, onDuplicate }: EnseignantCardProps) {
   const [showMenu, setShowMenu] = useState(false);
 
@@ -86,8 +114,21 @@ function EnseignantCard({ enseignant, onClick, onEdit, onDelete, onDuplicate }: 
     }
   }, [showMenu]);
 
+  const isNotGeocoded = !enseignant.adresse || !enseignant.lat || !enseignant.lon;
+  const isPP = enseignant.estProfPrincipal;
+  const matiereColor = getMatiereColor(enseignant.matierePrincipale);
+
+  // Couleur du cercle : non géocodé (rouge) > matière
+  const avatarColor = isNotGeocoded ? NOT_GEOCODED_COLOR : matiereColor;
+
   return (
     <div className="enseignant-mini-card" onClick={onClick}>
+      {/* Bandeau haut coloré par matière */}
+      <div
+        className="mini-card-banner"
+        style={{ background: matiereColor.gradient }}
+      />
+
       {/* Menu button */}
       <div className="mini-card-menu" onClick={handleMenuClick}>
         <MoreVertical size={14} />
@@ -102,10 +143,32 @@ function EnseignantCard({ enseignant, onClick, onEdit, onDelete, onDuplicate }: 
         />
       )}
 
-      {/* Avatar centré */}
-      <div className="mini-avatar">
-        {enseignant.prenom?.[0]}{enseignant.nom[0]}
-      </div>
+      {/* Badge PP - positionné en haut gauche */}
+      {isPP && (
+        <span className="mini-pp-badge">
+          <Award size={10} />
+          PP {enseignant.classePP}
+        </span>
+      )}
+
+      {/* Avatar centré avec couleur contextuelle */}
+      {isNotGeocoded ? (
+        <Tooltip content="Non géocodé" position="top">
+          <div
+            className="mini-avatar"
+            style={{ background: avatarColor.gradient }}
+          >
+            {enseignant.prenom?.[0]}{enseignant.nom[0]}
+          </div>
+        </Tooltip>
+      ) : (
+        <div
+          className="mini-avatar"
+          style={{ background: avatarColor.gradient }}
+        >
+          {enseignant.prenom?.[0]}{enseignant.nom[0]}
+        </div>
+      )}
 
       {/* Nom */}
       <div className="mini-name">
@@ -113,20 +176,29 @@ function EnseignantCard({ enseignant, onClick, onEdit, onDelete, onDuplicate }: 
         <span className="nom">{enseignant.nom.toUpperCase()}</span>
       </div>
 
-      {/* Séparateur */}
-      <div className="mini-divider" />
-
-      {/* Badge PP - positionné en haut gauche */}
-      {enseignant.estProfPrincipal && (
-        <span className="mini-pp-badge">
-          <Award size={10} />
-          PP {enseignant.classePP}
+      {/* Matière */}
+      {enseignant.matierePrincipale && (
+        <span
+          className="mini-matiere"
+          style={{
+            background: matiereColor.light,
+            color: matiereColor.gradient.includes('#') ? undefined : undefined
+          }}
+        >
+          {enseignant.matierePrincipale}
         </span>
       )}
 
-      {/* Matière */}
-      {enseignant.matierePrincipale && (
-        <span className="mini-matiere">{enseignant.matierePrincipale}</span>
+      {/* Classes en chips */}
+      {enseignant.classesEnCharge && enseignant.classesEnCharge.length > 0 && (
+        <div className="mini-classes">
+          {enseignant.classesEnCharge.slice(0, 4).map((classe, idx) => (
+            <span key={idx} className="mini-classe-chip">{classe}</span>
+          ))}
+          {enseignant.classesEnCharge.length > 4 && (
+            <span className="mini-classe-chip more">+{enseignant.classesEnCharge.length - 4}</span>
+          )}
+        </div>
       )}
 
       {/* Hover overlay */}

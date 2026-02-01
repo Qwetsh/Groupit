@@ -5,6 +5,7 @@
 import { create } from 'zustand';
 import type { Groupe } from '../domain/models';
 import { groupeRepository } from '../infrastructure/repositories';
+import { extractErrorMessage } from '../utils/errorUtils';
 
 interface GroupeState {
   groupes: Groupe[];
@@ -43,7 +44,7 @@ export const useGroupeStore = create<GroupeState>((set, get) => ({
       const groupes = await groupeRepository.getAll();
       set({ groupes, loading: false });
     } catch (error) {
-      set({ error: String(error), loading: false });
+      set({ error: extractErrorMessage(error), loading: false });
     }
   },
   
@@ -53,7 +54,7 @@ export const useGroupeStore = create<GroupeState>((set, get) => ({
       const groupes = await groupeRepository.getByScenario(scenarioId);
       set({ groupes, loading: false });
     } catch (error) {
-      set({ error: String(error), loading: false });
+      set({ error: extractErrorMessage(error), loading: false });
     }
   },
   
@@ -63,7 +64,7 @@ export const useGroupeStore = create<GroupeState>((set, get) => ({
       set(state => ({ groupes: [...state.groupes, newGroupe] }));
       return newGroupe;
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -77,7 +78,7 @@ export const useGroupeStore = create<GroupeState>((set, get) => ({
         ),
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -89,7 +90,7 @@ export const useGroupeStore = create<GroupeState>((set, get) => ({
         groupes: state.groupes.filter(g => g.id !== id),
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -101,7 +102,7 @@ export const useGroupeStore = create<GroupeState>((set, get) => ({
         groupes: state.groupes.filter(g => g.scenarioId !== scenarioId),
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -117,7 +118,7 @@ export const useGroupeStore = create<GroupeState>((set, get) => ({
         ),
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -133,7 +134,7 @@ export const useGroupeStore = create<GroupeState>((set, get) => ({
         ),
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -153,7 +154,7 @@ export const useGroupeStore = create<GroupeState>((set, get) => ({
         }),
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -169,7 +170,7 @@ export const useGroupeStore = create<GroupeState>((set, get) => ({
         ),
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
@@ -185,7 +186,7 @@ export const useGroupeStore = create<GroupeState>((set, get) => ({
         ),
       }));
     } catch (error) {
-      set({ error: String(error) });
+      set({ error: extractErrorMessage(error) });
       throw error;
     }
   },

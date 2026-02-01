@@ -76,7 +76,7 @@ export const BoardToolbar: React.FC<BoardToolbarProps> = ({
             ) : (
               <>
                 <Wand2 size={18} />
-                Lancer le matching
+                Lancer la répartition
               </>
             )}
           </button>
@@ -87,7 +87,7 @@ export const BoardToolbar: React.FC<BoardToolbarProps> = ({
             className="btn-action validate"
             onClick={onValidateClick}
             disabled={!activeScenario || isRunning || isValidating || affectationsCount === 0}
-            title={affectationsCount === 0 ? 'Lancez d\'abord le matching' : 'Valider et archiver les affectations'}
+            title={affectationsCount === 0 ? 'Lancez d\'abord la répartition' : 'Valider et archiver les affectations'}
           >
             {isValidating ? (
               <>

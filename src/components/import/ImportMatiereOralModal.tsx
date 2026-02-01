@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import Papa from 'papaparse';
 import { useEleveStore } from '../../stores/eleveStore';
+import { useUIStore } from '../../stores/uiStore';
 import { MATIERES_HEURES_3E } from '../../domain/models';
 import type { Eleve } from '../../domain/models';
 import './ImportMatiereOralModal.css';
@@ -83,7 +84,8 @@ const MATIERE_ALIASES: Record<string, string> = {
 export function ImportMatiereOralModal({ onClose, matieresAutorisees }: ImportMatiereOralModalProps) {
   const eleves = useEleveStore(state => state.eleves);
   const updateEleve = useEleveStore(state => state.updateEleve);
-  
+  const addNotification = useUIStore(state => state.addNotification);
+
   const [step, setStep] = useState<Step>('upload');
   const [file, setFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
@@ -376,11 +378,12 @@ export function ImportMatiereOralModal({ onClose, matieresAutorisees }: ImportMa
       }
       
       // Show success message
-      const message = successCount > 0 
-        ? `✅ ${successCount} élève(s) ont reçu leur matière${skipCount > 0 ? ` (${skipCount} non traité(s))` : ''}`
-        : '⚠️ Aucun élève n\'a pu être mis à jour';
-      
-      alert(message);
+      if (successCount > 0) {
+        const message = `${successCount} élève(s) ont reçu leur matière${skipCount > 0 ? ` (${skipCount} non traité(s))` : ''}`;
+        addNotification({ type: 'success', message });
+      } else {
+        addNotification({ type: 'warning', message: 'Aucun élève n\'a pu être mis à jour' });
+      }
       
       // Close after success
       setTimeout(() => {

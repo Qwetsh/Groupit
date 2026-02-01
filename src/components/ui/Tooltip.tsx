@@ -193,11 +193,11 @@ export const HelpTooltip: React.FC<HelpTooltipProps> = ({
 export const HELP_TEXTS = {
   // Dashboard
   dashboard: {
-    checklist: "Cette liste vous guide étape par étape pour préparer vos affectations. Complétez chaque étape pour débloquer le matching.",
+    checklist: "Cette liste vous guide étape par étape pour préparer vos affectations. Complétez chaque étape pour débloquer la répartition.",
     alerts: "Les alertes signalent les problèmes potentiels qui pourraient affecter la qualité des affectations.",
     stagesMap: "Visualisez la répartition géographique des stages par rapport au collège. Les couleurs indiquent la distance.",
     history: "Retrouvez ici l'historique de vos affectations validées. Vous pouvez les consulter ou les exporter à tout moment.",
-    launchMatching: "Lance l'algorithme d'affectation automatique selon les critères du scénario actif.",
+    launchMatching: "Lance l'algorithme d'affectation automatique selon les critères de la configuration active.",
   },
 
   // Board (Matching)

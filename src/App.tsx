@@ -3,7 +3,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { MainLayout } from './components/layout';
 import { Board } from './components/board';
 import { ImportWizard } from './components/import';
-import { EnseignantModal, ScenarioModal } from './components/modals';
+import { EnseignantModal, ScenarioModal, ScenarioWizard } from './components/modals';
+import { ToastContainer } from './components/ui/Toast';
 import {
   DashboardPage,
   ElevesPage,
@@ -108,6 +109,15 @@ function App() {
           onClose={closeModal}
         />
       )}
+
+      {activeModal === 'newScenario' && (
+        <ScenarioWizard
+          onClose={closeModal}
+        />
+      )}
+
+      {/* Toast notifications */}
+      <ToastContainer />
     </BrowserRouter>
   );
 }
