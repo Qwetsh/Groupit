@@ -123,15 +123,22 @@ export const DroppableEnseignantTile: React.FC<DroppableEnseignantTileProps> = (
           {/* Badge de charge avec nombre d'élèves : affiché en mode stage */}
           {isStageScenario && (
             <>
-              <span
-                ref={dotRef}
-                className={`charge-badge ${heures3e && heures3e > 0 ? getChargeColorClass(affectations.length, heures3e) : 'charge-neutral'}`}
-                onMouseEnter={handleDotMouseEnter}
-                onMouseLeave={handleDotMouseLeave}
-                title={`${affectations.length} élève${affectations.length > 1 ? 's' : ''} affecté${affectations.length > 1 ? 's' : ''}`}
-              >
-                {affectations.length}
-              </span>
+              <div className="charge-indicator">
+                <span
+                  ref={dotRef}
+                  className={`charge-badge ${heures3e && heures3e > 0 ? getChargeColorClass(affectations.length, heures3e) : 'charge-neutral'}`}
+                  onMouseEnter={handleDotMouseEnter}
+                  onMouseLeave={handleDotMouseLeave}
+                  title={`${affectations.length} élève${affectations.length > 1 ? 's' : ''} affecté${affectations.length > 1 ? 's' : ''}`}
+                >
+                  {affectations.length}
+                </span>
+                {heures3e !== undefined && heures3e > 0 && (
+                  <span className="charge-ratio-text">
+                    {affectations.length}/{Math.round(heures3e)}
+                  </span>
+                )}
+              </div>
               {tooltipPos && heures3e !== undefined && heures3e > 0 && createPortal(
                 <div
                   className="charge-tooltip charge-tooltip-portal"
