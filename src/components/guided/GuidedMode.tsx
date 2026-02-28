@@ -2,46 +2,56 @@
 // COMPONENT - GUIDED MODE (Main Wizard)
 // ============================================================
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { X, ChevronLeft } from 'lucide-react';
 import { useUIStore, type GuidedStep } from '../../stores/uiStore';
 import { StepScenarioChoice } from './steps/StepScenarioChoice';
 import { StepImportEleves } from './steps/StepImportEleves';
 import { StepImportEnseignants } from './steps/StepImportEnseignants';
 import { StepConfiguration } from './steps/StepConfiguration';
-import { StepRecap } from './steps/StepRecap';
 import { StepResults } from './steps/StepResults';
 import './GuidedMode.css';
 
-const STEPS: GuidedStep[] = ['scenario', 'eleves', 'enseignants', 'configuration', 'recap', 'results'];
+// Steps for the wizard - recap removed, configuration now handles jury creation
+const STEPS: GuidedStep[] = ['scenario', 'eleves', 'enseignants', 'configuration', 'results'];
 
 const STEP_LABELS: Record<GuidedStep, string> = {
   welcome: 'Bienvenue',
   scenario: 'Type',
-  eleves: 'Élèves',
+  eleves: 'Eleves',
   enseignants: 'Enseignants',
   configuration: 'Configuration',
-  recap: 'Récapitulatif',
-  results: 'Résultats',
+  recap: 'Recapitulatif',
+  results: 'Resultats',
 };
 
 export function GuidedMode() {
   const { guidedMode, setGuidedStep, exitGuidedMode } = useUIStore();
   const { currentStep } = guidedMode;
 
-  const currentStepIndex = STEPS.indexOf(currentStep);
+  // Filter steps based on current step (handle legacy 'recap' step)
+  const activeSteps = useMemo(() => {
+    // If user is on 'recap' step, redirect to 'configuration'
+    if (currentStep === 'recap') {
+      setGuidedStep('configuration');
+      return STEPS;
+    }
+    return STEPS;
+  }, [currentStep, setGuidedStep]);
+
+  const currentStepIndex = activeSteps.indexOf(currentStep);
 
   const handleBack = useCallback(() => {
     if (currentStepIndex > 0) {
-      setGuidedStep(STEPS[currentStepIndex - 1]);
+      setGuidedStep(activeSteps[currentStepIndex - 1]);
     }
-  }, [currentStepIndex, setGuidedStep]);
+  }, [currentStepIndex, setGuidedStep, activeSteps]);
 
   const handleNext = useCallback(() => {
-    if (currentStepIndex < STEPS.length - 1) {
-      setGuidedStep(STEPS[currentStepIndex + 1]);
+    if (currentStepIndex < activeSteps.length - 1) {
+      setGuidedStep(activeSteps[currentStepIndex + 1]);
     }
-  }, [currentStepIndex, setGuidedStep]);
+  }, [currentStepIndex, setGuidedStep, activeSteps]);
 
   const handleExit = useCallback(() => {
     exitGuidedMode();
@@ -56,9 +66,8 @@ export function GuidedMode() {
       case 'enseignants':
         return <StepImportEnseignants onNext={handleNext} onBack={handleBack} />;
       case 'configuration':
+      case 'recap': // Handle legacy step
         return <StepConfiguration onNext={handleNext} onBack={handleBack} />;
-      case 'recap':
-        return <StepRecap onNext={handleNext} onBack={handleBack} />;
       case 'results':
         return <StepResults onFinish={handleExit} onBack={handleBack} />;
       default:
@@ -79,7 +88,7 @@ export function GuidedMode() {
           )}
 
           <div className="guided-progress">
-            {STEPS.map((step, index) => (
+            {activeSteps.map((step, index) => (
               <div
                 key={step}
                 className={`progress-dot ${index < currentStepIndex ? 'completed' : ''} ${index === currentStepIndex ? 'active' : ''}`}
@@ -96,7 +105,7 @@ export function GuidedMode() {
 
         {/* Step indicator */}
         <div className="guided-step-indicator">
-          Étape {currentStepIndex + 1} sur {STEPS.length}
+          Etape {currentStepIndex + 1} sur {activeSteps.length}
         </div>
 
         {/* Content */}

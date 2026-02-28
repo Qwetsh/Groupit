@@ -3,7 +3,7 @@
 // ============================================================
 
 import { useState, useCallback, useRef } from 'react';
-import { Upload, FileSpreadsheet, Check, Plus, Trash2, GraduationCap, ChevronRight } from 'lucide-react';
+import { Upload, FileSpreadsheet, Check, Plus, Trash2, GraduationCap, ChevronRight, Users, ChevronDown } from 'lucide-react';
 import clsx from 'clsx';
 import { useUIStore } from '../../../stores/uiStore';
 import { useEnseignantStore } from '../../../stores/enseignantStore';
@@ -45,6 +45,7 @@ export function StepImportEnseignants({ onNext, onBack }: StepImportEnseignantsP
   const [importedFiles, setImportedFiles] = useState<ImportedFile[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [showMapping, setShowMapping] = useState(false);
+  const [showImportSection, setShowImportSection] = useState(false);
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ParsedCSVData | null>(null);
   const [mappings, setMappings] = useState<EnseignantColumnMapping[]>([]);
@@ -52,7 +53,9 @@ export function StepImportEnseignants({ onNext, onBack }: StepImportEnseignantsP
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const totalImported = importedFiles.reduce((sum, f) => sum + (f.status === 'done' ? f.count : 0), 0) + enseignants.length;
+  const existingCount = enseignants.length;
+  const newlyImported = importedFiles.reduce((sum, f) => sum + (f.status === 'done' ? f.count : 0), 0);
+  const totalCount = existingCount + newlyImported;
 
   // Handle file selection
   const handleFile = useCallback(async (file: File) => {
@@ -134,7 +137,7 @@ export function StepImportEnseignants({ onNext, onBack }: StepImportEnseignantsP
           status: 'done',
         }]);
 
-        setGuidedImportedEnseignants(totalImported + result.enseignants.length);
+        setGuidedImportedEnseignants(totalCount + result.enseignants.length);
       }
 
       // Reset
@@ -154,7 +157,7 @@ export function StepImportEnseignants({ onNext, onBack }: StepImportEnseignantsP
     } finally {
       setProcessing(false);
     }
-  }, [parsedData, currentFile, mappings, addEnseignants, setGuidedImportedEnseignants, totalImported]);
+  }, [parsedData, currentFile, mappings, addEnseignants, setGuidedImportedEnseignants, totalCount]);
 
   // Cancel mapping
   const handleCancelMapping = useCallback(() => {
@@ -233,69 +236,93 @@ export function StepImportEnseignants({ onNext, onBack }: StepImportEnseignantsP
 
   return (
     <div className="guided-step step-import">
-      <h1 className="step-title">Importez vos enseignants</h1>
+      <h1 className="step-title">Vos enseignants</h1>
       <p className="step-subtitle">
         Les enseignants qui participeront aux affectations.
       </p>
 
-      {/* Drop zone */}
-      <div
-        className={clsx('upload-zone-guided', dragActive && 'active')}
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".csv,.xlsx,.xls"
-          onChange={handleFileInput}
-          hidden
-        />
-        <Upload size={40} />
-        <h3>Glissez vos fichiers ici</h3>
-        <p>ou cliquez pour sélectionner</p>
-        <span className="format-hint">CSV, Excel (.xlsx, .xls)</span>
+      {/* Existing enseignants - PRIMARY */}
+      <div className="existing-data-card">
+        <div className="existing-data-icon">
+          <Users size={32} />
+        </div>
+        <div className="existing-data-content">
+          <div className="existing-data-count">{existingCount}</div>
+          <div className="existing-data-label">
+            enseignant{existingCount !== 1 ? 's' : ''} dans votre base de données
+          </div>
+        </div>
+        {existingCount > 0 && (
+          <div className="existing-data-check">
+            <Check size={24} />
+          </div>
+        )}
       </div>
 
-      {/* Imported files list */}
-      {importedFiles.length > 0 && (
-        <div className="imported-files">
-          <h3>Fichiers importés</h3>
-          {importedFiles.map(file => (
-            <div key={file.id} className={clsx('imported-file', file.status)}>
-              <FileSpreadsheet size={20} />
-              <div className="file-info">
-                <span className="file-name">{file.name}</span>
-                <span className="file-meta">{file.count} enseignants</span>
-              </div>
-              {file.status === 'done' && <Check size={18} className="status-icon success" />}
-              <button
-                className="remove-file-btn"
-                onClick={() => handleRemoveFile(file.id)}
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          ))}
+      {/* Import section - SECONDARY (collapsible) */}
+      <div className="import-section-toggle">
+        <button
+          className={clsx('toggle-import-btn', showImportSection && 'expanded')}
+          onClick={() => setShowImportSection(!showImportSection)}
+        >
+          <Plus size={18} />
+          <span>Importer d'autres enseignants</span>
+          <ChevronDown size={18} className="toggle-icon" />
+        </button>
+      </div>
 
-          <button
-            className="add-another-btn"
+      {showImportSection && (
+        <div className="import-section-content">
+          {/* Drop zone */}
+          <div
+            className={clsx('upload-zone-guided compact', dragActive && 'active')}
+            onDragEnter={handleDrag}
+            onDragLeave={handleDrag}
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
           >
-            <Plus size={18} />
-            Ajouter un autre fichier
-          </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              onChange={handleFileInput}
+              hidden
+            />
+            <Upload size={28} />
+            <p>Glissez un fichier ou cliquez pour sélectionner</p>
+            <span className="format-hint">CSV, Excel (.xlsx, .xls)</span>
+          </div>
+
+          {/* Imported files list */}
+          {importedFiles.length > 0 && (
+            <div className="imported-files">
+              {importedFiles.map(file => (
+                <div key={file.id} className={clsx('imported-file', file.status)}>
+                  <FileSpreadsheet size={20} />
+                  <div className="file-info">
+                    <span className="file-name">{file.name}</span>
+                    <span className="file-meta">+{file.count} enseignants</span>
+                  </div>
+                  {file.status === 'done' && <Check size={18} className="status-icon success" />}
+                  <button
+                    className="remove-file-btn"
+                    onClick={() => handleRemoveFile(file.id)}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
       {/* Summary */}
       <div className="import-summary">
         <GraduationCap size={24} />
-        <span className="summary-count">{totalImported}</span>
-        <span className="summary-label">enseignants au total</span>
+        <span className="summary-count">{totalCount}</span>
+        <span className="summary-label">enseignant{totalCount !== 1 ? 's' : ''} au total</span>
       </div>
 
       {/* Actions */}
@@ -306,9 +333,9 @@ export function StepImportEnseignants({ onNext, onBack }: StepImportEnseignantsP
         <button
           className="btn btn-primary btn-large"
           onClick={handleContinue}
-          disabled={totalImported === 0}
+          disabled={totalCount === 0}
         >
-          J'ai terminé mes imports
+          Continuer
           <ChevronRight size={20} />
         </button>
       </div>
