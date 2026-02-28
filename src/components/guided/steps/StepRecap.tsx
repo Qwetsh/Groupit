@@ -1,15 +1,17 @@
 // ============================================================
-// GUIDED STEP - RECAP (Summary before launch)
+// GUIDED STEP - RECAP (Lancement répartition avec animation)
 // ============================================================
 
-import { useState, useCallback } from 'react';
-import { Users, GraduationCap, Settings, Play, Loader2 } from 'lucide-react';
+import { useState, useCallback, useEffect } from 'react';
+import { Users, GraduationCap, Settings, Play, Loader2, CheckCircle, PartyPopper, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '../../../stores/uiStore';
 import { useScenarioStore } from '../../../stores/scenarioStore';
 import { useEleveStore } from '../../../stores/eleveStore';
 import { useEnseignantStore } from '../../../stores/enseignantStore';
+import { useJuryStore } from '../../../stores/juryStore';
 import { useAffectationStore } from '../../../stores/affectationStore';
-import { solveMatching, convertToAffectations } from '../../../algorithms';
+import { solveOralDnbComplete } from '../../../algorithms';
 import '../GuidedMode.css';
 
 interface StepRecapProps {
@@ -17,48 +19,90 @@ interface StepRecapProps {
   onBack: () => void;
 }
 
-export function StepRecap({ onNext, onBack }: StepRecapProps) {
-  const { guidedMode } = useUIStore();
+type RecapState = 'ready' | 'running' | 'success' | 'error';
+
+export function StepRecap({ onBack }: StepRecapProps) {
+  const navigate = useNavigate();
+  const { guidedMode, exitGuidedMode } = useUIStore();
   const { scenarios } = useScenarioStore();
   const eleves = useEleveStore(state => state.eleves);
   const enseignants = useEnseignantStore(state => state.enseignants);
-  const { addAffectations } = useAffectationStore();
+  const { getJurysByScenario } = useJuryStore();
+  const { addAffectations, getAffectationsByScenario } = useAffectationStore();
 
-  const [launching, setLaunching] = useState(false);
+  const [state, setState] = useState<RecapState>('ready');
   const [error, setError] = useState<string | null>(null);
+  const [affectationCount, setAffectationCount] = useState(0);
 
   const scenario = scenarios.find(s => s.id === guidedMode.createdScenarioId);
+  const scenarioJurys = scenario ? getJurysByScenario(scenario.id!) : [];
 
-  // Filter eleves by scenario classes
-  const scenarioClasses = scenario?.parametres?.filtresEleves?.classes || [];
-  const filteredEleves = eleves.filter(e => scenarioClasses.includes(e.classe));
+  // Filter eleves by 3eme
+  const eleves3e = eleves.filter(e => e.classe?.startsWith('3'));
 
-  const handleLaunch = useCallback(async () => {
+  // Check if already has affectations
+  const existingAffectations = scenario ? getAffectationsByScenario(scenario.id!) : [];
+
+  // Auto-check if we already have affectations
+  useEffect(() => {
+    if (existingAffectations.length > 0) {
+      setState('success');
+      setAffectationCount(existingAffectations.length);
+    }
+  }, [existingAffectations.length]);
+
+  const handleLaunchRepartition = useCallback(async () => {
     if (!scenario) return;
 
-    setLaunching(true);
+    setState('running');
     setError(null);
 
     try {
-      // Run the matching algorithm
-      const result = solveMatching(filteredEleves, enseignants, scenario);
+      // Small delay for visual effect
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Convert results to affectations and save
-      const affectations = convertToAffectations(result.affectations, scenario);
-      await addAffectations(affectations);
+      // Run the oral DNB algorithm
+      const result = solveOralDnbComplete(
+        eleves3e,
+        enseignants,
+        scenarioJurys,
+        scenario
+      );
 
-      onNext();
+      // Convert to affectations and save
+      const affectationsToAdd = result.affectations.map(aff => ({
+        eleveId: aff.eleveId,
+        enseignantId: '', // For jury mode, we use juryId
+        juryId: aff.juryId,
+        scenarioId: scenario.id!,
+        type: 'oral_dnb' as const,
+        metadata: {},
+        score: aff.score,
+        scoreDetail: aff.scoreDetail,
+        explication: aff.explication,
+      }));
+
+      await addAffectations(affectationsToAdd);
+      setAffectationCount(affectationsToAdd.length);
+      setState('success');
+
     } catch (err) {
+      console.error('Repartition error:', err);
       setError(String(err));
-      setLaunching(false);
+      setState('error');
     }
-  }, [scenario, filteredEleves, enseignants, addAffectations, onNext]);
+  }, [scenario, eleves3e, enseignants, scenarioJurys, addAffectations]);
+
+  const handleViewResults = useCallback(() => {
+    exitGuidedMode();
+    navigate('/board');
+  }, [exitGuidedMode, navigate]);
 
   if (!scenario) {
     return (
       <div className="guided-step step-recap">
         <h1 className="step-title">Erreur</h1>
-        <p>Configuration non trouvée. Veuillez retourner à l'étape précédente.</p>
+        <p>Configuration non trouvée. Veuillez retourner a l'etape precedente.</p>
         <button className="btn btn-secondary" onClick={onBack}>
           Retour
         </button>
@@ -66,11 +110,100 @@ export function StepRecap({ onNext, onBack }: StepRecapProps) {
     );
   }
 
+  // SUCCESS STATE
+  if (state === 'success') {
+    return (
+      <div className="guided-step step-recap success-view">
+        <div className="success-animation">
+          <div className="success-icon">
+            <CheckCircle size={64} />
+          </div>
+          <PartyPopper size={32} className="confetti left" />
+          <PartyPopper size={32} className="confetti right" />
+        </div>
+
+        <h1 className="step-title success">Repartition terminee !</h1>
+        <p className="step-subtitle">
+          {affectationCount} eleves ont ete repartis dans {scenarioJurys.length} jurys.
+        </p>
+
+        <div className="success-stats">
+          <div className="success-stat">
+            <Users size={24} />
+            <span className="stat-value">{affectationCount}</span>
+            <span className="stat-label">eleves affectes</span>
+          </div>
+          <div className="success-stat">
+            <GraduationCap size={24} />
+            <span className="stat-value">{scenarioJurys.length}</span>
+            <span className="stat-label">jurys</span>
+          </div>
+        </div>
+
+        <button
+          className="btn btn-primary btn-large view-results-btn"
+          onClick={handleViewResults}
+        >
+          <Eye size={20} />
+          Voir les resultats
+        </button>
+
+        <p className="success-hint">
+          Vous pourrez ajuster les affectations manuellement par glisser-deposer.
+        </p>
+      </div>
+    );
+  }
+
+  // RUNNING STATE
+  if (state === 'running') {
+    return (
+      <div className="guided-step step-recap running-view">
+        <div className="running-animation">
+          <Loader2 size={64} className="spin" />
+        </div>
+        <h1 className="step-title">Repartition en cours...</h1>
+        <p className="step-subtitle">
+          L'algorithme optimise les affectations pour respecter les contraintes.
+        </p>
+        <div className="running-progress">
+          <div className="progress-bar">
+            <div className="progress-fill animated"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ERROR STATE
+  if (state === 'error') {
+    return (
+      <div className="guided-step step-recap error-view">
+        <h1 className="step-title error">Erreur</h1>
+        <p className="step-subtitle">
+          Une erreur s'est produite lors de la repartition.
+        </p>
+        <div className="error-message">
+          <p>{error}</p>
+        </div>
+        <div className="step-actions">
+          <button className="btn btn-secondary" onClick={onBack}>
+            Retour
+          </button>
+          <button className="btn btn-primary" onClick={handleLaunchRepartition}>
+            Reessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // READY STATE
   return (
     <div className="guided-step step-recap">
-      <h1 className="step-title">Tout est prêt !</h1>
+      <h1 className="step-title">Tout est pret !</h1>
       <p className="step-subtitle">
-        Vérifiez les informations ci-dessous avant de lancer la répartition.
+        Verifiez les informations ci-dessous avant de lancer la repartition.
       </p>
 
       <div className="recap-cards">
@@ -78,70 +211,47 @@ export function StepRecap({ onNext, onBack }: StepRecapProps) {
           <div className="recap-icon">
             <Users size={28} />
           </div>
-          <div className="recap-value">{filteredEleves.length}</div>
-          <div className="recap-label">élèves</div>
-          <div className="recap-detail">
-            Classes : {scenarioClasses.join(', ')}
-          </div>
+          <div className="recap-value">{eleves3e.length}</div>
+          <div className="recap-label">eleves de 3eme</div>
         </div>
 
         <div className="recap-card">
-          <div className="recap-icon">
+          <div className="recap-icon jury">
             <GraduationCap size={28} />
           </div>
-          <div className="recap-value">{enseignants.length}</div>
-          <div className="recap-label">enseignants</div>
+          <div className="recap-value">{scenarioJurys.length}</div>
+          <div className="recap-label">jurys</div>
           <div className="recap-detail">
-            Disponibles pour l'affectation
+            {scenarioJurys.reduce((sum, j) => sum + j.capaciteMax, 0)} places au total
           </div>
         </div>
 
         <div className="recap-card">
-          <div className="recap-icon">
+          <div className="recap-icon config">
             <Settings size={28} />
           </div>
           <div className="recap-value">{scenario.nom}</div>
           <div className="recap-label">configuration</div>
-          <div className="recap-detail">
-            {guidedMode.scenarioType === 'suivi_stage' ? 'Suivi de Stage' : 'Oral DNB'}
-          </div>
         </div>
       </div>
 
-      {error && (
-        <div className="recap-error">
-          <p>Une erreur s'est produite : {error}</p>
-        </div>
-      )}
-
       <div className="launch-section">
         <p className="launch-hint">
-          L'algorithme va automatiquement répartir les élèves entre les enseignants
-          en optimisant les critères configurés.
+          L'algorithme va repartir les eleves dans les jurys en optimisant
+          l'equilibrage et les correspondances de matieres.
         </p>
 
         <button
           className="btn btn-primary btn-launch"
-          onClick={handleLaunch}
-          disabled={launching}
+          onClick={handleLaunchRepartition}
         >
-          {launching ? (
-            <>
-              <Loader2 size={24} className="spin" />
-              Répartition en cours...
-            </>
-          ) : (
-            <>
-              <Play size={24} />
-              Lancer la répartition
-            </>
-          )}
+          <Play size={24} />
+          Lancer la repartition
         </button>
       </div>
 
-      {/* Actions */}
       <div className="step-actions">
-        <button className="btn btn-secondary" onClick={onBack} disabled={launching}>
+        <button className="btn btn-secondary" onClick={onBack}>
           Retour
         </button>
       </div>
