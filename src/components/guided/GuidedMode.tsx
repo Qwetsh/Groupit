@@ -9,11 +9,12 @@ import { StepScenarioChoice } from './steps/StepScenarioChoice';
 import { StepImportEleves } from './steps/StepImportEleves';
 import { StepImportEnseignants } from './steps/StepImportEnseignants';
 import { StepConfiguration } from './steps/StepConfiguration';
+import { StepRecap } from './steps/StepRecap';
 import { StepResults } from './steps/StepResults';
 import './GuidedMode.css';
 
-// Steps for the wizard - recap removed, configuration now handles jury creation
-const STEPS: GuidedStep[] = ['scenario', 'eleves', 'enseignants', 'configuration', 'results'];
+// Steps for the wizard
+const STEPS: GuidedStep[] = ['scenario', 'eleves', 'enseignants', 'configuration', 'recap', 'results'];
 
 const STEP_LABELS: Record<GuidedStep, string> = {
   welcome: 'Bienvenue',
@@ -29,15 +30,7 @@ export function GuidedMode() {
   const { guidedMode, setGuidedStep, exitGuidedMode } = useUIStore();
   const { currentStep } = guidedMode;
 
-  // Filter steps based on current step (handle legacy 'recap' step)
-  const activeSteps = useMemo(() => {
-    // If user is on 'recap' step, redirect to 'configuration'
-    if (currentStep === 'recap') {
-      setGuidedStep('configuration');
-      return STEPS;
-    }
-    return STEPS;
-  }, [currentStep, setGuidedStep]);
+  const activeSteps = useMemo(() => STEPS, []);
 
   const currentStepIndex = activeSteps.indexOf(currentStep);
 
@@ -66,8 +59,9 @@ export function GuidedMode() {
       case 'enseignants':
         return <StepImportEnseignants onNext={handleNext} onBack={handleBack} />;
       case 'configuration':
-      case 'recap': // Handle legacy step
         return <StepConfiguration onNext={handleNext} onBack={handleBack} />;
+      case 'recap':
+        return <StepRecap onNext={handleNext} onBack={handleBack} />;
       case 'results':
         return <StepResults onFinish={handleExit} onBack={handleBack} />;
       default:
