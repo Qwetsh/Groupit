@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, SlidersHorizontal, Eye, Database, Trash2 } from 'lucide-react';
+import { Settings, SlidersHorizontal, Eye, Database, Trash2, Compass } from 'lucide-react';
 import { useUIStore } from '../stores/uiStore';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useConfirm } from '../hooks/useConfirm';
@@ -8,6 +8,8 @@ import './InfoPage.css';
 export const ParametresPage: React.FC = () => {
   const expertMode = useUIStore(state => state.expertMode);
   const setExpertMode = useUIStore(state => state.setExpertMode);
+  const resetGuidedMode = useUIStore(state => state.resetGuidedMode);
+  const showWelcomeScreen = useUIStore(state => state.showWelcomeScreen);
 
   // Confirm modal
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirm();
@@ -31,6 +33,26 @@ export const ParametresPage: React.FC = () => {
     <div className="info-page">
       <h1>Paramètres</h1>
       <p className="lead">Configurez l'application et les préférences d'affectation.</p>
+
+      {/* Mode Guidé */}
+      <div className="info-card settings-card">
+        <div className="card-title">
+          <Compass size={18} />
+          <span>Mode guidé</span>
+        </div>
+        <p className="info-note">
+          Relancez l'assistant pas-à-pas pour configurer une nouvelle affectation.
+        </p>
+        <div className="button-group">
+          <button className="btn-primary" onClick={resetGuidedMode}>
+            <Compass size={16} />
+            Lancer le mode guidé
+          </button>
+          <button className="btn-secondary" onClick={showWelcomeScreen}>
+            Revoir l'écran de bienvenue
+          </button>
+        </div>
+      </div>
 
       {/* Mode Expert */}
       <div className="info-card settings-card">
