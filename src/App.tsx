@@ -4,6 +4,7 @@ import { MainLayout } from './components/layout';
 import { Board } from './components/board';
 import { ImportWizard } from './components/import';
 import { EnseignantModal, ScenarioModal, ScenarioWizard } from './components/modals';
+import { GuidedMode, WelcomeScreen } from './components/guided';
 import { ToastContainer } from './components/ui/Toast';
 import {
   DashboardPage,
@@ -29,6 +30,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
   const activeModal = useUIStore(state => state.activeModal);
   const closeModal = useUIStore(state => state.closeModal);
+  const guidedMode = useUIStore(state => state.guidedMode);
 
   const loadEleves = useEleveStore(state => state.loadEleves);
   const addEleves = useEleveStore(state => state.addEleves);
@@ -76,6 +78,21 @@ function App() {
     );
   }
 
+  // Show welcome screen if first visit
+  if (!guidedMode.hasSeenWelcome) {
+    return <WelcomeScreen />;
+  }
+
+  // Show guided mode if active
+  if (guidedMode.isActive) {
+    return (
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
+        <GuidedMode />
+        <ToastContainer />
+      </BrowserRouter>
+    );
+  }
+
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
@@ -92,8 +109,8 @@ function App() {
       </Routes>
 
       {activeModal === 'import' && (
-        <ImportWizard 
-          onClose={closeModal} 
+        <ImportWizard
+          onClose={closeModal}
           onImport={handleImport}
         />
       )}
