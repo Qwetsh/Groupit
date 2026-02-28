@@ -3,7 +3,7 @@
 // ============================================================
 
 import Papa from 'papaparse';
-import type { Eleve, ColumnMapping, ImportResult } from '../../domain/models';
+import type { Eleve, Enseignant, ColumnMapping, ImportResult } from '../../domain/models';
 
 // ============ TYPES ============
 
@@ -507,5 +507,148 @@ export function importElevesFromCSV(
     errors,
     warnings,
     mappings,
+  };
+}
+
+// ============ ENSEIGNANT IMPORT ============
+
+// Map des en-têtes CSV connus vers les champs Enseignant
+export const KNOWN_HEADERS_MAP_ENSEIGNANT: Record<string, keyof Enseignant> = {
+  // Nom
+  'nom': 'nom',
+  'nom enseignant': 'nom',
+  'nom de famille': 'nom',
+
+  // Prénom
+  'prénom': 'prenom',
+  'prenom': 'prenom',
+
+  // Email
+  'email': 'email',
+  'e-mail': 'email',
+  'mail': 'email',
+  'adresse e-mail': 'email',
+  'adresse email': 'email',
+  'courriel': 'email',
+
+  // Matière
+  'matière': 'matierePrincipale',
+  'matiere': 'matierePrincipale',
+  'matière principale': 'matierePrincipale',
+  'discipline': 'matierePrincipale',
+
+  // Adresse
+  'adresse': 'adresse',
+  'adresse postale': 'adresse',
+  'rue': 'adresse',
+
+  // Commune/Ville
+  'commune': 'commune',
+  'ville': 'commune',
+  'localité': 'commune',
+  'localite': 'commune',
+};
+
+/**
+ * Génère automatiquement le mapping pour les enseignants
+ */
+export function generateAutoMappingEnseignants(headers: string[]): ColumnMapping[] {
+  return headers.map(header => {
+    const normalizedHeader = header.toLowerCase().trim();
+    const targetField = KNOWN_HEADERS_MAP_ENSEIGNANT[normalizedHeader] || null;
+    const isIgnored = IGNORED_COLUMNS.some(ignored =>
+      normalizedHeader === ignored || normalizedHeader.startsWith('unnamed')
+    );
+
+    return {
+      csvHeader: header,
+      targetField: isIgnored ? null : targetField,
+      isIgnored,
+    };
+  });
+}
+
+/**
+ * Import result for enseignants
+ */
+export interface EnseignantImportResult {
+  success: boolean;
+  enseignants: Partial<Enseignant>[];
+  errors: string[];
+  warnings: string[];
+}
+
+/**
+ * Importe les enseignants depuis les données CSV parsées
+ */
+export function importEnseignantsFromCSV(
+  data: ParsedCSVData,
+  mappings: ColumnMapping[]
+): EnseignantImportResult {
+  const enseignants: Partial<Enseignant>[] = [];
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  data.rows.forEach((row, index) => {
+    try {
+      const enseignant: Partial<Enseignant> = {
+        matiereSecondaire: [],
+        classesEnCharge: [],
+        customFields: {},
+      };
+
+      // Appliquer les mappings
+      mappings.forEach(mapping => {
+        if (mapping.isIgnored || !mapping.targetField) return;
+
+        const value = row[mapping.csvHeader];
+        if (!value || value.trim() === '') return;
+
+        const trimmedValue = value.trim();
+
+        switch (mapping.targetField) {
+          case 'nom':
+            enseignant.nom = trimmedValue.toUpperCase();
+            break;
+          case 'prenom':
+            enseignant.prenom = trimmedValue.charAt(0).toUpperCase() + trimmedValue.slice(1).toLowerCase();
+            break;
+          case 'email':
+            enseignant.email = trimmedValue.toLowerCase();
+            break;
+          case 'matierePrincipale':
+            enseignant.matierePrincipale = trimmedValue;
+            break;
+          case 'adresse':
+            enseignant.adresse = trimmedValue;
+            break;
+          case 'commune':
+            enseignant.commune = trimmedValue;
+            break;
+          default:
+            // Stocker dans customFields
+            if (enseignant.customFields) {
+              enseignant.customFields[mapping.csvHeader] = trimmedValue;
+            }
+        }
+      });
+
+      // Validation minimale
+      if (!enseignant.nom || enseignant.nom.trim() === '') {
+        warnings.push(`Ligne ${index + 2}: Nom manquant, ligne ignorée`);
+        return;
+      }
+
+      enseignants.push(enseignant);
+    } catch (error) {
+      errors.push(`Ligne ${index + 2}: Erreur de parsing - ${error}`);
+    }
+  });
+
+  return {
+    success: errors.length === 0,
+    enseignants,
+    errors,
+    warnings,
   };
 }

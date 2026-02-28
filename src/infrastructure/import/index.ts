@@ -5,7 +5,9 @@
 export {
   parseCSVFile,
   generateAutoMapping,
+  generateAutoMappingEnseignants,
   importElevesFromCSV,
+  importEnseignantsFromCSV,
   extractClassFromFilename,
   parseDate,
   parseFullName,
@@ -13,9 +15,11 @@ export {
   detectEncoding,
   decodeBuffer,
   KNOWN_HEADERS_MAP,
+  KNOWN_HEADERS_MAP_ENSEIGNANT,
   IGNORED_COLUMNS,
   type ParsedCSVData,
   type MappingConfig,
+  type EnseignantImportResult,
 } from './csvParser';
 
 export {

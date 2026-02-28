@@ -8,6 +8,20 @@ import type { ConstraintViolation } from '../domain/models';
 type Tab = 'matching' | 'groupes';
 type Modal = 'import' | 'importMatiereOral' | 'editEleve' | 'editEnseignant' | 'editAffectation' | 'editGroupe' | 'editScenario' | 'newScenario' | 'confirmDelete' | null;
 
+// Guided mode types
+export type GuidedScenarioType = 'suivi_stage' | 'oral_dnb' | null;
+export type GuidedStep = 'welcome' | 'scenario' | 'eleves' | 'enseignants' | 'configuration' | 'recap' | 'results';
+
+export interface GuidedModeState {
+  isActive: boolean;
+  hasSeenWelcome: boolean;
+  currentStep: GuidedStep;
+  scenarioType: GuidedScenarioType;
+  importedElevesCount: number;
+  importedEnseignantsCount: number;
+  createdScenarioId: string | null;
+}
+
 // Dashboard card visibility preferences
 export interface DashboardPreferences {
   showChecklist: boolean;
@@ -21,6 +35,16 @@ const DEFAULT_DASHBOARD_PREFS: DashboardPreferences = {
   showAlerts: true,
   showHistory: true,
   showStagesMap: true,
+};
+
+const DEFAULT_GUIDED_MODE: GuidedModeState = {
+  isActive: false,
+  hasSeenWelcome: false,
+  currentStep: 'welcome',
+  scenarioType: null,
+  importedElevesCount: 0,
+  importedEnseignantsCount: 0,
+  createdScenarioId: null,
 };
 
 interface Notification {
@@ -87,6 +111,18 @@ interface UIState {
   showShortcutsHelp: boolean;
   toggleShortcutsHelp: () => void;
   setShowShortcutsHelp: (show: boolean) => void;
+
+  // Guided mode
+  guidedMode: GuidedModeState;
+  setGuidedModeActive: (active: boolean) => void;
+  setGuidedStep: (step: GuidedStep) => void;
+  setGuidedScenarioType: (type: GuidedScenarioType) => void;
+  setGuidedImportedEleves: (count: number) => void;
+  setGuidedImportedEnseignants: (count: number) => void;
+  setGuidedCreatedScenarioId: (id: string | null) => void;
+  markWelcomeSeen: () => void;
+  resetGuidedMode: () => void;
+  exitGuidedMode: () => void;
 }
 
 let notificationId = 0;
@@ -183,6 +219,57 @@ export const useUIStore = create<UIState>((set, get) => ({
   showShortcutsHelp: false,
   toggleShortcutsHelp: () => set(state => ({ showShortcutsHelp: !state.showShortcutsHelp })),
   setShowShortcutsHelp: (show) => set({ showShortcutsHelp: show }),
+
+  // Guided mode
+  guidedMode: DEFAULT_GUIDED_MODE,
+  setGuidedModeActive: (active) => {
+    set(state => ({
+      guidedMode: { ...state.guidedMode, isActive: active }
+    }));
+    localStorage.setItem('groupit_guidedModeActive', String(active));
+  },
+  setGuidedStep: (step) => {
+    set(state => ({
+      guidedMode: { ...state.guidedMode, currentStep: step }
+    }));
+  },
+  setGuidedScenarioType: (type) => {
+    set(state => ({
+      guidedMode: { ...state.guidedMode, scenarioType: type }
+    }));
+  },
+  setGuidedImportedEleves: (count) => {
+    set(state => ({
+      guidedMode: { ...state.guidedMode, importedElevesCount: count }
+    }));
+  },
+  setGuidedImportedEnseignants: (count) => {
+    set(state => ({
+      guidedMode: { ...state.guidedMode, importedEnseignantsCount: count }
+    }));
+  },
+  setGuidedCreatedScenarioId: (id) => {
+    set(state => ({
+      guidedMode: { ...state.guidedMode, createdScenarioId: id }
+    }));
+  },
+  markWelcomeSeen: () => {
+    set(state => ({
+      guidedMode: { ...state.guidedMode, hasSeenWelcome: true }
+    }));
+    localStorage.setItem('groupit_hasSeenWelcome', 'true');
+  },
+  resetGuidedMode: () => {
+    set({
+      guidedMode: { ...DEFAULT_GUIDED_MODE, hasSeenWelcome: true, isActive: true }
+    });
+  },
+  exitGuidedMode: () => {
+    set(state => ({
+      guidedMode: { ...state.guidedMode, isActive: false }
+    }));
+    localStorage.setItem('groupit_guidedModeActive', 'false');
+  },
 }));
 
 // Charger le mode expert depuis localStorage au démarrage
@@ -202,4 +289,16 @@ if (typeof window !== 'undefined') {
       // Ignore parsing errors
     }
   }
+
+  // Charger l'état du mode guidé
+  const hasSeenWelcome = localStorage.getItem('groupit_hasSeenWelcome') === 'true';
+  const guidedModeActive = localStorage.getItem('groupit_guidedModeActive') === 'true';
+
+  useUIStore.setState({
+    guidedMode: {
+      ...DEFAULT_GUIDED_MODE,
+      hasSeenWelcome,
+      isActive: guidedModeActive,
+    }
+  });
 }
