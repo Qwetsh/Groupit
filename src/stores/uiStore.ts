@@ -122,6 +122,7 @@ interface UIState {
   setGuidedCreatedScenarioId: (id: string | null) => void;
   markWelcomeSeen: () => void;
   resetGuidedMode: () => void;
+  showWelcomeScreen: () => void;
   exitGuidedMode: () => void;
 }
 
@@ -261,8 +262,16 @@ export const useUIStore = create<UIState>((set, get) => ({
   },
   resetGuidedMode: () => {
     set({
-      guidedMode: { ...DEFAULT_GUIDED_MODE, hasSeenWelcome: true, isActive: true }
+      guidedMode: { ...DEFAULT_GUIDED_MODE, hasSeenWelcome: true, isActive: true, currentStep: 'scenario' }
     });
+    localStorage.setItem('groupit_guidedModeActive', 'true');
+  },
+  showWelcomeScreen: () => {
+    set({
+      guidedMode: { ...DEFAULT_GUIDED_MODE, hasSeenWelcome: false, isActive: false }
+    });
+    localStorage.removeItem('groupit_hasSeenWelcome');
+    localStorage.removeItem('groupit_guidedModeActive');
   },
   exitGuidedMode: () => {
     set(state => ({
