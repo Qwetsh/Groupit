@@ -3,12 +3,13 @@
 // ============================================================
 
 import { useState, useCallback } from 'react';
-import { Users, GraduationCap, Settings, Play, ChevronRight, Loader2 } from 'lucide-react';
+import { Users, GraduationCap, Settings, Play, Loader2 } from 'lucide-react';
 import { useUIStore } from '../../../stores/uiStore';
 import { useScenarioStore } from '../../../stores/scenarioStore';
 import { useEleveStore } from '../../../stores/eleveStore';
 import { useEnseignantStore } from '../../../stores/enseignantStore';
 import { useAffectationStore } from '../../../stores/affectationStore';
+import { solveMatching, convertToAffectations } from '../../../algorithms';
 import '../GuidedMode.css';
 
 interface StepRecapProps {
@@ -21,7 +22,7 @@ export function StepRecap({ onNext, onBack }: StepRecapProps) {
   const { scenarios } = useScenarioStore();
   const eleves = useEleveStore(state => state.eleves);
   const enseignants = useEnseignantStore(state => state.enseignants);
-  const { runAlgorithm } = useAffectationStore();
+  const { addAffectations } = useAffectationStore();
 
   const [launching, setLaunching] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +30,7 @@ export function StepRecap({ onNext, onBack }: StepRecapProps) {
   const scenario = scenarios.find(s => s.id === guidedMode.createdScenarioId);
 
   // Filter eleves by scenario classes
-  const scenarioClasses = scenario?.filtresEleves?.classes || [];
+  const scenarioClasses = scenario?.parametres?.filtresEleves?.classes || [];
   const filteredEleves = eleves.filter(e => scenarioClasses.includes(e.classe));
 
   const handleLaunch = useCallback(async () => {
@@ -39,13 +40,19 @@ export function StepRecap({ onNext, onBack }: StepRecapProps) {
     setError(null);
 
     try {
-      await runAlgorithm(scenario.id);
+      // Run the matching algorithm
+      const result = solveMatching(filteredEleves, enseignants, scenario);
+
+      // Convert results to affectations and save
+      const affectations = convertToAffectations(result.affectations, scenario);
+      await addAffectations(affectations);
+
       onNext();
     } catch (err) {
       setError(String(err));
       setLaunching(false);
     }
-  }, [scenario, runAlgorithm, onNext]);
+  }, [scenario, filteredEleves, enseignants, addAffectations, onNext]);
 
   if (!scenario) {
     return (

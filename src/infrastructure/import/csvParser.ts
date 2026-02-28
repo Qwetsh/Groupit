@@ -3,7 +3,7 @@
 // ============================================================
 
 import Papa from 'papaparse';
-import type { Eleve, Enseignant, ColumnMapping, ImportResult } from '../../domain/models';
+import type { Eleve, Enseignant, ColumnMapping, EnseignantColumnMapping, ImportResult } from '../../domain/models';
 
 // ============ TYPES ============
 
@@ -523,14 +523,6 @@ export const KNOWN_HEADERS_MAP_ENSEIGNANT: Record<string, keyof Enseignant> = {
   'prénom': 'prenom',
   'prenom': 'prenom',
 
-  // Email
-  'email': 'email',
-  'e-mail': 'email',
-  'mail': 'email',
-  'adresse e-mail': 'email',
-  'adresse email': 'email',
-  'courriel': 'email',
-
   // Matière
   'matière': 'matierePrincipale',
   'matiere': 'matierePrincipale',
@@ -552,7 +544,7 @@ export const KNOWN_HEADERS_MAP_ENSEIGNANT: Record<string, keyof Enseignant> = {
 /**
  * Génère automatiquement le mapping pour les enseignants
  */
-export function generateAutoMappingEnseignants(headers: string[]): ColumnMapping[] {
+export function generateAutoMappingEnseignants(headers: string[]): EnseignantColumnMapping[] {
   return headers.map(header => {
     const normalizedHeader = header.toLowerCase().trim();
     const targetField = KNOWN_HEADERS_MAP_ENSEIGNANT[normalizedHeader] || null;
@@ -583,7 +575,7 @@ export interface EnseignantImportResult {
  */
 export function importEnseignantsFromCSV(
   data: ParsedCSVData,
-  mappings: ColumnMapping[]
+  mappings: EnseignantColumnMapping[]
 ): EnseignantImportResult {
   const enseignants: Partial<Enseignant>[] = [];
   const errors: string[] = [];
@@ -612,9 +604,6 @@ export function importEnseignantsFromCSV(
             break;
           case 'prenom':
             enseignant.prenom = trimmedValue.charAt(0).toUpperCase() + trimmedValue.slice(1).toLowerCase();
-            break;
-          case 'email':
-            enseignant.email = trimmedValue.toLowerCase();
             break;
           case 'matierePrincipale':
             enseignant.matierePrincipale = trimmedValue;

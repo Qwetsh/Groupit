@@ -3,10 +3,17 @@
 // ============================================================
 
 import type { Eleve } from './eleve';
+import type { Enseignant } from './enseignant';
 
 export interface ColumnMapping {
   csvHeader: string;
   targetField: keyof Eleve | null;
+  isIgnored: boolean;
+}
+
+export interface EnseignantColumnMapping {
+  csvHeader: string;
+  targetField: keyof Enseignant | null;
   isIgnored: boolean;
 }
 
