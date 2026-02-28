@@ -94,7 +94,7 @@ export type {
 } from './matching';
 
 // ============ IMPORT ============
-export type { ColumnMapping, ImportResult, ImportMatiereOralResult } from './import';
+export type { ColumnMapping, EnseignantColumnMapping, ImportResult, ImportMatiereOralResult } from './import';
 
 // ============ FIELD DEFINITION ============
 export type { FieldType, EntityType, FieldDefinition } from './field';

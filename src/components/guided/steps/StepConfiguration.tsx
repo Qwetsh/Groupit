@@ -58,17 +58,23 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
         nom: scenarioName,
         type: guidedMode.scenarioType === 'suivi_stage' ? 'suivi_stage' : 'oral_dnb',
         mode: guidedMode.scenarioType === 'oral_dnb' ? 'groupes' : 'matching',
-        isActive: true,
-        filtresEleves: {
-          classes: selectedClasses,
+        parametres: {
+          criteres: [],
+          capaciteConfig: {
+            capaciteBaseDefaut: 15,
+            coefficients: { '6e': 0, '5e': 0, '4e': 0, '3e': 1 },
+          },
+          filtresEleves: {
+            classes: selectedClasses,
+          },
+          filtresEnseignants: {},
+          equilibrageActif: true,
         },
-        filtresEnseignants: {},
-        criteresV2: [],
       };
 
-      const scenarioId = await addScenario(newScenario);
-      setGuidedCreatedScenarioId(scenarioId);
-      setActiveScenario(scenarioId);
+      const createdScenario = await addScenario(newScenario);
+      setGuidedCreatedScenarioId(createdScenario.id);
+      setActiveScenario(createdScenario.id);
 
       onNext();
     } catch (error) {

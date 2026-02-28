@@ -13,7 +13,7 @@ import {
   importEnseignantsFromCSV,
   type ParsedCSVData,
 } from '../../../infrastructure/import';
-import type { Enseignant, ColumnMapping } from '../../../domain/models';
+import type { Enseignant, EnseignantColumnMapping } from '../../../domain/models';
 import '../GuidedMode.css';
 
 interface ImportedFile {
@@ -32,7 +32,6 @@ interface StepImportEnseignantsProps {
 const ENSEIGNANT_FIELDS: { key: keyof Enseignant; label: string }[] = [
   { key: 'nom', label: 'Nom' },
   { key: 'prenom', label: 'Prénom' },
-  { key: 'email', label: 'Email' },
   { key: 'matierePrincipale', label: 'Matière principale' },
   { key: 'adresse', label: 'Adresse' },
   { key: 'commune', label: 'Commune' },
@@ -48,7 +47,7 @@ export function StepImportEnseignants({ onNext, onBack }: StepImportEnseignantsP
   const [showMapping, setShowMapping] = useState(false);
   const [currentFile, setCurrentFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ParsedCSVData | null>(null);
-  const [mappings, setMappings] = useState<ColumnMapping[]>([]);
+  const [mappings, setMappings] = useState<EnseignantColumnMapping[]>([]);
   const [processing, setProcessing] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
