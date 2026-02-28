@@ -1053,6 +1053,534 @@
   color: #94a3b8;
 }
 
+/* ============================================================
+   EXISTING DATA CARD (for showing existing enseignants)
+   ============================================================ */
+
+.existing-data-card {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.05));
+  border: 2px solid rgba(34, 197, 94, 0.3);
+  border-radius: 16px;
+  margin-bottom: 1.5rem;
+}
+
+.existing-data-icon {
+  width: 64px;
+  height: 64px;
+  background: rgba(34, 197, 94, 0.2);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #22c55e;
+  flex-shrink: 0;
+}
+
+.existing-data-content {
+  flex: 1;
+}
+
+.existing-data-count {
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+  line-height: 1;
+}
+
+.existing-data-label {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  margin-top: 0.25rem;
+}
+
+.existing-data-check {
+  color: #22c55e;
+}
+
+/* Import section toggle */
+.import-section-toggle {
+  margin-bottom: 1rem;
+}
+
+.toggle-import-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  color: #94a3b8;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggle-import-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.toggle-import-btn .toggle-icon {
+  margin-left: auto;
+  transition: transform 0.2s;
+}
+
+.toggle-import-btn.expanded .toggle-icon {
+  transform: rotate(180deg);
+}
+
+.import-section-content {
+  animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.upload-zone-guided.compact {
+  padding: 1.5rem;
+}
+
+.upload-zone-guided.compact h3 {
+  display: none;
+}
+
+/* ============================================================
+   ENSEIGNANT SELECTION GRID
+   ============================================================ */
+
+.auto-selection-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 12px;
+}
+
+.auto-selection-info svg {
+  color: #22c55e;
+  flex-shrink: 0;
+}
+
+.auto-selection-info div {
+  flex: 1;
+}
+
+.auto-selection-info strong {
+  display: block;
+  color: white;
+  font-size: 0.875rem;
+}
+
+.auto-selection-info span {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.auto-selection-info .check-icon {
+  color: #22c55e;
+}
+
+.number-input-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 200px;
+}
+
+.number-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.number-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.number-input {
+  width: 80px;
+  text-align: center;
+}
+
+.calculation-preview {
+  display: flex;
+  justify-content: space-around;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  margin: 1rem 0;
+}
+
+.calc-item {
+  text-align: center;
+}
+
+.calc-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+}
+
+.calc-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #3b82f6;
+}
+
+.calc-value.warning {
+  color: #f59e0b;
+}
+
+.warning-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 12px;
+  margin: 1rem 0;
+}
+
+.warning-message svg {
+  color: #f59e0b;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.warning-message span {
+  font-size: 0.875rem;
+  color: #fbbf24;
+  line-height: 1.5;
+}
+
+.selection-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.selection-actions .btn-text {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.enseignant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+}
+
+.enseignant-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.125rem;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  position: relative;
+}
+
+.enseignant-chip:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.enseignant-chip.selected {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: #3b82f6;
+}
+
+.enseignant-chip.selected svg {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  color: #3b82f6;
+}
+
+.enseignant-chip .ens-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: white;
+}
+
+.enseignant-chip .ens-matiere {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.no-data-warning {
+  font-size: 0.875rem;
+  color: #f59e0b;
+  font-style: italic;
+  padding: 1rem;
+  text-align: center;
+}
+
+/* ============================================================
+   JURY EDITOR
+   ============================================================ */
+
+.jury-editor {
+  max-width: 1000px;
+}
+
+.jury-stats {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+.jury-stats .stat-item {
+  text-align: center;
+}
+
+.jury-stats .stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #3b82f6;
+}
+
+.jury-stats .stat-label {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.jury-stats .stat-item.warning {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #f59e0b;
+  font-size: 0.875rem;
+}
+
+.regenerate-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0 auto 1.5rem;
+}
+
+.jury-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.jury-card-guided {
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1rem;
+  transition: all 0.2s;
+}
+
+.jury-card-guided.drop-target {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.jury-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.jury-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+}
+
+.jury-capacity-input {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.capacity-input {
+  width: 50px;
+  padding: 0.25rem 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: white;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.capacity-label {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.jury-members {
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.empty-jury {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.jury-member {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  cursor: grab;
+  transition: all 0.2s;
+}
+
+.jury-member:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.jury-member.dragging {
+  opacity: 0.5;
+}
+
+.jury-member.dragging-overlay {
+  background: rgba(59, 130, 246, 0.3);
+  border: 2px solid #3b82f6;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.drag-handle {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.member-name {
+  flex: 1;
+  font-size: 0.875rem;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.member-matiere {
+  font-size: 0.75rem;
+  color: #64748b;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.125rem 0.5rem;
+  border-radius: 4px;
+}
+
+.jury-footer {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.jury-matieres {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.unassigned-zone {
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  transition: all 0.2s;
+}
+
+.unassigned-zone.drop-target {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.unassigned-zone h4 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #94a3b8;
+  margin-bottom: 0.75rem;
+}
+
+.unassigned-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Loading redirect */
+.loading-redirect {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+}
+
+.redirect-animation {
+  margin-bottom: 1.5rem;
+}
+
+.redirect-animation .spin {
+  color: #3b82f6;
+  animation: spin 1s linear infinite;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .guided-overlay {
@@ -1078,5 +1606,23 @@
 
   .welcome-choice .choice-icon {
     margin: 0 auto;
+  }
+
+  .jury-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .enseignant-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .calculation-preview {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .jury-stats {
+    flex-wrap: wrap;
+    gap: 1rem;
   }
 }
