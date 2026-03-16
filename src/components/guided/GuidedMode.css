@@ -1644,6 +1644,38 @@
   flex-shrink: 0;
 }
 
+/* Grille sélection demi-journées oral (thème sombre) */
+.oral-grid {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.oral-grid .indispo-jour-header {
+  color: #94a3b8;
+}
+
+.oral-grid .indispo-label-col {
+  color: #94a3b8;
+}
+
+.oral-grid .indispo-cell.dispo {
+  background: #334155;
+  color: #64748b;
+}
+
+.oral-grid .indispo-cell.dispo:hover {
+  background: #475569;
+}
+
+.oral-grid .indispo-cell.indispo {
+  background: #1d4ed8;
+  color: #ffffff;
+}
+
+.oral-grid .indispo-cell.indispo:hover {
+  background: #2563eb;
+}
+
 /* Chip enseignant indisponible */
 .enseignant-chip.indisponible {
   border-color: #fca5a5 !important;

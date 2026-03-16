@@ -67,8 +67,8 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
   const [description, setDescription] = useState('');
   const [capaciteJury, setCapaciteJury] = useState(15);
 
-  // Demi-journée de l'oral DNB
-  const [demiJourneeOral, setDemiJourneeOral] = useState('');
+  // Demi-journées de l'oral DNB
+  const [demiJourneesOral, setDemiJourneesOral] = useState<string[]>([]);
 
   // Options spécifiques au mode custom
   const [selectedNiveaux, setSelectedNiveaux] = useState<Set<Niveau>>(new Set(['3e', '4e', '5e', '6e']));
@@ -272,7 +272,7 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
             poidsMatiere: 80,
             criteresSecondaires: ['equilibrage', 'capacite'] as ('equilibrage' | 'parite' | 'capacite')[],
             capaciteJuryDefaut: capaciteJury,
-            demiJourneeOral: demiJourneeOral || undefined,
+            demiJourneesOral: demiJourneesOral.length > 0 ? demiJourneesOral : undefined,
           } : undefined,
           suiviStage: selectedType === 'suivi_stage' ? {
             distanceMaxKm: 30,
@@ -428,32 +428,47 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
                   </div>
                 )}
 
-                {/* Demi-journée de l'oral DNB */}
+                {/* Demi-journées de l'oral DNB */}
                 {selectedType === 'oral_dnb' && (
                   <div className="form-field">
-                    <label htmlFor="demi-journee">
+                    <label>
                       <Calendar size={16} />
-                      Demi-journée de l'oral
+                      Demi-journée(s) de l'oral
                     </label>
-                    <select
-                      id="demi-journee"
-                      value={demiJourneeOral}
-                      onChange={e => setDemiJourneeOral(e.target.value)}
-                    >
-                      <option value="">Non définie</option>
-                      <option value="lundi_matin">Lundi matin</option>
-                      <option value="lundi_aprem">Lundi après-midi</option>
-                      <option value="mardi_matin">Mardi matin</option>
-                      <option value="mardi_aprem">Mardi après-midi</option>
-                      <option value="mercredi_matin">Mercredi matin</option>
-                      <option value="mercredi_aprem">Mercredi après-midi</option>
-                      <option value="jeudi_matin">Jeudi matin</option>
-                      <option value="jeudi_aprem">Jeudi après-midi</option>
-                      <option value="vendredi_matin">Vendredi matin</option>
-                      <option value="vendredi_aprem">Vendredi après-midi</option>
-                    </select>
+                    <div className="indispo-grid oral-grid">
+                      <div className="indispo-header">
+                        <span className="indispo-label-col" />
+                        {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'].map(jour => (
+                          <span key={jour} className="indispo-jour-header">{jour.slice(0, 3)}</span>
+                        ))}
+                      </div>
+                      {['Matin', 'Après-midi'].map(periode => (
+                        <div key={periode} className="indispo-row">
+                          <span className="indispo-label-col">{periode === 'Après-midi' ? 'AP' : 'AM'}</span>
+                          {['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi'].map(jour => {
+                            const id = `${jour}_${periode === 'Matin' ? 'matin' : 'aprem'}`;
+                            const isSelected = demiJourneesOral.includes(id);
+                            return (
+                              <button
+                                key={id}
+                                type="button"
+                                className={`indispo-cell ${isSelected ? 'indispo' : 'dispo'}`}
+                                title={`${jour.charAt(0).toUpperCase() + jour.slice(1)} ${periode}`}
+                                onClick={() => {
+                                  setDemiJourneesOral(prev =>
+                                    isSelected ? prev.filter(d => d !== id) : [...prev, id]
+                                  );
+                                }}
+                              >
+                                {isSelected ? <Check size={12} /> : ''}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ))}
+                    </div>
                     <span className="field-hint">
-                      Les enseignants indisponibles cette demi-journée seront signalés
+                      Cliquez pour sélectionner les demi-journées — les enseignants indisponibles seront signalés
                     </span>
                   </div>
                 )}
