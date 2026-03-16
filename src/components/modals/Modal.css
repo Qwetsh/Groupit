@@ -770,6 +770,16 @@
   background: #fecaca;
 }
 
+/* Variante grille pour sélection demi-journées oral */
+.indispo-grid.oral-grid .indispo-cell.indispo {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.indispo-grid.oral-grid .indispo-cell.indispo:hover {
+  background: #bfdbfe;
+}
+
 /* ============================================================
    CUSTOM FIELDS SECTION
    ============================================================ */

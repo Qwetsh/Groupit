@@ -27,16 +27,16 @@ interface StepConfigurationProps {
 interface DraggableEnseignantProps {
   enseignant: Enseignant;
   fromJuryId: string | null;
-  demiJourneeOral?: string;
+  demiJourneesOral?: string[];
 }
 
-function DraggableEnseignant({ enseignant, fromJuryId, demiJourneeOral }: DraggableEnseignantProps) {
+function DraggableEnseignant({ enseignant, fromJuryId, demiJourneesOral }: DraggableEnseignantProps) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `ens-${enseignant.id}`,
     data: { enseignant, fromJuryId },
   });
 
-  const isIndispo = demiJourneeOral && enseignant.indisponibilites?.includes(demiJourneeOral);
+  const isIndispo = demiJourneesOral && demiJourneesOral.length > 0 && enseignant.indisponibilites?.some(d => demiJourneesOral.includes(d));
 
   return (
     <div
@@ -58,10 +58,10 @@ interface DroppableJuryProps {
   jury: Jury;
   enseignants: Enseignant[];
   onCapacityChange: (capacity: number) => void;
-  demiJourneeOral?: string;
+  demiJourneesOral?: string[];
 }
 
-function DroppableJury({ jury, enseignants, onCapacityChange, demiJourneeOral }: DroppableJuryProps) {
+function DroppableJury({ jury, enseignants, onCapacityChange, demiJourneesOral }: DroppableJuryProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `jury-${jury.id}`,
   });
@@ -95,7 +95,7 @@ function DroppableJury({ jury, enseignants, onCapacityChange, demiJourneeOral }:
             key={ens.id}
             enseignant={ens}
             fromJuryId={jury.id!}
-            demiJourneeOral={demiJourneeOral}
+            demiJourneesOral={demiJourneesOral}
           />
         ))}
         {juryEnseignants.length === 0 && (
@@ -113,7 +113,7 @@ function DroppableJury({ jury, enseignants, onCapacityChange, demiJourneeOral }:
               key={ens.id}
               enseignant={ens}
               fromJuryId={jury.id!}
-              demiJourneeOral={demiJourneeOral}
+              demiJourneesOral={demiJourneesOral}
             />
           ))}
         </div>
@@ -130,10 +130,10 @@ function DroppableJury({ jury, enseignants, onCapacityChange, demiJourneeOral }:
 interface DroppableUnassignedProps {
   enseignants: Enseignant[];
   selectedIds: Set<string>;
-  demiJourneeOral?: string;
+  demiJourneesOral?: string[];
 }
 
-function DroppableUnassigned({ enseignants, selectedIds, demiJourneeOral }: DroppableUnassignedProps) {
+function DroppableUnassigned({ enseignants, selectedIds, demiJourneesOral }: DroppableUnassignedProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: 'unassigned',
   });
@@ -153,7 +153,7 @@ function DroppableUnassigned({ enseignants, selectedIds, demiJourneeOral }: Drop
             key={ens.id}
             enseignant={ens}
             fromJuryId={null}
-            demiJourneeOral={demiJourneeOral}
+            demiJourneesOral={demiJourneesOral}
           />
         ))}
       </div>
@@ -182,7 +182,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
   const [createdScenarioId, setCreatedScenarioId] = useState<string | null>(null);
   const [showJuryEditor, setShowJuryEditor] = useState(false);
   const [activeEnseignant, setActiveEnseignant] = useState<Enseignant | null>(null);
-  const [demiJourneeOral, setDemiJourneeOral] = useState('');
+  const [demiJourneesOral, setDemiJourneesOral] = useState<string[]>([]);
   const [filterNiveaux, setFilterNiveaux] = useState<Set<string>>(new Set());
   const [filterMatieres, setFilterMatieres] = useState<Set<string>>(new Set());
 
@@ -372,7 +372,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
             poidsMatiere: 50,
             criteresSecondaires: ['equilibrage'],
             capaciteJuryDefaut: elevesParJury,
-            demiJourneeOral: demiJourneeOral || undefined,
+            demiJourneesOral: demiJourneesOral.length > 0 ? demiJourneesOral : undefined,
           },
         },
       };
@@ -540,7 +540,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
                 jury={jury}
                 enseignants={enseignants}
                 onCapacityChange={(cap) => handleJuryCapacityChange(jury.id!, cap)}
-                demiJourneeOral={demiJourneeOral}
+                demiJourneesOral={demiJourneesOral}
               />
             ))}
           </div>
@@ -550,7 +550,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
             <DroppableUnassigned
               enseignants={unassignedSelectedEnseignants}
               selectedIds={selectedEnseignantIds}
-              demiJourneeOral={demiJourneeOral}
+              demiJourneesOral={demiJourneesOral}
             />
           )}
 
@@ -637,31 +637,46 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
           </div>
         )}
 
-        {/* Demi-journée de l'oral */}
+        {/* Demi-journée(s) de l'oral */}
         {isOralDnb && (
           <div className="form-group">
             <label>
               <Calendar size={18} />
-              Demi-journee de l'oral
+              Demi-journee(s) de l'oral
             </label>
-            <select
-              value={demiJourneeOral}
-              onChange={(e) => setDemiJourneeOral(e.target.value)}
-              className="form-input"
-            >
-              <option value="">Non definie</option>
-              <option value="lundi_matin">Lundi matin</option>
-              <option value="lundi_aprem">Lundi apres-midi</option>
-              <option value="mardi_matin">Mardi matin</option>
-              <option value="mardi_aprem">Mardi apres-midi</option>
-              <option value="mercredi_matin">Mercredi matin</option>
-              <option value="mercredi_aprem">Mercredi apres-midi</option>
-              <option value="jeudi_matin">Jeudi matin</option>
-              <option value="jeudi_aprem">Jeudi apres-midi</option>
-              <option value="vendredi_matin">Vendredi matin</option>
-              <option value="vendredi_aprem">Vendredi apres-midi</option>
-            </select>
-            <p className="form-hint">Les enseignants indisponibles cette demi-journee seront signales</p>
+            <div className="indispo-grid oral-grid">
+              <div className="indispo-header">
+                <span className="indispo-label-col" />
+                {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'].map(jour => (
+                  <span key={jour} className="indispo-jour-header">{jour.slice(0, 3)}</span>
+                ))}
+              </div>
+              {['Matin', 'Apres-midi'].map(periode => (
+                <div key={periode} className="indispo-row">
+                  <span className="indispo-label-col">{periode === 'Apres-midi' ? 'AP' : 'AM'}</span>
+                  {['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi'].map(jour => {
+                    const id = `${jour}_${periode === 'Matin' ? 'matin' : 'aprem'}`;
+                    const isSelected = demiJourneesOral.includes(id);
+                    return (
+                      <button
+                        key={id}
+                        type="button"
+                        className={`indispo-cell ${isSelected ? 'indispo' : 'dispo'}`}
+                        title={`${jour.charAt(0).toUpperCase() + jour.slice(1)} ${periode}`}
+                        onClick={() => {
+                          setDemiJourneesOral(prev =>
+                            isSelected ? prev.filter(d => d !== id) : [...prev, id]
+                          );
+                        }}
+                      >
+                        {isSelected ? <Check size={12} /> : ''}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+            <p className="form-hint">Cliquez pour selectionner — les enseignants indisponibles seront signales</p>
           </div>
         )}
 
@@ -857,7 +872,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
 
             <div className="enseignant-grid compact">
               {filteredEnseignants.map(ens => {
-                const isIndispo = demiJourneeOral && ens.indisponibilites?.includes(demiJourneeOral);
+                const isIndispo = demiJourneesOral.length > 0 && ens.indisponibilites?.some(d => demiJourneesOral.includes(d));
                 return (
                   <button
                     key={ens.id}
