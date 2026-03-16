@@ -318,6 +318,44 @@
   color: var(--text-primary, #111827);
 }
 
+/* Indisponibilités */
+.indispo-display-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.indispo-jour-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: #fef2f2;
+  border-radius: 8px;
+  border: 1px solid #fecaca;
+}
+
+.indispo-jour-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #991b1b;
+  min-width: 75px;
+}
+
+.indispo-periodes {
+  display: flex;
+  gap: 6px;
+}
+
+.indispo-periode-tag {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  background: #fee2e2;
+  color: #dc2626;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
 /* Tags */
 .tags-list {
   display: flex;

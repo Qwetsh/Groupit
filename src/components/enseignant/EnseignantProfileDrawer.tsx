@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Clock,
   Calendar,
+  CalendarOff,
   Loader
 } from 'lucide-react';
 import { useScenarioArchiveStore } from '../../stores/scenarioArchiveStore';
@@ -384,6 +385,33 @@ export function EnseignantProfileDrawer({
                   )}
                 </section>
               ) : null}
+
+              {/* Section Indisponibilités */}
+              {enseignant.indisponibilites && enseignant.indisponibilites.length > 0 && (
+                <section className="info-section">
+                  <h3>
+                    <CalendarOff size={16} />
+                    Indisponibilités
+                  </h3>
+                  <div className="indispo-display-grid">
+                    {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'].map(jour => {
+                      const jourKey = jour.toLowerCase();
+                      const matinOff = enseignant.indisponibilites!.includes(`${jourKey}_matin`);
+                      const apremOff = enseignant.indisponibilites!.includes(`${jourKey}_aprem`);
+                      if (!matinOff && !apremOff) return null;
+                      return (
+                        <div key={jour} className="indispo-jour-item">
+                          <span className="indispo-jour-name">{jour}</span>
+                          <div className="indispo-periodes">
+                            {matinOff && <span className="indispo-periode-tag">Matin</span>}
+                            {apremOff && <span className="indispo-periode-tag">Après-midi</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )}
 
               {/* Section Tags */}
               {enseignant.tags && enseignant.tags.length > 0 && (
