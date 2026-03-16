@@ -11,8 +11,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow-y: auto;
-  padding: 2rem;
+  overflow: hidden;
+  padding: 1rem;
   color: #e2e8f0;
 }
 
@@ -169,7 +169,7 @@
 .guided-container.guided-container-wide {
   max-width: 1200px;
   height: 100%;
-  max-height: calc(100vh - 4rem);
+  max-height: calc(100vh - 2rem);
 }
 
 /* Header */
@@ -177,8 +177,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 0;
-  margin-bottom: 1rem;
+  padding: 0.5rem 0;
+  margin-bottom: 0.5rem;
 }
 
 .guided-back-btn {
@@ -245,12 +245,16 @@
   text-align: center;
   font-size: 0.875rem;
   color: #94a3b8;
-  margin-bottom: 2rem;
+  margin-bottom: 0.75rem;
 }
 
 /* Content */
 .guided-content {
   flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Step Base */
@@ -636,8 +640,9 @@
 .step-actions {
   display: flex;
   justify-content: space-between;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  flex-shrink: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -710,7 +715,7 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 1.5rem;
-  align-items: start;
+  align-items: stretch;
   flex: 1;
   min-height: 0;
 }
@@ -722,6 +727,8 @@
 .config-col-left {
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .config-col-right {
@@ -732,7 +739,6 @@
   border-radius: 12px;
   padding: 1rem;
   min-height: 0;
-  max-height: calc(100vh - 280px);
   overflow: hidden;
 }
 
@@ -768,7 +774,10 @@
 
 .step-config .config-form {
   padding: 1.25rem;
-  margin-bottom: 1rem;
+  margin-bottom: 0;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .step-config .calculation-preview {
@@ -781,7 +790,7 @@
   }
 
   .config-col-right {
-    max-height: 350px;
+    max-height: 300px;
   }
 }
 
