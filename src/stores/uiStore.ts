@@ -10,7 +10,7 @@ type Modal = 'import' | 'importMatiereOral' | 'editEleve' | 'editEnseignant' | '
 
 // Guided mode types
 export type GuidedScenarioType = 'suivi_stage' | 'oral_dnb' | null;
-export type GuidedStep = 'welcome' | 'scenario' | 'eleves' | 'enseignants' | 'configuration' | 'recap' | 'results';
+export type GuidedStep = 'welcome' | 'scenario' | 'eleves' | 'themes' | 'enseignants' | 'configuration' | 'recap' | 'results';
 
 export interface GuidedModeState {
   isActive: boolean;
@@ -233,11 +233,17 @@ export const useUIStore = create<UIState>((set, get) => ({
     set(state => ({
       guidedMode: { ...state.guidedMode, currentStep: step }
     }));
+    localStorage.setItem('groupit_guidedStep', step);
   },
   setGuidedScenarioType: (type) => {
     set(state => ({
       guidedMode: { ...state.guidedMode, scenarioType: type }
     }));
+    if (type) {
+      localStorage.setItem('groupit_guidedScenarioType', type);
+    } else {
+      localStorage.removeItem('groupit_guidedScenarioType');
+    }
   },
   setGuidedImportedEleves: (count) => {
     set(state => ({
@@ -265,6 +271,8 @@ export const useUIStore = create<UIState>((set, get) => ({
       guidedMode: { ...DEFAULT_GUIDED_MODE, hasSeenWelcome: true, isActive: true, currentStep: 'scenario' }
     });
     localStorage.setItem('groupit_guidedModeActive', 'true');
+    localStorage.setItem('groupit_guidedStep', 'scenario');
+    localStorage.removeItem('groupit_guidedScenarioType');
   },
   showWelcomeScreen: () => {
     set({
@@ -272,12 +280,16 @@ export const useUIStore = create<UIState>((set, get) => ({
     });
     localStorage.removeItem('groupit_hasSeenWelcome');
     localStorage.removeItem('groupit_guidedModeActive');
+    localStorage.removeItem('groupit_guidedStep');
+    localStorage.removeItem('groupit_guidedScenarioType');
   },
   exitGuidedMode: () => {
     set(state => ({
       guidedMode: { ...state.guidedMode, isActive: false }
     }));
     localStorage.setItem('groupit_guidedModeActive', 'false');
+    localStorage.removeItem('groupit_guidedStep');
+    localStorage.removeItem('groupit_guidedScenarioType');
   },
 }));
 
@@ -302,12 +314,16 @@ if (typeof window !== 'undefined') {
   // Charger l'état du mode guidé
   const hasSeenWelcome = localStorage.getItem('groupit_hasSeenWelcome') === 'true';
   const guidedModeActive = localStorage.getItem('groupit_guidedModeActive') === 'true';
+  const storedStep = localStorage.getItem('groupit_guidedStep') as GuidedStep | null;
+  const storedScenarioType = localStorage.getItem('groupit_guidedScenarioType') as GuidedScenarioType | null;
 
   useUIStore.setState({
     guidedMode: {
       ...DEFAULT_GUIDED_MODE,
       hasSeenWelcome,
       isActive: guidedModeActive,
+      currentStep: guidedModeActive && storedStep ? storedStep : DEFAULT_GUIDED_MODE.currentStep,
+      scenarioType: storedScenarioType ?? DEFAULT_GUIDED_MODE.scenarioType,
     }
   });
 }

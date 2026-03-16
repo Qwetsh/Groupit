@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { Users, CheckCircle } from 'lucide-react';
+import { Users, CheckCircle, ShieldCheck } from 'lucide-react';
 import type { Eleve, Affectation, Jury } from '../../../domain/models';
 import type { DroppableJuryTileProps, JuryAffectationDisplay } from '../types';
 
@@ -78,8 +78,9 @@ export const DroppableJuryTile: React.FC<DroppableJuryTileProps> = ({
     data: { type: 'jury', juryId: jury.id },
   });
 
-  // Get jury enseignants
+  // Get jury enseignants (titulaires + suppléants)
   const juryEnseignants = enseignants.filter(e => jury.enseignantIds.includes(e.id!));
+  const jurySuppleants = enseignants.filter(e => jury.suppleantsIds?.includes(e.id!));
   const juryMatieres = [...new Set(juryEnseignants.map(e => e.matierePrincipale))];
 
   // Stats
@@ -108,6 +109,16 @@ export const DroppableJuryTile: React.FC<DroppableJuryTileProps> = ({
               <span className="no-enseignants">Aucun enseignant</span>
             )}
           </div>
+          {jurySuppleants.length > 0 && (
+            <div className="jury-suppleants-list">
+              <ShieldCheck size={12} className="suppleant-icon" />
+              {jurySuppleants.map((e) => (
+                <span key={e.id} className="ens-suppleant-name" title={`Suppléant - ${e.matierePrincipale}`}>
+                  {e.prenom} {e.nom}
+                </span>
+              ))}
+            </div>
+          )}
           <div className="jury-matieres">
             {juryMatieres.map((m, idx) => (
               <span key={idx} className="jury-matiere-tag">{m}</span>

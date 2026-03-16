@@ -7,19 +7,22 @@ import { X, ChevronLeft } from 'lucide-react';
 import { useUIStore, type GuidedStep } from '../../stores/uiStore';
 import { StepScenarioChoice } from './steps/StepScenarioChoice';
 import { StepImportEleves } from './steps/StepImportEleves';
+import { StepThemesEleves } from './steps/StepThemesEleves';
 import { StepImportEnseignants } from './steps/StepImportEnseignants';
 import { StepConfiguration } from './steps/StepConfiguration';
 import { StepRecap } from './steps/StepRecap';
 import { StepResults } from './steps/StepResults';
 import './GuidedMode.css';
 
-// Steps for the wizard
-const STEPS: GuidedStep[] = ['scenario', 'eleves', 'enseignants', 'configuration', 'recap', 'results'];
+// Steps for the wizard (base + oral_dnb adds 'themes')
+const STEPS_BASE: GuidedStep[] = ['scenario', 'eleves', 'enseignants', 'configuration', 'recap', 'results'];
+const STEPS_ORAL_DNB: GuidedStep[] = ['scenario', 'eleves', 'themes', 'enseignants', 'configuration', 'recap', 'results'];
 
 const STEP_LABELS: Record<GuidedStep, string> = {
   welcome: 'Bienvenue',
   scenario: 'Type',
   eleves: 'Eleves',
+  themes: 'Themes',
   enseignants: 'Enseignants',
   configuration: 'Configuration',
   recap: 'Recapitulatif',
@@ -30,7 +33,10 @@ export function GuidedMode() {
   const { guidedMode, setGuidedStep, exitGuidedMode } = useUIStore();
   const { currentStep } = guidedMode;
 
-  const activeSteps = useMemo(() => STEPS, []);
+  const activeSteps = useMemo(() =>
+    guidedMode.scenarioType === 'oral_dnb' ? STEPS_ORAL_DNB : STEPS_BASE,
+    [guidedMode.scenarioType]
+  );
 
   const currentStepIndex = activeSteps.indexOf(currentStep);
 
@@ -56,6 +62,8 @@ export function GuidedMode() {
         return <StepScenarioChoice onNext={handleNext} />;
       case 'eleves':
         return <StepImportEleves onNext={handleNext} onBack={handleBack} />;
+      case 'themes':
+        return <StepThemesEleves onNext={handleNext} onBack={handleBack} />;
       case 'enseignants':
         return <StepImportEnseignants onNext={handleNext} onBack={handleBack} />;
       case 'configuration':

@@ -265,7 +265,7 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
           } : undefined,
           oralDnb: selectedType === 'oral_dnb' ? {
             matieresAutorisees: ['Français', 'Mathématiques', 'Histoire-Géographie', 'SVT', 'Physique-Chimie', 'Technologie', 'Arts Plastiques', 'Éducation Musicale', 'EPS', 'Langues'],
-            utiliserJurys: false,
+            utiliserJurys: true,
             poidsMatiere: 80,
             criteresSecondaires: ['equilibrage', 'capacite'] as ('equilibrage' | 'parite' | 'capacite')[],
             capaciteJuryDefaut: capaciteJury,
