@@ -637,6 +637,34 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
           </div>
         )}
 
+        {/* Demi-journée de l'oral */}
+        {isOralDnb && (
+          <div className="form-group">
+            <label>
+              <Calendar size={18} />
+              Demi-journee de l'oral
+            </label>
+            <select
+              value={demiJourneeOral}
+              onChange={(e) => setDemiJourneeOral(e.target.value)}
+              className="form-input"
+            >
+              <option value="">Non definie</option>
+              <option value="lundi_matin">Lundi matin</option>
+              <option value="lundi_aprem">Lundi apres-midi</option>
+              <option value="mardi_matin">Mardi matin</option>
+              <option value="mardi_aprem">Mardi apres-midi</option>
+              <option value="mercredi_matin">Mercredi matin</option>
+              <option value="mercredi_aprem">Mercredi apres-midi</option>
+              <option value="jeudi_matin">Jeudi matin</option>
+              <option value="jeudi_aprem">Jeudi apres-midi</option>
+              <option value="vendredi_matin">Vendredi matin</option>
+              <option value="vendredi_aprem">Vendredi apres-midi</option>
+            </select>
+            <p className="form-hint">Les enseignants indisponibles cette demi-journee seront signales</p>
+          </div>
+        )}
+
         {/* Eleves par jury + Enseignants par jury + Suppléants — side by side */}
         {isOralDnb && (
           <div className="form-row-3col">
@@ -720,34 +748,6 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
                 </button>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Demi-journée de l'oral */}
-        {isOralDnb && (
-          <div className="form-group">
-            <label>
-              <Calendar size={18} />
-              Demi-journee de l'oral
-            </label>
-            <select
-              value={demiJourneeOral}
-              onChange={(e) => setDemiJourneeOral(e.target.value)}
-              className="form-input"
-            >
-              <option value="">Non definie</option>
-              <option value="lundi_matin">Lundi matin</option>
-              <option value="lundi_aprem">Lundi apres-midi</option>
-              <option value="mardi_matin">Mardi matin</option>
-              <option value="mardi_aprem">Mardi apres-midi</option>
-              <option value="mercredi_matin">Mercredi matin</option>
-              <option value="mercredi_aprem">Mercredi apres-midi</option>
-              <option value="jeudi_matin">Jeudi matin</option>
-              <option value="jeudi_aprem">Jeudi apres-midi</option>
-              <option value="vendredi_matin">Vendredi matin</option>
-              <option value="vendredi_aprem">Vendredi apres-midi</option>
-            </select>
-            <p className="form-hint">Les enseignants indisponibles cette demi-journee seront signales</p>
           </div>
         )}
 
