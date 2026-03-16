@@ -73,6 +73,8 @@ export interface ScenarioParametres {
     criteresSecondaires: ('equilibrage' | 'parite' | 'capacite')[];
     // Capacité par défaut d'un jury
     capaciteJuryDefaut: number;
+    // Demi-journée de l'oral (ex: 'jeudi_matin')
+    demiJourneeOral?: string;
   };
 
   // Spécifique suivi_stage

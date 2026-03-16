@@ -1633,6 +1633,31 @@
   color: #f1f5f9;
 }
 
+/* Enseignant indisponible le jour de l'oral */
+.jury-member.indisponible {
+  background: #4a2020;
+  border-color: #f87171;
+}
+
+.jury-member .indispo-icon {
+  color: #f87171;
+  flex-shrink: 0;
+}
+
+/* Chip enseignant indisponible */
+.enseignant-chip.indisponible {
+  border-color: #fca5a5 !important;
+  background: #fef2f2 !important;
+}
+
+.enseignant-chip.indisponible .ens-name {
+  color: #991b1b;
+}
+
+.enseignant-chip .indispo-icon {
+  color: #dc2626;
+}
+
 .drag-handle {
   color: #64748b;
   flex-shrink: 0;

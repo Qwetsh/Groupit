@@ -5,7 +5,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import {
   X, ChevronLeft, ChevronRight, Check, Mic, Briefcase, Users,
-  GraduationCap, Search, Star, Filter, CheckSquare, Square, Settings2
+  GraduationCap, Search, Star, Filter, CheckSquare, Square, Settings2, Calendar
 } from 'lucide-react';
 import { useScenarioStore } from '../../stores/scenarioStore';
 import { useEleveStore } from '../../stores/eleveStore';
@@ -66,6 +66,9 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
   const [nom, setNom] = useState('');
   const [description, setDescription] = useState('');
   const [capaciteJury, setCapaciteJury] = useState(15);
+
+  // Demi-journée de l'oral DNB
+  const [demiJourneeOral, setDemiJourneeOral] = useState('');
 
   // Options spécifiques au mode custom
   const [selectedNiveaux, setSelectedNiveaux] = useState<Set<Niveau>>(new Set(['3e', '4e', '5e', '6e']));
@@ -269,6 +272,7 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
             poidsMatiere: 80,
             criteresSecondaires: ['equilibrage', 'capacite'] as ('equilibrage' | 'parite' | 'capacite')[],
             capaciteJuryDefaut: capaciteJury,
+            demiJourneeOral: demiJourneeOral || undefined,
           } : undefined,
           suiviStage: selectedType === 'suivi_stage' ? {
             distanceMaxKm: 30,
@@ -421,6 +425,36 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
                       />
                       <span className="capacite-hint">élèves maximum par jury</span>
                     </div>
+                  </div>
+                )}
+
+                {/* Demi-journée de l'oral DNB */}
+                {selectedType === 'oral_dnb' && (
+                  <div className="form-field">
+                    <label htmlFor="demi-journee">
+                      <Calendar size={16} />
+                      Demi-journée de l'oral
+                    </label>
+                    <select
+                      id="demi-journee"
+                      value={demiJourneeOral}
+                      onChange={e => setDemiJourneeOral(e.target.value)}
+                    >
+                      <option value="">Non définie</option>
+                      <option value="lundi_matin">Lundi matin</option>
+                      <option value="lundi_aprem">Lundi après-midi</option>
+                      <option value="mardi_matin">Mardi matin</option>
+                      <option value="mardi_aprem">Mardi après-midi</option>
+                      <option value="mercredi_matin">Mercredi matin</option>
+                      <option value="mercredi_aprem">Mercredi après-midi</option>
+                      <option value="jeudi_matin">Jeudi matin</option>
+                      <option value="jeudi_aprem">Jeudi après-midi</option>
+                      <option value="vendredi_matin">Vendredi matin</option>
+                      <option value="vendredi_aprem">Vendredi après-midi</option>
+                    </select>
+                    <span className="field-hint">
+                      Les enseignants indisponibles cette demi-journée seront signalés
+                    </span>
                   </div>
                 )}
 

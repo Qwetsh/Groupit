@@ -535,6 +535,22 @@
   opacity: 0.5;
 }
 
+/* Enseignant indisponible le jour de l'oral */
+.draggable-enseignant.indisponible {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  position: relative;
+}
+
+.draggable-enseignant.indisponible .ens-name {
+  color: #991b1b;
+}
+
+.draggable-enseignant .indispo-icon {
+  color: #dc2626;
+  flex-shrink: 0;
+}
+
 .draggable-enseignant.dragging-overlay {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
   transform: rotate(2deg);

@@ -18,7 +18,7 @@ import {
 import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import {
   Plus, Trash2, Users, GraduationCap, Edit2, Save, X,
-  Wand2, RefreshCw, UserPlus, AlertTriangle, CheckCircle, GripVertical, ArrowRight, ShieldCheck, Clock
+  Wand2, RefreshCw, UserPlus, AlertTriangle, CheckCircle, GripVertical, ArrowRight, ShieldCheck, Clock, CalendarOff
 } from 'lucide-react';
 import { useJuryStore } from '../../stores/juryStore';
 import { useEnseignantStore } from '../../stores/enseignantStore';
@@ -42,9 +42,10 @@ interface JuryManagerProps {
 interface DraggableEnseignantProps {
   enseignant: Enseignant;
   juryId: string | null;
+  demiJourneeOral?: string;
 }
 
-function DraggableEnseignant({ enseignant, juryId }: DraggableEnseignantProps) {
+function DraggableEnseignant({ enseignant, juryId, demiJourneeOral }: DraggableEnseignantProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `ens-${enseignant.id}`,
     data: { enseignant, fromJuryId: juryId },
@@ -60,16 +61,19 @@ function DraggableEnseignant({ enseignant, juryId }: DraggableEnseignantProps) {
     enseignant.matierePrincipale?.toLowerCase().includes(m.matiere.toLowerCase())
   );
   const categorie = matiereRef?.categorie || 'autre';
+  const isIndispo = demiJourneeOral && enseignant.indisponibilites?.includes(demiJourneeOral);
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`draggable-enseignant categorie-${categorie} ${isDragging ? 'dragging' : ''}`}
+      className={`draggable-enseignant categorie-${categorie} ${isDragging ? 'dragging' : ''} ${isIndispo ? 'indisponible' : ''}`}
+      title={isIndispo ? 'Indisponible le jour de l\'oral' : undefined}
       {...listeners}
       {...attributes}
     >
       <GripVertical size={14} className="drag-handle" />
+      {isIndispo && <CalendarOff size={12} className="indispo-icon" />}
       <div className="ens-info">
         <span className="ens-name">{enseignant.prenom} {enseignant.nom}</span>
         <span className="ens-matiere">{enseignant.matierePrincipale}</span>
@@ -94,6 +98,7 @@ interface DroppableJuryProps {
   onDelete: () => void;
   onEditNameChange: (name: string) => void;
   onEditCapaciteChange: (cap: number) => void;
+  demiJourneeOral?: string;
 }
 
 function DroppableJury({
@@ -110,6 +115,7 @@ function DroppableJury({
   onDelete,
   onEditNameChange,
   onEditCapaciteChange,
+  demiJourneeOral,
 }: DroppableJuryProps) {
   const { isOver, setNodeRef } = useDroppable({
     id: `jury-${jury.id}`,
@@ -186,7 +192,7 @@ function DroppableJury({
           </div>
         ) : (
           juryEnseignants.map(ens => (
-            <DraggableEnseignant key={ens.id} enseignant={ens} juryId={jury.id!} />
+            <DraggableEnseignant key={ens.id} enseignant={ens} juryId={jury.id!} demiJourneeOral={demiJourneeOral} />
           ))
         )}
       </div>
@@ -198,7 +204,7 @@ function DroppableJury({
             Suppléant{jurySuppleants.length > 1 ? 's' : ''}
           </div>
           {jurySuppleants.map(ens => (
-            <DraggableEnseignant key={ens.id} enseignant={ens} juryId={jury.id!} />
+            <DraggableEnseignant key={ens.id} enseignant={ens} juryId={jury.id!} demiJourneeOral={demiJourneeOral} />
           ))}
         </div>
       )}
@@ -214,7 +220,7 @@ function DroppableJury({
 }
 
 // Zone des enseignants non assignés
-function DroppableUnassignedZone({ enseignants }: { enseignants: Enseignant[] }) {
+function DroppableUnassignedZone({ enseignants, demiJourneeOral }: { enseignants: Enseignant[]; demiJourneeOral?: string }) {
   const { isOver, setNodeRef } = useDroppable({
     id: 'unassigned',
     data: { isUnassigned: true },
@@ -238,7 +244,7 @@ function DroppableUnassignedZone({ enseignants }: { enseignants: Enseignant[] })
           </div>
         ) : (
           enseignants.map(ens => (
-            <DraggableEnseignant key={ens.id} enseignant={ens} juryId={null} />
+            <DraggableEnseignant key={ens.id} enseignant={ens} juryId={null} demiJourneeOral={demiJourneeOral} />
           ))
         )}
       </div>
@@ -508,6 +514,9 @@ export function JuryManager({ scenario }: JuryManagerProps) {
     setActiveEnseignant(null);
   }, [moveEnseignantBetweenJurys]);
 
+  // Demi-journée de l'oral depuis le scénario
+  const demiJourneeOral = scenario.parametres?.oralDnb?.demiJourneeOral;
+
   // Calcul totaux
   const totalCapacite = jurys.reduce((sum, j) => sum + j.capaciteMax, 0);
   const totalEleves = Object.values(juryStats).reduce((sum, s) => sum + s.nbEleves, 0);
@@ -690,7 +699,7 @@ export function JuryManager({ scenario }: JuryManagerProps) {
         {/* Zone principale: Drag & Drop */}
         <div className="dnd-workspace">
           {/* Zone des enseignants non assignés */}
-          <DroppableUnassignedZone enseignants={availableEnseignants} />
+          <DroppableUnassignedZone enseignants={availableEnseignants} demiJourneeOral={demiJourneeOral} />
 
           {/* Grille des jurys */}
           <div className="jurys-grid">
@@ -727,6 +736,7 @@ export function JuryManager({ scenario }: JuryManagerProps) {
                     onDelete={() => handleDeleteJury(jury.id!)}
                     onEditNameChange={setEditingName}
                     onEditCapaciteChange={setEditingCapacite}
+                    demiJourneeOral={demiJourneeOral}
                   />
                 );
               })
