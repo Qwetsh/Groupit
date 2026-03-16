@@ -45,6 +45,9 @@ export interface Enseignant {
     reason?: string;
   }>;
 
+  // Demi-journées d'indisponibilité (ex: ['lundi_matin', 'mercredi_aprem'])
+  indisponibilites?: string[];
+
   tags: string[];
 
   // Champs personnalisés (colonnes dynamiques)

@@ -3,7 +3,7 @@
 // ============================================================
 
 import React, { useState, useEffect } from 'react';
-import { X, Save, UserCog, MapPin, Check, AlertCircle } from 'lucide-react';
+import { X, Save, UserCog, MapPin, Check, AlertCircle, CalendarOff } from 'lucide-react';
 import { useEnseignantStore } from '../../stores/enseignantStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useFieldDefinitionStore } from '../../stores/fieldDefinitionStore';
@@ -14,6 +14,22 @@ import './Modal.css';
 interface EnseignantModalProps {
   onClose: () => void;
 }
+
+// Demi-journées de la semaine
+const DEMI_JOURNEES = [
+  { id: 'lundi_matin', jour: 'Lundi', periode: 'Matin' },
+  { id: 'lundi_aprem', jour: 'Lundi', periode: 'Après-midi' },
+  { id: 'mardi_matin', jour: 'Mardi', periode: 'Matin' },
+  { id: 'mardi_aprem', jour: 'Mardi', periode: 'Après-midi' },
+  { id: 'mercredi_matin', jour: 'Mercredi', periode: 'Matin' },
+  { id: 'mercredi_aprem', jour: 'Mercredi', periode: 'Après-midi' },
+  { id: 'jeudi_matin', jour: 'Jeudi', periode: 'Matin' },
+  { id: 'jeudi_aprem', jour: 'Jeudi', periode: 'Après-midi' },
+  { id: 'vendredi_matin', jour: 'Vendredi', periode: 'Matin' },
+  { id: 'vendredi_aprem', jour: 'Vendredi', periode: 'Après-midi' },
+];
+
+const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'];
 
 const MATIERES = [
   'Français',
@@ -143,6 +159,7 @@ export function EnseignantModal({ onClose }: EnseignantModalProps) {
         commune: enseignant.commune || '',
         capaciteBase: enseignant.capaciteBase,
         heures3eReelles: enseignant.heures3eReelles,
+        indisponibilites: enseignant.indisponibilites || [],
         tags: enseignant.tags || [],
       };
     }
@@ -157,6 +174,7 @@ export function EnseignantModal({ onClose }: EnseignantModalProps) {
       commune: '',
       capaciteBase: undefined as number | undefined,
       heures3eReelles: undefined as number | undefined,
+      indisponibilites: [] as string[],
       tags: [] as string[],
     };
   });
@@ -190,6 +208,7 @@ export function EnseignantModal({ onClose }: EnseignantModalProps) {
         commune: enseignant.commune || '',
         capaciteBase: enseignant.capaciteBase,
         heures3eReelles: enseignant.heures3eReelles,
+        indisponibilites: enseignant.indisponibilites || [],
         tags: enseignant.tags || [],
       });
       setClassesInput(enseignant.classesEnCharge?.join(', ') || '');
@@ -208,6 +227,7 @@ export function EnseignantModal({ onClose }: EnseignantModalProps) {
         commune: '',
         capaciteBase: undefined,
         heures3eReelles: undefined,
+        indisponibilites: [],
         tags: [],
       });
       setClassesInput('');
@@ -304,6 +324,7 @@ export function EnseignantModal({ onClose }: EnseignantModalProps) {
         commune: formData.commune || undefined,
         capaciteBase: formData.capaciteBase,
         heures3eReelles: formData.heures3eReelles,
+        indisponibilites: formData.indisponibilites.length > 0 ? formData.indisponibilites : undefined,
         tags,
         // Champs personnalisés
         customFields: Object.keys(customValues).length > 0 ? customValues : undefined,
@@ -503,6 +524,50 @@ export function EnseignantModal({ onClose }: EnseignantModalProps) {
                 />
                 <span className="form-hint">Pour groupes multi-classes</span>
               </div>
+            </div>
+
+            {/* Indisponibilités - grille demi-journées */}
+            <div className="form-group">
+              <label>
+                <CalendarOff size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
+                Demi-journées d'indisponibilité
+              </label>
+              <div className="indispo-grid">
+                <div className="indispo-header">
+                  <span className="indispo-label-col" />
+                  {JOURS.map(jour => (
+                    <span key={jour} className="indispo-jour-header">{jour.slice(0, 3)}</span>
+                  ))}
+                </div>
+                {['Matin', 'Après-midi'].map(periode => (
+                  <div key={periode} className="indispo-row">
+                    <span className="indispo-label-col">{periode === 'Après-midi' ? 'AP' : 'AM'}</span>
+                    {JOURS.map(jour => {
+                      const dj = DEMI_JOURNEES.find(d => d.jour === jour && d.periode === periode)!;
+                      const isIndispo = formData.indisponibilites.includes(dj.id);
+                      return (
+                        <button
+                          key={dj.id}
+                          type="button"
+                          className={`indispo-cell ${isIndispo ? 'indispo' : 'dispo'}`}
+                          title={`${jour} ${periode}`}
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              indisponibilites: isIndispo
+                                ? prev.indisponibilites.filter(id => id !== dj.id)
+                                : [...prev.indisponibilites, dj.id],
+                            }));
+                          }}
+                        >
+                          {isIndispo ? <X size={12} /> : ''}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+              <span className="form-hint">Cliquez pour marquer les demi-journées où l'enseignant ne travaille pas</span>
             </div>
 
             <div className="form-group">
