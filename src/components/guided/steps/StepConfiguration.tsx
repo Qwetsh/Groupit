@@ -3,7 +3,7 @@
 // ============================================================
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { Settings, ChevronRight, Check, Users, GraduationCap, AlertTriangle, Shuffle, GripVertical, Filter, Clock, ShieldCheck, Calendar, CalendarOff } from 'lucide-react';
+import { ChevronRight, Check, Users, GraduationCap, AlertTriangle, Shuffle, GripVertical, Filter, Clock, ShieldCheck, Calendar, CalendarOff } from 'lucide-react';
 import { DndContext, DragOverlay, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import clsx from 'clsx';
@@ -467,18 +467,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
     onNext();
   }, [onNext]);
 
-  // Check if there's already a matching scenario
-  const existingScenario = scenarios.find(s =>
-    s.type === (isOralDnb ? 'oral_dnb' : 'suivi_stage')
-  );
 
-  const handleUseExisting = useCallback(() => {
-    if (existingScenario) {
-      setGuidedCreatedScenarioId(existingScenario.id!);
-      setActiveScenario(existingScenario.id!);
-      onNext();
-    }
-  }, [existingScenario, setGuidedCreatedScenarioId, setActiveScenario, onNext]);
 
   // Calculate total capacity of jurys
   const totalCapacity = scenarioJurys.reduce((sum, j) => sum + j.capaciteMax, 0);
