@@ -37,8 +37,11 @@ export interface Jury {
   scenarioId: string;
   nom: string; // ex: "Jury 1", "Jury Sciences"
 
-  // Enseignants du jury
+  // Enseignants titulaires du jury
   enseignantIds: string[];
+
+  // Enseignants suppléants (remplaçants en cas d'absence)
+  suppleantsIds?: string[];
 
   // Capacité
   capaciteMax: number; // Nombre max d'élèves que ce jury peut évaluer

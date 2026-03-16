@@ -1357,6 +1357,34 @@
   font-style: italic;
 }
 
+/* Jury suppléants list */
+.jury-suppleants-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.jury-suppleants-list .suppleant-icon {
+  color: #f59e0b;
+  flex-shrink: 0;
+}
+
+.jury-suppleants-list .ens-suppleant-name {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+  font-size: 11px;
+  color: #92400e;
+  font-weight: 500;
+}
+
 /* Jury matières covered */
 .jury-matieres {
   display: flex;

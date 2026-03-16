@@ -18,7 +18,7 @@ import {
 import type { DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import {
   Plus, Trash2, Users, GraduationCap, Edit2, Save, X,
-  Wand2, RefreshCw, UserPlus, AlertTriangle, CheckCircle, GripVertical, ArrowRight
+  Wand2, RefreshCw, UserPlus, AlertTriangle, CheckCircle, GripVertical, ArrowRight, ShieldCheck, Clock
 } from 'lucide-react';
 import { useJuryStore } from '../../stores/juryStore';
 import { useEnseignantStore } from '../../stores/enseignantStore';
@@ -83,6 +83,7 @@ interface DroppableJuryProps {
   jury: Jury;
   enseignants: Enseignant[];
   juryEnseignants: Enseignant[];
+  jurySuppleants: Enseignant[];
   stats: { nbEleves: number; matieres: string[] };
   isEditing: boolean;
   editingName: string;
@@ -98,6 +99,7 @@ interface DroppableJuryProps {
 function DroppableJury({
   jury,
   juryEnseignants,
+  jurySuppleants,
   stats,
   isEditing,
   editingName,
@@ -188,6 +190,18 @@ function DroppableJury({
           ))
         )}
       </div>
+
+      {jurySuppleants.length > 0 && (
+        <div className="jury-suppleants-section">
+          <div className="suppleant-label">
+            <ShieldCheck size={12} />
+            Suppléant{jurySuppleants.length > 1 ? 's' : ''}
+          </div>
+          {jurySuppleants.map(ens => (
+            <DraggableEnseignant key={ens.id} enseignant={ens} juryId={jury.id!} />
+          ))}
+        </div>
+      )}
 
       {stats.nbEleves > 0 && (
         <div className="jury-affectations-count">
@@ -328,6 +342,7 @@ export function JuryManager({ scenario }: JuryManagerProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [nbJurysToGenerate, setNbJurysToGenerate] = useState(3);
   const [nbEnseignantsParJury, setNbEnseignantsParJury] = useState(2);
+  const [nbSuppleantsParJury, setNbSuppleantsParJury] = useState(1);
 
   // DnD sensors
   const sensors = useSensors(
@@ -335,10 +350,13 @@ export function JuryManager({ scenario }: JuryManagerProps) {
     useSensor(KeyboardSensor)
   );
 
-  // Enseignants déjà assignés à des jurys
+  // Enseignants déjà assignés à des jurys (titulaires + suppléants)
   const assignedEnseignantIds = useMemo(() => {
     const ids = new Set<string>();
-    jurys.forEach(j => j.enseignantIds.forEach(id => ids.add(id)));
+    jurys.forEach(j => {
+      j.enseignantIds.forEach(id => ids.add(id));
+      j.suppleantsIds?.forEach(id => ids.add(id));
+    });
     return ids;
   }, [jurys]);
 
@@ -372,6 +390,7 @@ export function JuryManager({ scenario }: JuryManagerProps) {
       scenarioId: scenario.id!,
       nom: `Jury ${juryNumber}`,
       enseignantIds: [],
+      suppleantsIds: [],
       capaciteMax: scenario.parametres.oralDnb?.capaciteJuryDefaut || 8,
     });
   };
@@ -397,6 +416,7 @@ export function JuryManager({ scenario }: JuryManagerProps) {
         nbJurys: nbJurysToGenerate,
         capaciteParJury: scenario.parametres.oralDnb?.capaciteJuryDefaut || 8,
         enseignantsParJury: nbEnseignantsParJury,
+        suppleantsParJury: nbSuppleantsParJury,
         equilibrerMatieres: true,
       });
       console.log('[JuryManager] Génération terminée avec succès');
@@ -513,8 +533,18 @@ export function JuryManager({ scenario }: JuryManagerProps) {
   const elevesNonAffectesPotentiels = Math.max(0, nbElevesScenario - capacitePotentielle);
   
   // Vérifier si assez d'enseignants disponibles pour créer tous les jurys
-  const enseignantsNecessaires = nbJurysToGenerate * nbEnseignantsParJury;
+  const enseignantsTitulaires = nbJurysToGenerate * nbEnseignantsParJury;
+  const enseignantsSuppleants = nbJurysToGenerate * nbSuppleantsParJury;
+  const enseignantsNecessaires = enseignantsTitulaires + enseignantsSuppleants;
   const manqueEnseignants = Math.max(0, enseignantsNecessaires - enseignantsSource.length);
+
+  // Estimation de temps (20 min par passage, jurys en parallèle)
+  const tempsPassageMin = capaciteJuryDefaut * 20;
+  const tempsHeures = Math.floor(tempsPassageMin / 60);
+  const tempsMinutes = tempsPassageMin % 60;
+  const tempsFormatted = tempsHeures > 0
+    ? `${tempsHeures}h${tempsMinutes > 0 ? String(tempsMinutes).padStart(2, '0') : '00'}`
+    : `${tempsMinutes} min`;
 
   // Vérifier si la configuration est prête pour le matching
   const jurysAvecEnseignants = jurys.filter(j => j.enseignantIds && j.enseignantIds.length > 0);
@@ -587,6 +617,16 @@ export function JuryManager({ scenario }: JuryManagerProps) {
                   onChange={e => setNbEnseignantsParJury(parseInt(e.target.value) || 1)}
                 />
               </label>
+              <label>
+                <ShieldCheck size={12} /> Suppl/jury:
+                <input
+                  type="number"
+                  min={0}
+                  max={3}
+                  value={nbSuppleantsParJury}
+                  onChange={e => setNbSuppleantsParJury(parseInt(e.target.value) || 0)}
+                />
+              </label>
               <button
                 className="btn-primary"
                 onClick={handleGenerateAuto}
@@ -608,8 +648,8 @@ export function JuryManager({ scenario }: JuryManagerProps) {
           {manqueEnseignants > 0 && (
             <div className="warning-notice">
               <AlertTriangle size={16} />
-              Pas assez d'enseignants ! Il vous manque {manqueEnseignants} enseignant{manqueEnseignants > 1 ? 's' : ''} pour créer {nbJurysToGenerate} jurys avec {nbEnseignantsParJury} enseignant{nbEnseignantsParJury > 1 ? 's' : ''} chacun
-              ({enseignantsSource.length} disponible{enseignantsSource.length > 1 ? 's' : ''} / {enseignantsNecessaires} nécessaire{enseignantsNecessaires > 1 ? 's' : ''})
+              Pas assez d'enseignants ! Il vous manque {manqueEnseignants} enseignant{manqueEnseignants > 1 ? 's' : ''} pour créer {nbJurysToGenerate} jurys
+              ({enseignantsTitulaires} titulaires{enseignantsSuppleants > 0 ? ` + ${enseignantsSuppleants} suppléants` : ''} = {enseignantsNecessaires} nécessaires, {enseignantsSource.length} disponibles)
             </div>
           )}
           
@@ -619,6 +659,14 @@ export function JuryManager({ scenario }: JuryManagerProps) {
               <span className="preview-label">Capacité prévue:</span>
               <span className="preview-value">{capacitePotentielle} élèves</span>
               <span className="preview-detail">({nbJurysToGenerate} jurys × {capaciteJuryDefaut} places)</span>
+            </div>
+            <div className="preview-stat">
+              <span className="preview-label">Durée estimée:</span>
+              <span className="preview-value time-value">
+                <Clock size={14} />
+                {tempsFormatted}
+              </span>
+              <span className="preview-detail">({capaciteJuryDefaut} × 20 min, jurys en parallèle)</span>
             </div>
             <div className="preview-stat">
               <span className="preview-label">Élèves à affecter:</span>
@@ -658,6 +706,9 @@ export function JuryManager({ scenario }: JuryManagerProps) {
                 const juryEnseignants = jury.enseignantIds
                   .map(id => enseignantsSource.find(e => e.id === id))
                   .filter(Boolean) as Enseignant[];
+                const jurySuppleants = (jury.suppleantsIds || [])
+                  .map(id => enseignantsSource.find(e => e.id === id))
+                  .filter(Boolean) as Enseignant[];
 
                 return (
                   <DroppableJury
@@ -665,6 +716,7 @@ export function JuryManager({ scenario }: JuryManagerProps) {
                     jury={jury}
                     enseignants={enseignants}
                     juryEnseignants={juryEnseignants}
+                    jurySuppleants={jurySuppleants}
                     stats={stats}
                     isEditing={editingJuryId === jury.id}
                     editingName={editingName}

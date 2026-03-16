@@ -16,6 +16,7 @@ interface JuryGenerationOptions {
   nbJurys?: number; // Si non spécifié, calculé automatiquement
   capaciteParJury?: number;
   enseignantsParJury?: number; // Nombre cible d'enseignants par jury (défaut: 2)
+  suppleantsParJury?: number; // Nombre de suppléants par jury (défaut: 0)
   equilibrerMatieres?: boolean; // Essayer de diversifier les matières dans chaque jury
 }
 
@@ -30,10 +31,11 @@ interface JuryGenerationOptions {
 function generateJurysDistribution(
   enseignants: Enseignant[],
   options: JuryGenerationOptions = {}
-): { juryIndex: number; enseignantIds: string[] }[] {
+): { juryIndex: number; enseignantIds: string[]; suppleantsIds: string[] }[] {
   const {
     nbJurys: nbJurysRequested,
     enseignantsParJury = 2,
+    suppleantsParJury = 0,
     equilibrerMatieres = true,
   } = options;
 
@@ -41,11 +43,11 @@ function generateJurysDistribution(
 
   // Nombre de jurys à créer
   const nbJurys = nbJurysRequested || Math.max(1, Math.floor(enseignants.length / enseignantsParJury));
-  
+
   // Initialiser les jurys vides
-  const jurysDistrib: { juryIndex: number; enseignantIds: string[] }[] = [];
+  const jurysDistrib: { juryIndex: number; enseignantIds: string[]; suppleantsIds: string[] }[] = [];
   for (let i = 0; i < nbJurys; i++) {
-    jurysDistrib.push({ juryIndex: i, enseignantIds: [] });
+    jurysDistrib.push({ juryIndex: i, enseignantIds: [], suppleantsIds: [] });
   }
 
   // Préparer la liste des enseignants à distribuer
@@ -54,9 +56,9 @@ function generateJurysDistribution(
   if (equilibrerMatieres) {
     // Grouper les enseignants par catégorie de matière
     const byCategorie: Record<string, Enseignant[]> = {};
-    
+
     for (const ens of enseignants) {
-      const matiereRef = MATIERES_HEURES_3E.find(m => 
+      const matiereRef = MATIERES_HEURES_3E.find(m =>
         m.matiere.toLowerCase() === ens.matierePrincipale?.toLowerCase() ||
         ens.matierePrincipale?.toLowerCase().includes(m.matiere.toLowerCase())
       );
@@ -66,10 +68,10 @@ function generateJurysDistribution(
     }
 
     // Mélanger les enseignants en alternant les catégories pour diversifier
-    const categories = Object.keys(byCategorie).sort((a, b) => 
+    const categories = Object.keys(byCategorie).sort((a, b) =>
       byCategorie[b].length - byCategorie[a].length
     );
-    
+
     // Round-robin sur les catégories pour créer une liste intercalée
     let hasMore = true;
     while (hasMore) {
@@ -85,12 +87,22 @@ function generateJurysDistribution(
     enseignantsPool = [...enseignants];
   }
 
-  // Distribution: on remplit chaque jury jusqu'à enseignantsParJury, puis on passe au suivant
+  // Distribution titulaires: on remplit chaque jury jusqu'à enseignantsParJury
   let poolIndex = 0;
   for (let juryIdx = 0; juryIdx < nbJurys && poolIndex < enseignantsPool.length; juryIdx++) {
     for (let slot = 0; slot < enseignantsParJury && poolIndex < enseignantsPool.length; slot++) {
       jurysDistrib[juryIdx].enseignantIds.push(enseignantsPool[poolIndex].id!);
       poolIndex++;
+    }
+  }
+
+  // Distribution suppléants: les enseignants restants sont répartis comme suppléants
+  if (suppleantsParJury > 0) {
+    for (let juryIdx = 0; juryIdx < nbJurys && poolIndex < enseignantsPool.length; juryIdx++) {
+      for (let slot = 0; slot < suppleantsParJury && poolIndex < enseignantsPool.length; slot++) {
+        jurysDistrib[juryIdx].suppleantsIds.push(enseignantsPool[poolIndex].id!);
+        poolIndex++;
+      }
     }
   }
 
@@ -228,18 +240,30 @@ export const useJuryStore = create<JuryState>((set, get) => ({
 
   moveEnseignantBetweenJurys: async (enseignantId, fromJuryId, toJuryId) => {
     try {
-      // Retirer de l'ancien jury si spécifié
+      // Retirer de l'ancien jury si spécifié (titulaire OU suppléant)
       if (fromJuryId) {
-        await juryRepository.removeEnseignant(fromJuryId, enseignantId);
+        const fromJury = get().jurys.find(j => j.id === fromJuryId);
+        if (fromJury?.suppleantsIds?.includes(enseignantId)) {
+          // C'est un suppléant
+          await juryRepository.update(fromJuryId, {
+            suppleantsIds: fromJury.suppleantsIds.filter(id => id !== enseignantId),
+          });
+        } else {
+          await juryRepository.removeEnseignant(fromJuryId, enseignantId);
+        }
       }
-      // Ajouter au nouveau jury si spécifié
+      // Ajouter au nouveau jury si spécifié (en tant que titulaire)
       if (toJuryId) {
         await juryRepository.addEnseignant(toJuryId, enseignantId);
       }
-      
+
       set(state => ({
         jurys: state.jurys.map(j => {
           if (j.id === fromJuryId) {
+            const isSuppleant = j.suppleantsIds?.includes(enseignantId);
+            if (isSuppleant) {
+              return { ...j, suppleantsIds: (j.suppleantsIds || []).filter(id => id !== enseignantId), updatedAt: new Date() };
+            }
             return { ...j, enseignantIds: j.enseignantIds.filter(id => id !== enseignantId), updatedAt: new Date() };
           }
           if (j.id === toJuryId && !j.enseignantIds.includes(enseignantId)) {
@@ -312,9 +336,10 @@ export const useJuryStore = create<JuryState>((set, get) => ({
         scenarioId,
         nom: `Jury ${i + 1}`,
         enseignantIds: distrib.enseignantIds,
+        suppleantsIds: distrib.suppleantsIds,
         capaciteMax: capaciteParJury,
       });
-      
+
       set(state => ({
         jurys: [...state.jurys, newJury]
       }));

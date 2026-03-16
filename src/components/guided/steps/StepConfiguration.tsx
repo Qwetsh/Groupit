@@ -3,7 +3,7 @@
 // ============================================================
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { Settings, ChevronRight, Check, Users, GraduationCap, AlertTriangle, Shuffle, GripVertical } from 'lucide-react';
+import { Settings, ChevronRight, Check, Users, GraduationCap, AlertTriangle, Shuffle, GripVertical, Filter, Clock, ShieldCheck } from 'lucide-react';
 import { DndContext, DragOverlay, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import clsx from 'clsx';
@@ -61,6 +61,7 @@ function DroppableJury({ jury, enseignants, onCapacityChange }: DroppableJuryPro
   });
 
   const juryEnseignants = enseignants.filter(e => jury.enseignantIds.includes(e.id!));
+  const jurySuppleants = enseignants.filter(e => jury.suppleantsIds?.includes(e.id!));
   const matieres = [...new Set(juryEnseignants.map(e => e.matierePrincipale).filter(Boolean))];
 
   return (
@@ -94,6 +95,21 @@ function DroppableJury({ jury, enseignants, onCapacityChange }: DroppableJuryPro
           <div className="empty-jury">Glissez des enseignants ici</div>
         )}
       </div>
+      {jurySuppleants.length > 0 && (
+        <div className="jury-suppleants">
+          <span className="suppleant-label">
+            <ShieldCheck size={12} />
+            Suppleant{jurySuppleants.length > 1 ? 's' : ''}
+          </span>
+          {jurySuppleants.map(ens => (
+            <DraggableEnseignant
+              key={ens.id}
+              enseignant={ens}
+              fromJuryId={jury.id!}
+            />
+          ))}
+        </div>
+      )}
       <div className="jury-footer">
         <span className="jury-matieres">
           {matieres.length > 0 ? matieres.join(', ') : 'Aucune matiere'}
@@ -151,10 +167,13 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
   const [selectedEnseignantIds, setSelectedEnseignantIds] = useState<Set<string>>(new Set());
   const [elevesParJury, setElevesParJury] = useState(15);
   const [enseignantsParJury, setEnseignantsParJury] = useState(2);
+  const [suppleants, setSuppleants] = useState(1);
   const [creating, setCreating] = useState(false);
   const [createdScenarioId, setCreatedScenarioId] = useState<string | null>(null);
   const [showJuryEditor, setShowJuryEditor] = useState(false);
   const [activeEnseignant, setActiveEnseignant] = useState<Enseignant | null>(null);
+  const [filterNiveaux, setFilterNiveaux] = useState<Set<string>>(new Set());
+  const [filterMatieres, setFilterMatieres] = useState<Set<string>>(new Set());
 
   // DnD sensors
   const sensors = useSensors(
@@ -181,14 +200,100 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
     [nbEleves, elevesParJury]
   );
 
-  const nbEnseignantsNeeded = nbJurysNeeded * enseignantsParJury;
+  const nbEnseignantsTitulaires = nbJurysNeeded * enseignantsParJury;
+  const nbSuppleantsTotal = nbJurysNeeded * suppleants;
+  const nbEnseignantsNeeded = nbEnseignantsTitulaires + nbSuppleantsTotal;
+
+  // Time estimation: 20 min per student (5 min presentation + 15 min questions)
+  // All jurys run in parallel, so total time = (eleves per jury) * 20 min
+  const tempsPassageMin = elevesParJury * 20;
+  const tempsHeures = Math.floor(tempsPassageMin / 60);
+  const tempsMinutes = tempsPassageMin % 60;
+  const tempsFormatted = tempsHeures > 0
+    ? `${tempsHeures}h${tempsMinutes > 0 ? `${String(tempsMinutes).padStart(2, '0')}` : '00'}`
+    : `${tempsMinutes} min`;
   const hasEnoughEnseignants = nbSelectedEnseignants >= nbEnseignantsNeeded;
+
+  // Distinct niveaux and matières for filters
+  const distinctNiveaux = useMemo(() => {
+    const niveaux = new Set<string>();
+    enseignants.forEach(e => {
+      e.classesEnCharge?.forEach(cls => {
+        const match = cls.match(/^(\d+)/);
+        if (match) niveaux.add(match[1] + 'e');
+      });
+    });
+    return Array.from(niveaux).sort();
+  }, [enseignants]);
+
+  const distinctMatieres = useMemo(() => {
+    const mats = new Set<string>();
+    enseignants.forEach(e => {
+      if (e.matierePrincipale) mats.add(e.matierePrincipale);
+    });
+    return Array.from(mats).sort();
+  }, [enseignants]);
+
+  // Toggle filter helpers
+  const toggleFilterNiveau = useCallback((niveau: string) => {
+    setFilterNiveaux(prev => {
+      const next = new Set(prev);
+      if (next.has(niveau)) next.delete(niveau);
+      else next.add(niveau);
+      return next;
+    });
+  }, []);
+
+  const toggleFilterMatiere = useCallback((matiere: string) => {
+    setFilterMatieres(prev => {
+      const next = new Set(prev);
+      if (next.has(matiere)) next.delete(matiere);
+      else next.add(matiere);
+      return next;
+    });
+  }, []);
+
+  const hasActiveFilters = filterNiveaux.size > 0 || filterMatieres.size > 0;
+
+  const clearFilters = useCallback(() => {
+    setFilterNiveaux(new Set());
+    setFilterMatieres(new Set());
+  }, []);
+
+  // Filtered enseignants for display
+  const filteredEnseignants = useMemo(() => {
+    let list = enseignants;
+    if (filterNiveaux.size > 0) {
+      list = list.filter(e =>
+        e.classesEnCharge?.some(cls => {
+          const match = cls.match(/^(\d+)/);
+          return match && filterNiveaux.has(match[1] + 'e');
+        })
+      );
+    }
+    if (filterMatieres.size > 0) {
+      list = list.filter(e => e.matierePrincipale && filterMatieres.has(e.matierePrincipale));
+    }
+    return list;
+  }, [enseignants, filterNiveaux, filterMatieres]);
+
+  // Select filtered enseignants
+  const selectFilteredEnseignants = useCallback(() => {
+    setSelectedEnseignantIds(prev => {
+      const next = new Set(prev);
+      filteredEnseignants.forEach(e => next.add(e.id!));
+      return next;
+    });
+  }, [filteredEnseignants]);
 
   // Get jurys for created scenario
   const scenarioJurys = createdScenarioId ? getJurysByScenario(createdScenarioId) : [];
 
-  // Enseignants not in any jury
-  const assignedEnseignantIds = new Set(scenarioJurys.flatMap(j => j.enseignantIds));
+  // Enseignants not in any jury (titulaires + suppléants)
+  const assignedEnseignantIds = new Set([
+    ...scenarioJurys.flatMap(j => j.enseignantIds),
+    ...scenarioJurys.flatMap(j => j.suppleantsIds || []),
+  ]);
   const unassignedSelectedEnseignants = enseignants.filter(
     e => selectedEnseignantIds.has(e.id!) && !assignedEnseignantIds.has(e.id!)
   );
@@ -271,6 +376,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
         nbJurys: nbJurysNeeded,
         capaciteParJury: elevesParJury,
         enseignantsParJury,
+        suppleantsParJury: suppleants,
         equilibrerMatieres: true,
       });
 
@@ -301,6 +407,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
         nbJurys: nbJurysNeeded,
         capaciteParJury: elevesParJury,
         enseignantsParJury,
+        suppleantsParJury: suppleants,
         equilibrerMatieres: true,
       });
     } finally {
@@ -516,61 +623,88 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
           </div>
         )}
 
-        {/* Eleves par jury */}
+        {/* Eleves par jury + Enseignants par jury + Suppléants — side by side */}
         {isOralDnb && (
-          <div className="form-group">
-            <label>Nombre d'eleves par jury</label>
-            <p className="form-hint">Definit la capacite de chaque jury.</p>
-            <div className="number-input-group">
-              <button
-                className="number-btn"
-                onClick={() => setElevesParJury(Math.max(5, elevesParJury - 1))}
-              >
-                -
-              </button>
-              <input
-                type="number"
-                min={5}
-                max={30}
-                value={elevesParJury}
-                onChange={(e) => setElevesParJury(parseInt(e.target.value) || 15)}
-                className="form-input number-input"
-              />
-              <button
-                className="number-btn"
-                onClick={() => setElevesParJury(Math.min(30, elevesParJury + 1))}
-              >
-                +
-              </button>
+          <div className="form-row-3col">
+            <div className="form-group">
+              <label>Eleves par jury</label>
+              <p className="form-hint">Capacite de chaque jury.</p>
+              <div className="number-input-group">
+                <button
+                  className="number-btn"
+                  onClick={() => setElevesParJury(Math.max(5, elevesParJury - 1))}
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min={5}
+                  max={30}
+                  value={elevesParJury}
+                  onChange={(e) => setElevesParJury(parseInt(e.target.value) || 15)}
+                  className="form-input number-input"
+                />
+                <button
+                  className="number-btn"
+                  onClick={() => setElevesParJury(Math.min(30, elevesParJury + 1))}
+                >
+                  +
+                </button>
+              </div>
             </div>
-          </div>
-        )}
 
-        {/* Enseignants par jury */}
-        {isOralDnb && (
-          <div className="form-group">
-            <label>Enseignants par jury</label>
-            <div className="number-input-group">
-              <button
-                className="number-btn"
-                onClick={() => setEnseignantsParJury(Math.max(1, enseignantsParJury - 1))}
-              >
-                -
-              </button>
-              <input
-                type="number"
-                min={1}
-                max={4}
-                value={enseignantsParJury}
-                onChange={(e) => setEnseignantsParJury(parseInt(e.target.value) || 2)}
-                className="form-input number-input"
-              />
-              <button
-                className="number-btn"
-                onClick={() => setEnseignantsParJury(Math.min(4, enseignantsParJury + 1))}
-              >
-                +
-              </button>
+            <div className="form-group">
+              <label>Membres par jury</label>
+              <p className="form-hint">Enseignants titulaires.</p>
+              <div className="number-input-group">
+                <button
+                  className="number-btn"
+                  onClick={() => setEnseignantsParJury(Math.max(1, enseignantsParJury - 1))}
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min={1}
+                  max={4}
+                  value={enseignantsParJury}
+                  onChange={(e) => setEnseignantsParJury(parseInt(e.target.value) || 2)}
+                  className="form-input number-input"
+                />
+                <button
+                  className="number-btn"
+                  onClick={() => setEnseignantsParJury(Math.min(4, enseignantsParJury + 1))}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Suppleants / jury</label>
+              <p className="form-hint">Enseignants de reserve.</p>
+              <div className="number-input-group">
+                <button
+                  className="number-btn"
+                  onClick={() => setSuppleants(Math.max(0, suppleants - 1))}
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min={0}
+                  max={3}
+                  value={suppleants}
+                  onChange={(e) => setSuppleants(parseInt(e.target.value) || 0)}
+                  className="form-input number-input"
+                />
+                <button
+                  className="number-btn"
+                  onClick={() => setSuppleants(Math.min(3, suppleants + 1))}
+                >
+                  +
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -585,6 +719,16 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
             <div className="calc-item">
               <span className="calc-label">Enseignants necessaires</span>
               <span className="calc-value">{nbEnseignantsNeeded}</span>
+              {nbSuppleantsTotal > 0 && (
+                <span className="calc-detail">({nbEnseignantsTitulaires} + {nbSuppleantsTotal} suppl.)</span>
+              )}
+            </div>
+            <div className="calc-item">
+              <span className="calc-label">Duree estimee</span>
+              <span className="calc-value time">
+                <Clock size={18} />
+                {tempsFormatted}
+              </span>
             </div>
             <div className="calc-item">
               <span className="calc-label">Enseignants selectionnes</span>
@@ -606,33 +750,84 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
           </div>
         )}
 
-        {/* Enseignant selection */}
+        {/* Enseignant selection with filters */}
         {isOralDnb && (
           <div className="form-group">
             <label>
               <GraduationCap size={18} />
               Selectionnez les enseignants pour les jurys
             </label>
-            <div className="selection-actions">
-              <button className="btn btn-text" onClick={selectAllEnseignants}>
-                Tout selectionner
-              </button>
-              <button className="btn btn-text" onClick={deselectAllEnseignants}>
-                Tout deselectionner
-              </button>
+
+            {/* Filters */}
+            <div className="ens-filters-bar">
+              <div className="ens-filter-group">
+                <span className="ens-filter-label">
+                  <Filter size={14} />
+                  Niveaux
+                </span>
+                <div className="ens-filter-chips">
+                  {distinctNiveaux.map(n => (
+                    <button
+                      key={n}
+                      className={clsx('filter-chip', filterNiveaux.has(n) && 'active')}
+                      onClick={() => toggleFilterNiveau(n)}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="ens-filter-group">
+                <span className="ens-filter-label">Matieres</span>
+                <div className="ens-filter-chips">
+                  {distinctMatieres.map(m => (
+                    <button
+                      key={m}
+                      className={clsx('filter-chip', filterMatieres.has(m) && 'active')}
+                      onClick={() => toggleFilterMatiere(m)}
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="ens-filter-actions">
+                {hasActiveFilters && (
+                  <>
+                    <button className="btn btn-text" onClick={selectFilteredEnseignants}>
+                      + {filteredEnseignants.length} affiches
+                    </button>
+                    <button className="btn btn-text" onClick={clearFilters}>
+                      Effacer filtres
+                    </button>
+                  </>
+                )}
+                <button className="btn btn-text" onClick={selectAllEnseignants}>
+                  Tous
+                </button>
+                <button className="btn btn-text" onClick={deselectAllEnseignants}>
+                  Aucun
+                </button>
+              </div>
             </div>
-            <div className="enseignant-grid">
-              {enseignants.map(ens => (
+
+            <div className="enseignant-grid compact">
+              {filteredEnseignants.map(ens => (
                 <button
                   key={ens.id}
-                  className={clsx('enseignant-chip', selectedEnseignantIds.has(ens.id!) && 'selected')}
+                  className={clsx('enseignant-chip compact', selectedEnseignantIds.has(ens.id!) && 'selected')}
                   onClick={() => toggleEnseignant(ens.id!)}
                 >
-                  {selectedEnseignantIds.has(ens.id!) && <Check size={14} />}
-                  <span className="ens-name">{ens.prenom} {ens.nom}</span>
+                  {selectedEnseignantIds.has(ens.id!) && <Check size={12} />}
+                  <span className="ens-name">{ens.nom} {ens.prenom}</span>
                   <span className="ens-matiere">{ens.matierePrincipale || '-'}</span>
                 </button>
               ))}
+              {filteredEnseignants.length === 0 && enseignants.length > 0 && (
+                <p className="no-data-warning">Aucun enseignant ne correspond aux filtres.</p>
+              )}
             </div>
             {enseignants.length === 0 && (
               <p className="no-data-warning">
