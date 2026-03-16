@@ -168,6 +168,8 @@
 
 .guided-container.guided-container-wide {
   max-width: 1200px;
+  height: 100%;
+  max-height: calc(100vh - 4rem);
 }
 
 /* Header */
@@ -707,12 +709,14 @@
 .config-two-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 2rem;
+  gap: 1.5rem;
   align-items: start;
+  flex: 1;
+  min-height: 0;
 }
 
-.step-config.guided-step-wide {
-  max-width: none;
+.config-two-columns .form-group {
+  margin-bottom: 1rem;
 }
 
 .config-col-left {
@@ -726,17 +730,58 @@
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 12px;
-  padding: 1.25rem;
+  padding: 1rem;
+  min-height: 0;
+  max-height: calc(100vh - 280px);
+  overflow: hidden;
+}
+
+.config-col-right .form-group {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
 }
 
 .config-col-right .enseignant-grid.compact {
-  max-height: 400px;
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
+}
+
+/* Make config step fill available height */
+.step-config {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+/* Tighter spacing in config step */
+.step-config .step-title {
+  margin-bottom: 0.25rem;
+}
+
+.step-config .step-subtitle {
+  margin-bottom: 0.75rem;
+}
+
+.step-config .config-form {
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.step-config .calculation-preview {
+  margin-bottom: 0.75rem;
 }
 
 @media (max-width: 900px) {
   .config-two-columns {
     grid-template-columns: 1fr;
+  }
+
+  .config-col-right {
+    max-height: 350px;
   }
 }
 
