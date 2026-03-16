@@ -596,19 +596,6 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
           : 'Configurez le suivi de stage pour vos eleves de 3eme.'}
       </p>
 
-      {existingScenario && (
-        <div className="existing-scenario-notice">
-          <Settings size={20} />
-          <div>
-            <strong>Configuration existante detectee</strong>
-            <p>"{existingScenario.nom}" existe deja.</p>
-          </div>
-          <button className="btn btn-secondary" onClick={handleUseExisting}>
-            Utiliser cette configuration
-          </button>
-        </div>
-      )}
-
       <div className="config-form config-two-columns">
         {/* Colonne gauche : paramètres */}
         <div className="config-col-left">
