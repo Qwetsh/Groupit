@@ -163,6 +163,11 @@
   display: flex;
   flex-direction: column;
   animation: fadeInUp 0.4s ease-out;
+  transition: max-width 0.3s ease;
+}
+
+.guided-container.guided-container-wide {
+  max-width: 1200px;
 }
 
 /* Header */
@@ -696,6 +701,43 @@
   border-radius: 16px;
   padding: 1.5rem;
   margin-bottom: 1.5rem;
+}
+
+/* Two-column layout for config step */
+.config-two-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+.step-config.guided-step-wide {
+  max-width: none;
+}
+
+.config-col-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.config-col-right {
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.config-col-right .enseignant-grid.compact {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+@media (max-width: 900px) {
+  .config-two-columns {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Multi-column row for number inputs */

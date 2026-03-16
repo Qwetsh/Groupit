@@ -79,7 +79,7 @@ export function GuidedMode() {
 
   return (
     <div className="guided-overlay">
-      <div className="guided-container">
+      <div className={`guided-container ${currentStep === 'configuration' ? 'guided-container-wide' : ''}`}>
         {/* Header */}
         <div className="guided-header">
           {currentStepIndex > 0 && currentStep !== 'results' && (
