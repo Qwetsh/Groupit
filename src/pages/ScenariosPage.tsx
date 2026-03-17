@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useScenarioStore } from '../stores/scenarioStore';
 import { useUIStore } from '../stores/uiStore';
-import type { Scenario } from '../domain/models';
+import type { Scenario, CritereConfig } from '../domain/models';
 import { JuryManager } from '../components/jury';
 import { ImportMatiereOralModal } from '../components/import';
 import { StageScenarioManager } from '../components/scenario-stage';
@@ -148,16 +148,19 @@ export const ScenariosPage: React.FC = () => {
                 )}
                 <div className="criteres-preview">
                   {(scenario.parametres.criteresV2?.length
-                    ? scenario.parametres.criteresV2.filter(c => c.actif).sort((a, b) => (b.priorite ?? b.poids ?? 0) - (a.priorite ?? a.poids ?? 0)).slice(0, 4)
+                    ? scenario.parametres.criteresV2.filter(c => c.priority !== 'off').slice(0, 4)
                     : scenario.parametres.criteres.filter(c => c.actif).sort((a, b) => b.poids - a.poids).slice(0, 4)
-                  ).map((c, i) => (
-                      <span key={i} className={`critere-tag ${(c.poids ?? 0) >= 50 ? 'high' : (c.poids ?? 0) >= 20 ? 'medium' : 'low'}`}>
+                  ).map((c, i) => {
+                    const weight = 'poids' in c ? (c as CritereConfig).poids : 50;
+                    return (
+                      <span key={i} className={`critere-tag ${weight >= 50 ? 'high' : weight >= 20 ? 'medium' : 'low'}`}>
                         {getCritereLabel(c.id)}
                       </span>
-                    ))}
+                    );
+                  })}
                   {(() => {
                     const activeCount = scenario.parametres.criteresV2?.length
-                      ? scenario.parametres.criteresV2.filter(c => c.actif).length
+                      ? scenario.parametres.criteresV2.filter(c => c.priority !== 'off').length
                       : scenario.parametres.criteres.filter(c => c.actif).length;
                     return activeCount > 4 ? (
                       <span className="critere-more">+{activeCount - 4}</span>

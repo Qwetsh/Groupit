@@ -150,7 +150,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
     try {
       // Cascade: supprimer les données liées avant le scénario
       await affectationRepository.deleteByScenario(id);
-      await groupeRepository.deleteByScenarioId(id);
+      await groupeRepository.deleteByScenario(id);
       await juryRepository.deleteByScenarioId(id);
       await scenarioRepository.delete(id);
       set(state => {
