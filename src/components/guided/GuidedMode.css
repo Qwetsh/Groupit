@@ -1586,6 +1586,13 @@
   max-width: 1000px;
 }
 
+.jury-editor-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-bottom: 1rem;
+}
+
 .jury-stats {
   display: flex;
   justify-content: center;
@@ -1833,6 +1840,25 @@
 .jury-suppleants .jury-member {
   background: #2d3a4d;
   border: 1px dashed #f59e0b40;
+}
+
+.jury-suppleant-drop {
+  margin-top: 0.5rem;
+  padding: 0.375rem 0.5rem;
+  border: 1px dashed #f59e0b40;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.7rem;
+  color: #f59e0b;
+  cursor: default;
+  transition: all 0.2s;
+}
+
+.jury-suppleant-drop.drop-target {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: #f59e0b;
 }
 
 .jury-footer {
