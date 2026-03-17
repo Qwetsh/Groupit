@@ -242,3 +242,137 @@
   border-radius: 4px;
   color: #dc2626;
 }
+
+/* ============================================================ */
+/* MODALE PRÉ-EXPORT PDF                                        */
+/* ============================================================ */
+
+.pdf-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100000;
+  animation: pdfModalFadeIn 0.15s ease;
+}
+
+@keyframes pdfModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.pdf-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  padding: 24px;
+  width: 380px;
+  max-width: 90vw;
+}
+
+.pdf-modal-title {
+  margin: 0 0 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.pdf-modal-field {
+  margin-bottom: 16px;
+}
+
+.pdf-modal-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.pdf-modal-radios {
+  display: flex;
+  gap: 8px;
+}
+
+.pdf-modal-radio {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  transition: all 0.15s;
+}
+
+.pdf-modal-radio:hover {
+  border-color: #94a3b8;
+}
+
+.pdf-modal-radio.selected {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.pdf-modal-radio input[type="radio"] {
+  accent-color: #3b82f6;
+}
+
+.pdf-modal-date {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1e293b;
+  background: #f8fafc;
+}
+
+.pdf-modal-date:focus {
+  outline: none;
+  border-color: #3b82f6;
+  background: white;
+}
+
+.pdf-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.pdf-modal-actions .btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+}
+
+.pdf-modal-actions .btn-secondary {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.pdf-modal-actions .btn-secondary:hover {
+  background: #e2e8f0;
+}
+
+.pdf-modal-actions .btn-primary {
+  background: #3b82f6;
+  color: white;
+}
+
+.pdf-modal-actions .btn-primary:hover {
+  background: #2563eb;
+}

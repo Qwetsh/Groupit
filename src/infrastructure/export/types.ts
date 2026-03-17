@@ -144,6 +144,9 @@ export interface PdfExportOptions {
   includeUnassignedPage: boolean;   // Page des non-affectés
   includeStatsPage: boolean;        // Page de statistiques
 
+  // Type d'oral (DNB officiel ou oral blanc de préparation)
+  typeOral?: 'dnb' | 'oral_blanc';
+
   // Date de l'oral (saisie à l'export, injectée dans les créneaux)
   dateOral?: string;
 
