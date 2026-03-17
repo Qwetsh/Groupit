@@ -74,10 +74,16 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
     ...DEFAULT_CSV_OPTIONS,
   }));
   
+  const isOralDnb = scenario.type === 'oral_dnb';
+
   const [pdfOptions, setPdfOptions] = useState<PdfExportOptions>(() => ({
     ...DEFAULT_PDF_OPTIONS,
     headerYear: String(new Date().getFullYear()),
+    // Auto-enable schedule columns for oral DNB
+    includeScheduleColumns: scenario.type === 'oral_dnb',
   }));
+
+  const [dateOral, setDateOral] = useState('');
 
   // Options stage (séparées)
   const [stageCsvOptions] = useState(() => ({ ...DEFAULT_STAGE_CSV_OPTIONS }));
@@ -251,9 +257,27 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
           headerYear: pdfOptions.headerYear,
         });
       } else {
-        await downloadExportPdf(exportData as ExportResultData, `${baseFilename}.pdf`, {
+        // For oral DNB with dateOral, inject the calendar date into export data
+        let pdfData = exportData as ExportResultData;
+        if (isOralDnb && dateOral) {
+          const formattedDate = new Date(dateOral).toLocaleDateString('fr-FR', {
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+          });
+          pdfData = {
+            ...pdfData,
+            jurys: pdfData.jurys.map(j => ({
+              ...j,
+              eleves: j.eleves.map(e => ({
+                ...e,
+                datePassage: e.datePassage ? `${formattedDate} (${e.datePassage})` : formattedDate,
+              })),
+            })),
+          };
+        }
+        await downloadExportPdf(pdfData, `${baseFilename}.pdf`, {
           ...pdfOptions,
           headerScenarioName: scenario.nom,
+          dateOral: dateOral || undefined,
         });
       }
       setPdfStatus('success');
@@ -480,6 +504,16 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
                   />
                   Ajouter un récapitulatif des stats
                 </label>
+                {isOralDnb && (
+                  <div className="option-input">
+                    <label>Date de l'oral</label>
+                    <input
+                      type="date"
+                      value={dateOral}
+                      onChange={event => setDateOral(event.target.value)}
+                    />
+                  </div>
+                )}
                 <div className="option-select">
                   <label>Orientation</label>
                   <select

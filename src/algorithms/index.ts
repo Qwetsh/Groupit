@@ -35,3 +35,10 @@ export {
   toStageGeoInfo,
   toEnseignantGeoInfo,
 } from './stageSolver';
+export {
+  assignTimeSlots,
+  recalcTimeSlotsForJurys,
+  getTimeSlotsForDemiJournee,
+  getDemiJourneeLabel,
+  type DistributionMode,
+} from './timeSlots';

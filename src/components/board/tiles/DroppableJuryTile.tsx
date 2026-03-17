@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
-import { Users, CheckCircle, ShieldCheck } from 'lucide-react';
-import type { Eleve, Affectation, Jury } from '../../../domain/models';
+import { Users, CheckCircle, ShieldCheck, Clock, X } from 'lucide-react';
+import type { Eleve, Affectation, Jury, MetadataOralDNB } from '../../../domain/models';
 import type { DroppableJuryTileProps, JuryAffectationDisplay } from '../types';
 
 // ============================================================
@@ -38,12 +38,15 @@ const DraggableJuryAffectationChip: React.FC<DraggableJuryAffectationChipProps> 
     onContextMenu(e, display.eleve, affectation, jury);
   };
 
+  const metadata = affectation.metadata as MetadataOralDNB | undefined;
+  const heureCreneau = metadata?.heureCreneau;
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={`mini-eleve jury-eleve ${display.matiereMatch ? 'matiere-match' : 'no-matiere-match'} ${isDragging ? 'dragging' : ''}`}
-      title={`${display.eleve.prenom} ${display.eleve.nom} - ${display.matiereEleve || 'Matière non renseignée'}${display.matiereMatch ? ' ✓' : ''}`}
+      title={`${display.eleve.prenom} ${display.eleve.nom} - ${display.matiereEleve || 'Matière non renseignée'}${display.matiereMatch ? ' ✓' : ''}${heureCreneau ? ` - ${heureCreneau}` : ''}`}
       onContextMenu={handleContextMenu}
       {...listeners}
       {...attributes}
@@ -55,6 +58,112 @@ const DraggableJuryAffectationChip: React.FC<DraggableJuryAffectationChipProps> 
           {display.matiereMatch && <CheckCircle size={10} />}
         </span>
       )}
+    </div>
+  );
+};
+
+// ============================================================
+// SCHEDULE MODAL (planning des passages)
+// ============================================================
+
+interface ScheduleModalProps {
+  jury: Jury;
+  affectationsDisplay: JuryAffectationDisplay[];
+  scenarioAffectations: Affectation[];
+  onClose: () => void;
+}
+
+const ScheduleModal: React.FC<ScheduleModalProps> = ({
+  jury,
+  affectationsDisplay,
+  scenarioAffectations,
+  onClose,
+}) => {
+  // Build schedule: eleve + heure + demiJournee, sorted by time
+  const schedule = useMemo(() => {
+    const items: { eleve: Eleve; heure: string; demiJournee: string; matiereEleve: string | null; matiereMatch: boolean }[] = [];
+
+    for (const display of affectationsDisplay) {
+      const aff = scenarioAffectations.find(a => a.eleveId === display.eleveId);
+      if (!aff) continue;
+      const meta = aff.metadata as MetadataOralDNB | undefined;
+      items.push({
+        eleve: display.eleve,
+        heure: meta?.heureCreneau || '',
+        demiJournee: meta?.dateCreneau || '',
+        matiereEleve: display.matiereEleve,
+        matiereMatch: display.matiereMatch,
+      });
+    }
+
+    // Sort by demiJournee then heure
+    items.sort((a, b) => {
+      const djCmp = a.demiJournee.localeCompare(b.demiJournee, 'fr');
+      if (djCmp !== 0) return djCmp;
+      return a.heure.localeCompare(b.heure);
+    });
+
+    return items;
+  }, [affectationsDisplay, scenarioAffectations]);
+
+  // Group by demiJournee
+  const grouped = useMemo(() => {
+    const map = new Map<string, typeof schedule>();
+    for (const item of schedule) {
+      const key = item.demiJournee || 'Non planifié';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(item);
+    }
+    return map;
+  }, [schedule]);
+
+  return (
+    <div className="schedule-modal-overlay" onClick={onClose}>
+      <div className="schedule-modal" onClick={e => e.stopPropagation()}>
+        <div className="schedule-modal-header">
+          <div className="schedule-modal-title">
+            <Clock size={18} />
+            <h3>Planning — {jury.nom}</h3>
+          </div>
+          <button className="schedule-modal-close" onClick={onClose}>
+            <X size={18} />
+          </button>
+        </div>
+        <div className="schedule-modal-body">
+          {schedule.length === 0 ? (
+            <p className="schedule-empty">Aucun créneau attribué.</p>
+          ) : (
+            [...grouped.entries()].map(([dj, items]) => (
+              <div key={dj} className="schedule-group">
+                <div className="schedule-group-label">{dj}</div>
+                <table className="schedule-table">
+                  <thead>
+                    <tr>
+                      <th>Heure</th>
+                      <th>Élève</th>
+                      <th>Classe</th>
+                      <th>Matière</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, idx) => (
+                      <tr key={idx} className={item.matiereMatch ? 'matiere-match-row' : ''}>
+                        <td className="schedule-heure">{item.heure || '—'}</td>
+                        <td>{item.eleve.nom} {item.eleve.prenom}</td>
+                        <td>{item.eleve.classe}</td>
+                        <td>
+                          {item.matiereEleve || '—'}
+                          {item.matiereMatch && <CheckCircle size={12} className="inline-match-icon" />}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 };
@@ -78,10 +187,19 @@ export const DroppableJuryTile: React.FC<DroppableJuryTileProps> = ({
     data: { type: 'jury', juryId: jury.id },
   });
 
+  const [showSchedule, setShowSchedule] = useState(false);
+
   // Get jury enseignants (titulaires + suppléants)
   const juryEnseignants = enseignants.filter(e => jury.enseignantIds.includes(e.id!));
   const jurySuppleants = enseignants.filter(e => jury.suppleantsIds?.includes(e.id!));
   const juryMatieres = [...new Set(juryEnseignants.map(e => e.matierePrincipale))];
+
+  // Check if any affectation has a time slot
+  const hasTimeSlots = scenarioAffectations.some(a => {
+    if (a.juryId !== jury.id) return false;
+    const meta = a.metadata as MetadataOralDNB | undefined;
+    return !!meta?.heureCreneau;
+  });
 
   // Stats
   const nbMatchMatiere = affectationsDisplay.filter(a => a.matiereMatch).length;
@@ -92,7 +210,10 @@ export const DroppableJuryTile: React.FC<DroppableJuryTileProps> = ({
       ref={setNodeRef}
       className={`jury-tile ${affectationsDisplay.length > 0 ? 'has-eleves' : ''} ${isOver ? 'drop-highlight' : ''}`}
     >
-      <div className="tile-header jury-header">
+      <div
+        className={`tile-header jury-header ${hasTimeSlots ? 'clickable-header' : ''}`}
+        onClick={hasTimeSlots ? () => setShowSchedule(true) : undefined}
+      >
         <div className="tile-info">
           <span className="tile-name jury-name">
             <Users size={14} />
@@ -129,6 +250,11 @@ export const DroppableJuryTile: React.FC<DroppableJuryTileProps> = ({
           <span className={affectationsDisplay.length >= jury.capaciteMax ? 'full' : ''}>
             {affectationsDisplay.length}/{jury.capaciteMax}
           </span>
+          {hasTimeSlots && (
+            <span className="schedule-hint" title="Cliquer pour voir le planning">
+              <Clock size={12} />
+            </span>
+          )}
           {affectationsDisplay.length > 0 && (
             <span className="matiere-match-count" title="Correspondances matière">
               <CheckCircle size={12} />
@@ -162,6 +288,15 @@ export const DroppableJuryTile: React.FC<DroppableJuryTileProps> = ({
             style={{ width: `${Math.min(tauxRemplissage, 100)}%` }}
           />
         </div>
+      )}
+
+      {showSchedule && (
+        <ScheduleModal
+          jury={jury}
+          affectationsDisplay={affectationsDisplay}
+          scenarioAffectations={scenarioAffectations}
+          onClose={() => setShowSchedule(false)}
+        />
       )}
     </div>
   );

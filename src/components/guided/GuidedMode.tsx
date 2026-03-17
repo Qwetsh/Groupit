@@ -10,13 +10,14 @@ import { StepImportEleves } from './steps/StepImportEleves';
 import { StepThemesEleves } from './steps/StepThemesEleves';
 import { StepImportEnseignants } from './steps/StepImportEnseignants';
 import { StepConfiguration } from './steps/StepConfiguration';
+import { StepSalles } from './steps/StepSalles';
 import { StepRecap } from './steps/StepRecap';
 import { StepResults } from './steps/StepResults';
 import './GuidedMode.css';
 
-// Steps for the wizard (base + oral_dnb adds 'themes')
+// Steps for the wizard (base + oral_dnb adds 'themes' + 'salles')
 const STEPS_BASE: GuidedStep[] = ['scenario', 'eleves', 'enseignants', 'configuration', 'recap', 'results'];
-const STEPS_ORAL_DNB: GuidedStep[] = ['scenario', 'eleves', 'themes', 'enseignants', 'configuration', 'recap', 'results'];
+const STEPS_ORAL_DNB: GuidedStep[] = ['scenario', 'eleves', 'themes', 'enseignants', 'configuration', 'salles', 'recap', 'results'];
 
 const STEP_LABELS: Record<GuidedStep, string> = {
   welcome: 'Bienvenue',
@@ -25,6 +26,7 @@ const STEP_LABELS: Record<GuidedStep, string> = {
   themes: 'Themes',
   enseignants: 'Enseignants',
   configuration: 'Configuration',
+  salles: 'Salles',
   recap: 'Recapitulatif',
   results: 'Resultats',
 };
@@ -68,6 +70,8 @@ export function GuidedMode() {
         return <StepImportEnseignants onNext={handleNext} onBack={handleBack} />;
       case 'configuration':
         return <StepConfiguration onNext={handleNext} onBack={handleBack} />;
+      case 'salles':
+        return <StepSalles onNext={handleNext} onBack={handleBack} />;
       case 'recap':
         return <StepRecap onNext={handleNext} onBack={handleBack} />;
       case 'results':

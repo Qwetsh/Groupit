@@ -46,6 +46,7 @@ export interface ExportJuryData {
   horaire?: string;
   
   enseignants: ExportEnseignantData[];
+  suppleants?: ExportEnseignantData[];
   eleves: ExportEleveData[];
   
   // Statistiques
@@ -142,6 +143,9 @@ export interface PdfExportOptions {
   includeLetterText: boolean;       // Texte de lettre intro
   includeUnassignedPage: boolean;   // Page des non-affectés
   includeStatsPage: boolean;        // Page de statistiques
+
+  // Date de l'oral (saisie à l'export, injectée dans les créneaux)
+  dateOral?: string;
 
   // Mise en page
   orientation: 'portrait' | 'landscape';

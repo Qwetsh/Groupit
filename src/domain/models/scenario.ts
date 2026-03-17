@@ -75,6 +75,8 @@ export interface ScenarioParametres {
     capaciteJuryDefaut: number;
     // Demi-journées de l'oral (ex: ['jeudi_matin', 'jeudi_aprem'])
     demiJourneesOral?: string[];
+    // Mode de distribution des créneaux entre demi-journées
+    distributionCreneaux?: 'fill_first' | 'distribute_evenly';
   };
 
   // Spécifique suivi_stage
