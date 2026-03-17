@@ -20,14 +20,13 @@ import { DEFAULT_PDF_OPTIONS } from './types';
 import { LOGO_ACADEMIE_GRAND_EST, LOGO_EDUCATION_NATIONALE } from './logos';
 
 // ============================================================
-// STYLES PDF
+// STYLES PDF (compact — conçus pour tenir sur 1 page)
 // ============================================================
 
-// Tailles de police selon l'option
 const fontSizes = {
-  small: { title: 14, subtitle: 10, body: 8, small: 7 },
-  medium: { title: 16, subtitle: 11, body: 9, small: 8 },
-  large: { title: 18, subtitle: 12, body: 10, small: 9 },
+  small: { title: 13, subtitle: 9, body: 7, small: 6 },
+  medium: { title: 14, subtitle: 10, body: 8, small: 7 },
+  large: { title: 16, subtitle: 11, body: 9, small: 8 },
 };
 
 const createStyles = (options: PdfExportOptions) => {
@@ -35,17 +34,17 @@ const createStyles = (options: PdfExportOptions) => {
 
   return StyleSheet.create({
     page: {
-      paddingTop: 20,
-      paddingBottom: 60,
-      paddingHorizontal: 40,
+      paddingTop: 15,
+      paddingBottom: 40,
+      paddingHorizontal: 30,
       fontFamily: 'Helvetica',
       fontSize: sizes.body,
     },
 
     // En-tête de page
     pageHeader: {
-      marginBottom: 15,
-      paddingBottom: 5,
+      marginBottom: 8,
+      paddingBottom: 4,
       borderBottomWidth: 1,
       borderBottomColor: '#2563eb',
       borderBottomStyle: 'solid',
@@ -57,20 +56,20 @@ const createStyles = (options: PdfExportOptions) => {
       marginBottom: 0,
     },
     headerLogo: {
-      width: 150,
-      height: 150,
+      width: 100,
+      height: 100,
       objectFit: 'contain',
     },
     headerCenter: {
       flex: 1,
       alignItems: 'center',
-      paddingHorizontal: 15,
+      paddingHorizontal: 10,
     },
     headerTitle: {
       fontSize: sizes.title,
       fontWeight: 'bold',
       color: '#1e293b',
-      marginBottom: 4,
+      marginBottom: 2,
       textAlign: 'center',
     },
     headerSubtitle: {
@@ -81,21 +80,21 @@ const createStyles = (options: PdfExportOptions) => {
     headerMeta: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginTop: 8,
+      marginTop: 4,
       fontSize: sizes.small,
       color: '#94a3b8',
     },
 
     // Bloc jury
     jurySection: {
-      marginBottom: 30,
+      marginBottom: 0,
     },
     juryTitle: {
       fontSize: sizes.title,
       fontWeight: 'bold',
       color: '#1e3a5f',
-      marginBottom: 4,
-      paddingBottom: 6,
+      marginBottom: 2,
+      paddingBottom: 3,
       borderBottomWidth: 2,
       borderBottomColor: '#3b82f6',
       borderBottomStyle: 'solid',
@@ -103,26 +102,26 @@ const createStyles = (options: PdfExportOptions) => {
     jurySalle: {
       fontSize: sizes.subtitle,
       color: '#475569',
-      marginBottom: 12,
+      marginBottom: 6,
       fontWeight: 'bold',
     },
 
     // Bloc enseignants
     enseignantsBlock: {
       backgroundColor: '#f1f5f9',
-      padding: 12,
-      marginBottom: 15,
+      padding: 8,
+      marginBottom: 8,
       borderRadius: 4,
     },
     enseignantsTitle: {
       fontSize: sizes.subtitle,
       fontWeight: 'bold',
       color: '#475569',
-      marginBottom: 6,
+      marginBottom: 3,
     },
     enseignantRow: {
       flexDirection: 'row',
-      marginBottom: 3,
+      marginBottom: 1,
     },
     enseignantName: {
       fontSize: sizes.body,
@@ -138,25 +137,25 @@ const createStyles = (options: PdfExportOptions) => {
 
     // Texte de lettre
     letterText: {
-      marginBottom: 15,
-      lineHeight: 1.5,
+      marginBottom: 6,
+      lineHeight: 1.3,
     },
     letterParagraph: {
       fontSize: sizes.body,
       color: '#374151',
-      marginBottom: 8,
+      marginBottom: 4,
       textAlign: 'justify',
     },
 
     // Tableau des élèves
     table: {
-      marginTop: 10,
+      marginTop: 4,
     },
     tableHeader: {
       flexDirection: 'row',
       backgroundColor: '#1e3a5f',
-      paddingVertical: 8,
-      paddingHorizontal: 6,
+      paddingVertical: 4,
+      paddingHorizontal: 4,
     },
     tableHeaderCell: {
       fontSize: sizes.small,
@@ -165,9 +164,9 @@ const createStyles = (options: PdfExportOptions) => {
     },
     tableRow: {
       flexDirection: 'row',
-      paddingVertical: 6,
-      paddingHorizontal: 6,
-      borderBottomWidth: 1,
+      paddingVertical: 3,
+      paddingHorizontal: 4,
+      borderBottomWidth: 0.5,
       borderBottomColor: '#e2e8f0',
       borderBottomStyle: 'solid',
     },
@@ -196,14 +195,14 @@ const createStyles = (options: PdfExportOptions) => {
     juryStats: {
       flexDirection: 'row',
       justifyContent: 'flex-end',
-      marginTop: 10,
-      paddingTop: 8,
+      marginTop: 4,
+      paddingTop: 4,
       borderTopWidth: 1,
       borderTopColor: '#e2e8f0',
       borderTopStyle: 'solid',
     },
     statItem: {
-      marginLeft: 20,
+      marginLeft: 15,
       fontSize: sizes.small,
       color: '#64748b',
     },
@@ -217,7 +216,7 @@ const createStyles = (options: PdfExportOptions) => {
       fontSize: sizes.title,
       fontWeight: 'bold',
       color: '#dc2626',
-      marginBottom: 15,
+      marginBottom: 8,
     },
     reasonText: {
       fontSize: sizes.small,
@@ -228,57 +227,57 @@ const createStyles = (options: PdfExportOptions) => {
     // Footer
     footer: {
       position: 'absolute',
-      bottom: 25,
-      left: 40,
-      right: 40,
+      bottom: 15,
+      left: 30,
+      right: 30,
       flexDirection: 'row',
       justifyContent: 'space-between',
-      fontSize: 8,
+      fontSize: 7,
       color: '#94a3b8',
-      borderTopWidth: 1,
+      borderTopWidth: 0.5,
       borderTopColor: '#e2e8f0',
       borderTopStyle: 'solid',
-      paddingTop: 8,
+      paddingTop: 4,
     },
     pageNumber: {
-      fontSize: 8,
+      fontSize: 7,
     },
 
     // Empty state
     emptyJury: {
-      padding: 20,
+      padding: 10,
       textAlign: 'center',
       color: '#94a3b8',
       fontStyle: 'italic',
     },
 
     // ============================================================
-    // LISTE DE PORTE (Door list)
+    // LISTE DE PORTE (Door list) — compact
     // ============================================================
     doorHeader: {
       textAlign: 'center',
-      marginBottom: 20,
-      paddingBottom: 10,
+      marginBottom: 12,
+      paddingBottom: 6,
       borderBottomWidth: 2,
       borderBottomColor: '#1e3a5f',
       borderBottomStyle: 'solid',
     },
     doorTitle: {
-      fontSize: 22,
+      fontSize: 20,
       fontWeight: 'bold',
       color: '#1e3a5f',
-      marginBottom: 4,
+      marginBottom: 2,
     },
     doorSalle: {
-      fontSize: 18,
+      fontSize: 16,
       fontWeight: 'bold',
       color: '#3b82f6',
     },
     doorRow: {
       flexDirection: 'row',
-      paddingVertical: 10,
-      paddingHorizontal: 8,
-      borderBottomWidth: 1,
+      paddingVertical: 6,
+      paddingHorizontal: 6,
+      borderBottomWidth: 0.5,
       borderBottomColor: '#cbd5e1',
       borderBottomStyle: 'solid',
       alignItems: 'center',
@@ -288,36 +287,36 @@ const createStyles = (options: PdfExportOptions) => {
     },
     doorHeure: {
       width: '20%',
-      fontSize: 16,
+      fontSize: 14,
       fontWeight: 'bold',
       color: '#1e293b',
     },
     doorNom: {
       width: '80%',
-      fontSize: 14,
+      fontSize: 13,
       fontWeight: 'bold',
       color: '#1e293b',
     },
 
     // ============================================================
-    // FEUILLE DE PRÉSENCE (Attendance sheet)
+    // FEUILLE DE PRÉSENCE (Attendance sheet) — compact
     // ============================================================
     attendanceHeader: {
       textAlign: 'center',
-      marginBottom: 15,
-      paddingBottom: 8,
+      marginBottom: 8,
+      paddingBottom: 4,
       borderBottomWidth: 2,
       borderBottomColor: '#1e3a5f',
       borderBottomStyle: 'solid',
     },
     attendanceTitle: {
-      fontSize: 16,
+      fontSize: 14,
       fontWeight: 'bold',
       color: '#1e3a5f',
-      marginBottom: 4,
+      marginBottom: 2,
     },
     attendanceSalle: {
-      fontSize: 12,
+      fontSize: 10,
       color: '#475569',
     },
     attendanceColNum: { width: '8%' },
@@ -330,7 +329,7 @@ const createStyles = (options: PdfExportOptions) => {
       borderBottomWidth: 1,
       borderBottomColor: '#94a3b8',
       borderBottomStyle: 'dotted',
-      minHeight: 20,
+      minHeight: 18,
     },
 
     // ============================================================
@@ -338,8 +337,8 @@ const createStyles = (options: PdfExportOptions) => {
     // ============================================================
     reserveBanner: {
       backgroundColor: '#fef3c7',
-      padding: 10,
-      marginBottom: 15,
+      padding: 6,
+      marginBottom: 8,
       borderRadius: 4,
       borderWidth: 2,
       borderColor: '#f59e0b',
@@ -422,7 +421,7 @@ const EnseignantsBlock: React.FC<EnseignantsBlockProps> = ({ enseignants, supple
     ))}
     {suppleants && suppleants.length > 0 && (
       <>
-        <Text style={[styles.enseignantsTitle, { marginTop: 8 }]}>Suppléant(s)</Text>
+        <Text style={[styles.enseignantsTitle, { marginTop: 4 }]}>Suppléant(s)</Text>
         {suppleants.map((ens, idx) => (
           <View key={idx} style={styles.enseignantRow}>
             <Text style={styles.enseignantName}>{ens.prenom} {ens.nom}</Text>
@@ -437,25 +436,31 @@ const EnseignantsBlock: React.FC<EnseignantsBlockProps> = ({ enseignants, supple
 interface LetterTextProps {
   juryName: string;
   salle?: string;
+  isOralBlanc?: boolean;
   styles: ReturnType<typeof createStyles>;
 }
 
-const LetterText: React.FC<LetterTextProps> = ({ juryName, salle, styles }) => (
-  <View style={styles.letterText}>
-    <Text style={styles.letterParagraph}>
-      Bonjour,
-    </Text>
-    <Text style={styles.letterParagraph}>
-      Vous trouverez ci-dessous la liste des élèves qui vous sont affectés pour l'épreuve
-      orale du Diplôme National du Brevet ({juryName}).{salle ? ` Vous êtes en salle ${salle}.` : ''} Chaque élève présentera un projet
-      correspondant à la matière indiquée.
-    </Text>
-    <Text style={styles.letterParagraph}>
-      Merci de bien vouloir prendre connaissance de cette liste et de préparer les conditions
-      d'accueil des candidats.
-    </Text>
-  </View>
-);
+const LetterText: React.FC<LetterTextProps> = ({ juryName, salle, isOralBlanc, styles }) => {
+  const epreuve = isOralBlanc
+    ? "l'oral blanc de préparation au Diplôme National du Brevet"
+    : "l'épreuve orale du Diplôme National du Brevet";
+
+  return (
+    <View style={styles.letterText}>
+      <Text style={styles.letterParagraph}>
+        Bonjour,
+      </Text>
+      <Text style={styles.letterParagraph}>
+        Vous trouverez ci-dessous la liste des élèves qui vous sont affectés pour {epreuve} ({juryName}).{salle ? ` Vous êtes en salle ${salle}.` : ''} Chaque élève présentera un projet
+        correspondant à la matière indiquée.
+      </Text>
+      <Text style={styles.letterParagraph}>
+        Merci de bien vouloir prendre connaissance de cette liste et de préparer les conditions
+        d'accueil des candidats.
+      </Text>
+    </View>
+  );
+};
 
 interface StudentTableProps {
   eleves: ExportJuryData['eleves'];
@@ -467,37 +472,31 @@ const StudentTable: React.FC<StudentTableProps> = ({ eleves, options, styles }) 
   const showSchedule = options.includeScheduleColumns;
   const showTopic = options.includeTopicTitle;
 
-  // Ajuster les largeurs si on affiche plus de colonnes
-  const colNom = showSchedule || showTopic ? { width: '22%' } : styles.colNom;
-  const colPrenom = showSchedule || showTopic ? { width: '18%' } : styles.colPrenom;
+  const colNom = showSchedule || showTopic ? { width: '25%' } : styles.colNom;
+  const colPrenom = showSchedule || showTopic ? { width: '20%' } : styles.colPrenom;
   const colClasse = showSchedule || showTopic ? { width: '10%' } : styles.colClasse;
-  const colMatiere = showSchedule || showTopic ? { width: '15%' } : { width: '25%' };
+  const colMatiere = showSchedule || showTopic ? { width: '20%' } : { width: '25%' };
+  const colHeure = { width: '10%' };
 
   return (
-    <View style={styles.table}>
-      {/* En-tête du tableau */}
+    <View style={styles.table} wrap={false}>
       <View style={styles.tableHeader}>
         <Text style={[styles.tableHeaderCell, colNom]}>Nom</Text>
         <Text style={[styles.tableHeaderCell, colPrenom]}>Prénom</Text>
         <Text style={[styles.tableHeaderCell, colClasse]}>Classe</Text>
         <Text style={[styles.tableHeaderCell, colMatiere]}>Matière</Text>
         {showSchedule && (
-          <>
-            <Text style={[styles.tableHeaderCell, styles.colDate]}>Date</Text>
-            <Text style={[styles.tableHeaderCell, styles.colHeure]}>Heure</Text>
-          </>
+          <Text style={[styles.tableHeaderCell, colHeure]}>Heure</Text>
         )}
         {showTopic && (
           <Text style={[styles.tableHeaderCell, styles.colSujet]}>Sujet</Text>
         )}
       </View>
 
-      {/* Lignes du tableau */}
       {eleves.map((eleve, idx) => (
         <View
           key={idx}
           style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlt : {}]}
-          wrap={false}
         >
           <Text style={[styles.tableCell, colNom]}>{eleve.nom}</Text>
           <Text style={[styles.tableCell, colPrenom]}>{eleve.prenom}</Text>
@@ -506,10 +505,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ eleves, options, styles }) 
             {eleve.matiereAffectee || eleve.matieresOral.join(', ') || '-'}
           </Text>
           {showSchedule && (
-            <>
-              <Text style={[styles.tableCell, styles.colDate]}>{eleve.datePassage || '-'}</Text>
-              <Text style={[styles.tableCell, styles.colHeure]}>{eleve.heurePassage || '-'}</Text>
-            </>
+            <Text style={[styles.tableCell, colHeure]}>{eleve.heurePassage || '-'}</Text>
           )}
           {showTopic && (
             <Text style={[styles.tableCell, styles.colSujet]}>{eleve.sujetIntitule || '-'}</Text>
@@ -554,7 +550,7 @@ const PageFooter: React.FC<PageFooterProps> = ({ scenarioName, styles }) => (
 );
 
 // ============================================================
-// PAGE JURY
+// PAGE JURY — tout le contenu en wrap={false}
 // ============================================================
 
 interface JuryPageProps {
@@ -563,31 +559,41 @@ interface JuryPageProps {
   options: PdfExportOptions;
   styles: ReturnType<typeof createStyles>;
   isFirstJury: boolean;
+  isOralBlanc: boolean;
 }
 
-const JuryPage: React.FC<JuryPageProps> = ({ jury, data, options, styles, isFirstJury }) => (
-  <Page size={options.pageSize} orientation={options.orientation} style={styles.page}>
-    {isFirstJury && (
-      <PageHeader
-        title={`Oral DNB - ${data.scenarioName}`}
-        subtitle={options.headerSchoolName}
-        date={data.dateExport}
-        options={options}
-        styles={styles}
-      />
-    )}
+const JuryPage: React.FC<JuryPageProps> = ({ jury, data, options, styles, isFirstJury, isOralBlanc }) => {
+  const titleLabel = isOralBlanc ? 'Oral blanc' : 'Oral DNB';
+  const dateOralFormatted = options.dateOral
+    ? new Date(options.dateOral).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    : null;
+  const fullTitle = dateOralFormatted
+    ? `${titleLabel} - ${data.scenarioName} — ${dateOralFormatted}`
+    : `${titleLabel} - ${data.scenarioName}`;
 
-    <View style={styles.jurySection}>
-      <Text style={styles.juryTitle}>{jury.juryName}</Text>
-      {jury.salle && (
-        <Text style={styles.jurySalle}>Salle {jury.salle}</Text>
+  return (
+    <Page size={options.pageSize} orientation={options.orientation} style={styles.page}>
+      {isFirstJury && (
+        <PageHeader
+          title={fullTitle}
+          subtitle={options.headerSchoolName}
+          date={data.dateExport}
+          options={options}
+          styles={styles}
+        />
       )}
 
-      <EnseignantsBlock enseignants={jury.enseignants} suppleants={jury.suppleants} styles={styles} />
+      <View style={styles.jurySection} wrap={false}>
+        <Text style={styles.juryTitle}>{jury.juryName}</Text>
+        {jury.salle && (
+          <Text style={styles.jurySalle}>Salle {jury.salle}</Text>
+        )}
 
-      {options.includeLetterText && (
-        <LetterText juryName={jury.juryName} salle={jury.salle} styles={styles} />
-      )}
+        <EnseignantsBlock enseignants={jury.enseignants} suppleants={jury.suppleants} styles={styles} />
+
+        {options.includeLetterText && (
+          <LetterText juryName={jury.juryName} salle={jury.salle} isOralBlanc={isOralBlanc} styles={styles} />
+        )}
 
       {jury.eleves.length > 0 ? (
         <>
@@ -601,10 +607,11 @@ const JuryPage: React.FC<JuryPageProps> = ({ jury, data, options, styles, isFirs
 
     <PageFooter scenarioName={data.scenarioName} styles={styles} />
   </Page>
-);
+  );
+};
 
 // ============================================================
-// PAGE CONVOCATION SUPPLÉANT
+// PAGE CONVOCATION SUPPLÉANT — wrap={false} par section
 // ============================================================
 
 interface SuppleantPageProps {
@@ -613,25 +620,32 @@ interface SuppleantPageProps {
   data: ExportResultData;
   options: PdfExportOptions;
   styles: ReturnType<typeof createStyles>;
+  isOralBlanc: boolean;
 }
 
-const SuppleantPage: React.FC<SuppleantPageProps> = ({ suppleant, jurys, data, options, styles }) => (
+const SuppleantPage: React.FC<SuppleantPageProps> = ({ suppleant, jurys, data, options, styles, isOralBlanc }) => {
+  const titleLabel = isOralBlanc ? 'Oral blanc' : 'Oral DNB';
+  const epreuve = isOralBlanc
+    ? "l'oral blanc de préparation au Diplôme National du Brevet"
+    : "l'épreuve orale du Diplôme National du Brevet";
+
+  return (
   <Page size={options.pageSize} orientation={options.orientation} style={styles.page}>
     <PageHeader
-      title={`Oral DNB - ${data.scenarioName}`}
+      title={`${titleLabel} - ${data.scenarioName}`}
       subtitle={options.headerSchoolName}
       date={data.dateExport}
       options={options}
       styles={styles}
     />
 
-    <View style={styles.reserveBanner}>
+    <View style={styles.reserveBanner} wrap={false}>
       <Text style={styles.reserveBannerText}>
         CONVOCATION — ENSEIGNANT DE RÉSERVE
       </Text>
     </View>
 
-    <View style={styles.jurySection}>
+    <View wrap={false}>
       <Text style={styles.juryTitle}>
         {suppleant.prenom} {suppleant.nom} — {suppleant.matierePrincipale}
       </Text>
@@ -641,8 +655,7 @@ const SuppleantPage: React.FC<SuppleantPageProps> = ({ suppleant, jurys, data, o
           Bonjour,
         </Text>
         <Text style={styles.letterParagraph}>
-          Vous êtes désigné(e) en tant que suppléant(e) pour l'épreuve orale du Diplôme National
-          du Brevet. Vous serez amené(e) à remplacer un membre de jury en cas d'absence.
+          Vous êtes désigné(e) en tant que suppléant(e) pour {epreuve}. Vous serez amené(e) à remplacer un membre de jury en cas d'absence.
         </Text>
         <Text style={styles.letterParagraph}>
           Vous trouverez ci-dessous la liste des jurys que vous couvrez. Merci de bien vouloir
@@ -653,7 +666,7 @@ const SuppleantPage: React.FC<SuppleantPageProps> = ({ suppleant, jurys, data, o
       <View style={styles.enseignantsBlock}>
         <Text style={styles.enseignantsTitle}>Jurys couverts</Text>
         {jurys.map((jury, idx) => (
-          <View key={idx} style={[styles.enseignantRow, { marginBottom: 6 }]}>
+          <View key={idx} style={[styles.enseignantRow, { marginBottom: 3 }]}>
             <Text style={[styles.enseignantName, { width: '40%' }]}>{jury.juryName}</Text>
             <Text style={[styles.enseignantMatiere, { width: '30%' }]}>
               {jury.salle ? `Salle ${jury.salle}` : '—'}
@@ -664,27 +677,28 @@ const SuppleantPage: React.FC<SuppleantPageProps> = ({ suppleant, jurys, data, o
           </View>
         ))}
       </View>
-
-      {/* For each covered jury, show the student list */}
-      {jurys.map((jury, jIdx) => (
-        <View key={jIdx} style={{ marginTop: 15 }}>
-          <Text style={[styles.juryTitle, { fontSize: 12 }]}>
-            {jury.juryName}{jury.salle ? ` — Salle ${jury.salle}` : ''}
-          </Text>
-          <Text style={[styles.enseignantsTitle, { marginBottom: 4 }]}>
-            Enseignants : {jury.enseignants.map(e => `${e.prenom} ${e.nom}`).join(', ')}
-          </Text>
-          <StudentTable eleves={jury.eleves} options={options} styles={styles} />
-        </View>
-      ))}
     </View>
+
+    {/* Each jury detail as its own wrap={false} block */}
+    {jurys.map((jury, jIdx) => (
+      <View key={jIdx} style={{ marginTop: 8 }} wrap={false}>
+        <Text style={[styles.juryTitle, { fontSize: 11 }]}>
+          {jury.juryName}{jury.salle ? ` — Salle ${jury.salle}` : ''}
+        </Text>
+        <Text style={[styles.enseignantsTitle, { marginBottom: 2 }]}>
+          Enseignants : {jury.enseignants.map(e => `${e.prenom} ${e.nom}`).join(', ')}
+        </Text>
+        <StudentTable eleves={jury.eleves} options={options} styles={styles} />
+      </View>
+    ))}
 
     <PageFooter scenarioName={data.scenarioName} styles={styles} />
   </Page>
-);
+  );
+};
 
 // ============================================================
-// PAGE LISTE DE PORTE
+// PAGE LISTE DE PORTE — wrap={false} sur tout le contenu
 // ============================================================
 
 interface DoorListPageProps {
@@ -696,28 +710,29 @@ interface DoorListPageProps {
 
 const DoorListPage: React.FC<DoorListPageProps> = ({ jury, data, options, styles }) => (
   <Page size={options.pageSize} orientation={options.orientation} style={styles.page}>
-    <View style={styles.doorHeader}>
-      <Text style={styles.doorTitle}>{jury.juryName}</Text>
-      {jury.salle && <Text style={styles.doorSalle}>Salle {jury.salle}</Text>}
-    </View>
-
-    {jury.eleves.map((eleve, idx) => (
-      <View
-        key={idx}
-        style={[styles.doorRow, idx % 2 === 1 ? styles.doorRowAlt : {}]}
-        wrap={false}
-      >
-        <Text style={styles.doorHeure}>{eleve.heurePassage || '—'}</Text>
-        <Text style={styles.doorNom}>{eleve.nom.toUpperCase()} {eleve.prenom}</Text>
+    <View wrap={false}>
+      <View style={styles.doorHeader}>
+        <Text style={styles.doorTitle}>{jury.juryName}</Text>
+        {jury.salle && <Text style={styles.doorSalle}>Salle {jury.salle}</Text>}
       </View>
-    ))}
+
+      {jury.eleves.map((eleve, idx) => (
+        <View
+          key={idx}
+          style={[styles.doorRow, idx % 2 === 1 ? styles.doorRowAlt : {}]}
+        >
+          <Text style={styles.doorHeure}>{eleve.heurePassage || '—'}</Text>
+          <Text style={styles.doorNom}>{eleve.nom.toUpperCase()} {eleve.prenom}</Text>
+        </View>
+      ))}
+    </View>
 
     <PageFooter scenarioName={data.scenarioName} styles={styles} />
   </Page>
 );
 
 // ============================================================
-// PAGE FEUILLE DE PRÉSENCE
+// PAGE FEUILLE DE PRÉSENCE — wrap={false} sur tout le contenu
 // ============================================================
 
 interface AttendancePageProps {
@@ -729,35 +744,36 @@ interface AttendancePageProps {
 
 const AttendancePage: React.FC<AttendancePageProps> = ({ jury, data, options, styles }) => (
   <Page size={options.pageSize} orientation={options.orientation} style={styles.page}>
-    <View style={styles.attendanceHeader}>
-      <Text style={styles.attendanceTitle}>Feuille de présence — {jury.juryName}</Text>
-      {jury.salle && <Text style={styles.attendanceSalle}>Salle {jury.salle}</Text>}
-    </View>
-
-    <View style={styles.table}>
-      <View style={styles.tableHeader}>
-        <Text style={[styles.tableHeaderCell, styles.attendanceColNum]}>N°</Text>
-        <Text style={[styles.tableHeaderCell, styles.attendanceColHeure]}>Heure</Text>
-        <Text style={[styles.tableHeaderCell, styles.attendanceColNom]}>Nom</Text>
-        <Text style={[styles.tableHeaderCell, styles.attendanceColPrenom]}>Prénom</Text>
-        <Text style={[styles.tableHeaderCell, styles.attendanceColClasse]}>Classe</Text>
-        <Text style={[styles.tableHeaderCell, styles.attendanceColSignature]}>Signature</Text>
+    <View wrap={false}>
+      <View style={styles.attendanceHeader}>
+        <Text style={styles.attendanceTitle}>Feuille de présence — {jury.juryName}</Text>
+        {jury.salle && <Text style={styles.attendanceSalle}>Salle {jury.salle}</Text>}
       </View>
 
-      {jury.eleves.map((eleve, idx) => (
-        <View
-          key={idx}
-          style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlt : {}, { minHeight: 28 }]}
-          wrap={false}
-        >
-          <Text style={[styles.tableCell, styles.attendanceColNum]}>{idx + 1}</Text>
-          <Text style={[styles.tableCell, styles.attendanceColHeure]}>{eleve.heurePassage || '—'}</Text>
-          <Text style={[styles.tableCell, styles.attendanceColNom]}>{eleve.nom}</Text>
-          <Text style={[styles.tableCell, styles.attendanceColPrenom]}>{eleve.prenom}</Text>
-          <Text style={[styles.tableCell, styles.attendanceColClasse]}>{eleve.classe}</Text>
-          <View style={[styles.attendanceColSignature, styles.signatureCell]} />
+      <View style={styles.table}>
+        <View style={styles.tableHeader}>
+          <Text style={[styles.tableHeaderCell, styles.attendanceColNum]}>N°</Text>
+          <Text style={[styles.tableHeaderCell, styles.attendanceColHeure]}>Heure</Text>
+          <Text style={[styles.tableHeaderCell, styles.attendanceColNom]}>Nom</Text>
+          <Text style={[styles.tableHeaderCell, styles.attendanceColPrenom]}>Prénom</Text>
+          <Text style={[styles.tableHeaderCell, styles.attendanceColClasse]}>Classe</Text>
+          <Text style={[styles.tableHeaderCell, styles.attendanceColSignature]}>Signature</Text>
         </View>
-      ))}
+
+        {jury.eleves.map((eleve, idx) => (
+          <View
+            key={idx}
+            style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlt : {}, { minHeight: 22 }]}
+          >
+            <Text style={[styles.tableCell, styles.attendanceColNum]}>{idx + 1}</Text>
+            <Text style={[styles.tableCell, styles.attendanceColHeure]}>{eleve.heurePassage || '—'}</Text>
+            <Text style={[styles.tableCell, styles.attendanceColNom]}>{eleve.nom}</Text>
+            <Text style={[styles.tableCell, styles.attendanceColPrenom]}>{eleve.prenom}</Text>
+            <Text style={[styles.tableCell, styles.attendanceColClasse]}>{eleve.classe}</Text>
+            <View style={[styles.attendanceColSignature, styles.signatureCell]} />
+          </View>
+        ))}
+      </View>
     </View>
 
     <PageFooter scenarioName={data.scenarioName} styles={styles} />
@@ -765,7 +781,7 @@ const AttendancePage: React.FC<AttendancePageProps> = ({ jury, data, options, st
 );
 
 // ============================================================
-// PAGE NON-AFFECTÉS
+// PAGE NON-AFFECTÉS — wrap={false} sur le tableau
 // ============================================================
 
 interface UnassignedPageProps {
@@ -783,7 +799,7 @@ const UnassignedPage: React.FC<UnassignedPageProps> = ({ data, options, styles }
         Élèves non affectés ({data.unassigned.length})
       </Text>
 
-      <View style={styles.table}>
+      <View style={styles.table} wrap={false}>
         <View style={styles.tableHeader}>
           <Text style={[styles.tableHeaderCell, { width: '25%' }]}>Nom</Text>
           <Text style={[styles.tableHeaderCell, { width: '20%' }]}>Prénom</Text>
@@ -796,7 +812,6 @@ const UnassignedPage: React.FC<UnassignedPageProps> = ({ data, options, styles }
           <View
             key={idx}
             style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlt : {}]}
-            wrap={false}
           >
             <Text style={[styles.tableCell, { width: '25%' }]}>{eleve.nom}</Text>
             <Text style={[styles.tableCell, { width: '20%' }]}>{eleve.prenom}</Text>
@@ -827,6 +842,7 @@ export const PdfJuryDocument: React.FC<PdfJuryDocumentProps> = ({
 }) => {
   const options: PdfExportOptions = { ...DEFAULT_PDF_OPTIONS, ...partialOptions };
   const styles = createStyles(options);
+  const isOralBlanc = options.typeOral === 'oral_blanc';
 
   // Collect unique suppléants across all jurys
   const suppleantMap = new Map<string, { suppleant: ExportJuryData['enseignants'][0]; jurys: ExportJuryData[] }>();
@@ -854,6 +870,7 @@ export const PdfJuryDocument: React.FC<PdfJuryDocumentProps> = ({
           options={options}
           styles={styles}
           isFirstJury={idx === 0}
+          isOralBlanc={isOralBlanc}
         />
       ))}
 
@@ -866,6 +883,7 @@ export const PdfJuryDocument: React.FC<PdfJuryDocumentProps> = ({
           data={data}
           options={options}
           styles={styles}
+          isOralBlanc={isOralBlanc}
         />
       ))}
 

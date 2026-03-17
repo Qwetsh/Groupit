@@ -218,6 +218,7 @@ export const DroppableJuryTile: React.FC<DroppableJuryTileProps> = ({
           <span className="tile-name jury-name">
             <Users size={14} />
             {jury.nom}
+            {jury.salle && <span className="jury-salle-badge">Salle {jury.salle}</span>}
           </span>
           <div className="jury-enseignants-list">
             {juryEnseignants.length > 0 ? (
