@@ -19,7 +19,7 @@ import { useJuryStore } from '../../stores/juryStore';
 import { useStageStore } from '../../stores/stageStore';
 import { useScenarioArchiveStore } from '../../stores/scenarioArchiveStore';
 import { buildArchiveFromCurrentState } from '../../services';
-import { solveMatching, convertToAffectations, solveOralDnbComplete, solveStageMatching, toStageGeoInfo, toEnseignantGeoInfo, calculateDistance } from '../../algorithms';
+import { solveMatching, convertToAffectations, solveOralDnbComplete, solveStageMatching, toStageGeoInfo, toEnseignantGeoInfo, calculateDistance, recalcTimeSlotsForJurys } from '../../algorithms';
 import { getEffectiveCriteres, criteresToStageOptions } from '../../domain/criteriaConfig';
 import type { Eleve, Enseignant, Affectation, Jury, MatchingResultDNB, Stage } from '../../domain/models';
 import { calculateCapacitesStage, getHeuresMatiere } from '../../domain/models';
@@ -646,6 +646,36 @@ export const Board: React.FC = () => {
               score: matiereMatch ? 100 : 50,
             },
           });
+
+          // Recalculate time slots for affected jurys
+          if (activeScenario?.type === 'oral_dnb') {
+            const demiJournees = activeScenario.parametres.oralDnb?.demiJourneesOral || [];
+            const distMode = activeScenario.parametres.oralDnb?.distributionCreneaux || 'fill_first';
+            if (demiJournees.length > 0) {
+              // Find source jury from the original affectation
+              const sourceAff = affectations.find(a => a.id === activeDataCurrent.affectationId);
+              const sourceJuryId = sourceAff?.juryId;
+              const juryIdsToRecalc = [targetJuryId, ...(sourceJuryId ? [sourceJuryId] : [])];
+
+              // Use fresh affectations (after the update above)
+              const freshAffectations = affectations.map(a =>
+                a.id === activeDataCurrent.affectationId ? { ...a, juryId: targetJuryId } : a
+              );
+              const updates = recalcTimeSlotsForJurys(
+                juryIdsToRecalc,
+                scenarioJurys,
+                freshAffectations,
+                eleves,
+                demiJournees,
+                distMode
+              );
+              for (const [affId, meta] of updates) {
+                await updateAffectation(affId, {
+                  metadata: { dateCreneau: meta.dateCreneau, heureCreneau: meta.heureCreneau },
+                });
+              }
+            }
+          }
         } catch (err) {
           setMatchingError(`Erreur lors du déplacement jury : ${String(err)}`);
         }
@@ -660,7 +690,7 @@ export const Board: React.FC = () => {
         setMatchingError(`Erreur lors de la suppression : ${String(err)}`);
       }
     }
-  }, [activeScenario, jurysById, enseignantsById, addAffectation, updateAffectation, deleteAffectation]);
+  }, [activeScenario, jurysById, enseignantsById, addAffectation, updateAffectation, deleteAffectation, affectations, scenarioJurys, eleves]);
 
   // Run matching algorithm
   const runMatching = useCallback(async () => {

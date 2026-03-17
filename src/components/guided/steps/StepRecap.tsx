@@ -11,7 +11,8 @@ import { useEleveStore } from '../../../stores/eleveStore';
 import { useEnseignantStore } from '../../../stores/enseignantStore';
 import { useJuryStore } from '../../../stores/juryStore';
 import { useAffectationStore } from '../../../stores/affectationStore';
-import { solveOralDnbComplete } from '../../../algorithms';
+import { solveOralDnbComplete, assignTimeSlots, type DistributionMode } from '../../../algorithms';
+import { DistributionModeModal } from '../../modals/DistributionModeModal';
 import '../GuidedMode.css';
 
 interface StepRecapProps {
@@ -19,7 +20,7 @@ interface StepRecapProps {
   onBack: () => void;
 }
 
-type RecapState = 'ready' | 'running' | 'success' | 'error';
+type RecapState = 'ready' | 'running' | 'choosing_distribution' | 'success' | 'error';
 
 export function StepRecap({ onBack }: StepRecapProps) {
   const navigate = useNavigate();
@@ -28,11 +29,13 @@ export function StepRecap({ onBack }: StepRecapProps) {
   const eleves = useEleveStore(state => state.eleves);
   const enseignants = useEnseignantStore(state => state.enseignants);
   const { getJurysByScenario } = useJuryStore();
-  const { addAffectations, getAffectationsByScenario } = useAffectationStore();
+  const { addAffectations, getAffectationsByScenario, updateAffectation } = useAffectationStore();
+  const { updateParametres } = useScenarioStore();
 
   const [state, setState] = useState<RecapState>('ready');
   const [error, setError] = useState<string | null>(null);
   const [affectationCount, setAffectationCount] = useState(0);
+  const [pendingAffectations, setPendingAffectations] = useState<Awaited<ReturnType<typeof addAffectations>> | null>(null);
 
   const scenario = scenarios.find(s => s.id === guidedMode.createdScenarioId);
   const scenarioJurys = scenario ? getJurysByScenario(scenario.id!) : [];
@@ -82,9 +85,22 @@ export function StepRecap({ onBack }: StepRecapProps) {
         explication: aff.explication,
       }));
 
-      await addAffectations(affectationsToAdd);
+      const savedAffectations = await addAffectations(affectationsToAdd);
       setAffectationCount(affectationsToAdd.length);
-      setState('success');
+
+      // Assign time slots
+      const demiJournees = scenario.parametres.oralDnb?.demiJourneesOral || [];
+      if (demiJournees.length > 1) {
+        // Show distribution modal to let user choose mode
+        setPendingAffectations(savedAffectations);
+        setState('choosing_distribution');
+      } else if (demiJournees.length === 1) {
+        // Single demi-journée: assign directly
+        await applyTimeSlots(savedAffectations, demiJournees, 'fill_first');
+        setState('success');
+      } else {
+        setState('success');
+      }
 
     } catch (err) {
       console.error('Repartition error:', err);
@@ -92,6 +108,36 @@ export function StepRecap({ onBack }: StepRecapProps) {
       setState('error');
     }
   }, [scenario, eleves3e, enseignants, scenarioJurys, addAffectations]);
+
+  const applyTimeSlots = useCallback(async (
+    savedAffectations: Awaited<ReturnType<typeof addAffectations>>,
+    demiJournees: string[],
+    mode: DistributionMode
+  ) => {
+    const updates = assignTimeSlots(scenarioJurys, savedAffectations, eleves3e, demiJournees, mode);
+    for (const [affId, meta] of updates) {
+      await updateAffectation(affId, {
+        metadata: { dateCreneau: meta.dateCreneau, heureCreneau: meta.heureCreneau },
+      });
+    }
+  }, [scenarioJurys, eleves3e, updateAffectation]);
+
+  const handleDistributionSelect = useCallback(async (mode: DistributionMode) => {
+    if (!scenario || !pendingAffectations) return;
+
+    const demiJournees = scenario.parametres.oralDnb?.demiJourneesOral || [];
+    try {
+      await applyTimeSlots(pendingAffectations, demiJournees, mode);
+      // Save chosen mode in scenario params
+      await updateParametres(scenario.id!, {
+        oralDnb: { ...scenario.parametres.oralDnb!, distributionCreneaux: mode },
+      });
+    } catch (err) {
+      console.error('Time slots error:', err);
+    }
+    setPendingAffectations(null);
+    setState('success');
+  }, [scenario, pendingAffectations, applyTimeSlots, updateParametres]);
 
   const handleViewResults = useCallback(() => {
     exitGuidedMode();
@@ -171,6 +217,23 @@ export function StepRecap({ onBack }: StepRecapProps) {
             <div className="progress-fill animated"></div>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  // CHOOSING DISTRIBUTION MODE STATE
+  if (state === 'choosing_distribution') {
+    const demiJournees = scenario?.parametres.oralDnb?.demiJourneesOral || [];
+    return (
+      <div className="guided-step step-recap">
+        <DistributionModeModal
+          nbDemiJournees={demiJournees.length}
+          onSelect={handleDistributionSelect}
+          onClose={() => {
+            // Default to fill_first if user closes modal
+            handleDistributionSelect('fill_first');
+          }}
+        />
       </div>
     );
   }

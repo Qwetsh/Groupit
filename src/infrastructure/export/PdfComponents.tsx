@@ -32,7 +32,7 @@ const fontSizes = {
 
 const createStyles = (options: PdfExportOptions) => {
   const sizes = fontSizes[options.fontSize];
-  
+
   return StyleSheet.create({
     page: {
       paddingTop: 20,
@@ -41,7 +41,7 @@ const createStyles = (options: PdfExportOptions) => {
       fontFamily: 'Helvetica',
       fontSize: sizes.body,
     },
-    
+
     // En-tête de page
     pageHeader: {
       marginBottom: 15,
@@ -85,7 +85,7 @@ const createStyles = (options: PdfExportOptions) => {
       fontSize: sizes.small,
       color: '#94a3b8',
     },
-    
+
     // Bloc jury
     jurySection: {
       marginBottom: 30,
@@ -94,13 +94,19 @@ const createStyles = (options: PdfExportOptions) => {
       fontSize: sizes.title,
       fontWeight: 'bold',
       color: '#1e3a5f',
-      marginBottom: 12,
+      marginBottom: 4,
       paddingBottom: 6,
       borderBottomWidth: 2,
       borderBottomColor: '#3b82f6',
       borderBottomStyle: 'solid',
     },
-    
+    jurySalle: {
+      fontSize: sizes.subtitle,
+      color: '#475569',
+      marginBottom: 12,
+      fontWeight: 'bold',
+    },
+
     // Bloc enseignants
     enseignantsBlock: {
       backgroundColor: '#f1f5f9',
@@ -129,7 +135,7 @@ const createStyles = (options: PdfExportOptions) => {
       color: '#64748b',
       width: '50%',
     },
-    
+
     // Texte de lettre
     letterText: {
       marginBottom: 15,
@@ -141,7 +147,7 @@ const createStyles = (options: PdfExportOptions) => {
       marginBottom: 8,
       textAlign: 'justify',
     },
-    
+
     // Tableau des élèves
     table: {
       marginTop: 10,
@@ -176,7 +182,7 @@ const createStyles = (options: PdfExportOptions) => {
       color: '#059669',
       fontWeight: 'bold',
     },
-    
+
     // Colonnes du tableau (largeurs)
     colNom: { width: '25%' },
     colPrenom: { width: '20%' },
@@ -185,7 +191,7 @@ const createStyles = (options: PdfExportOptions) => {
     colDate: { width: '12%' },
     colHeure: { width: '10%' },
     colSujet: { width: '25%' },
-    
+
     // Stats du jury
     juryStats: {
       flexDirection: 'row',
@@ -205,7 +211,7 @@ const createStyles = (options: PdfExportOptions) => {
       fontWeight: 'bold',
       color: '#1e293b',
     },
-    
+
     // Page des non-affectés
     unassignedTitle: {
       fontSize: sizes.title,
@@ -218,7 +224,7 @@ const createStyles = (options: PdfExportOptions) => {
       color: '#ef4444',
       fontStyle: 'italic',
     },
-    
+
     // Footer
     footer: {
       position: 'absolute',
@@ -237,13 +243,113 @@ const createStyles = (options: PdfExportOptions) => {
     pageNumber: {
       fontSize: 8,
     },
-    
+
     // Empty state
     emptyJury: {
       padding: 20,
       textAlign: 'center',
       color: '#94a3b8',
       fontStyle: 'italic',
+    },
+
+    // ============================================================
+    // LISTE DE PORTE (Door list)
+    // ============================================================
+    doorHeader: {
+      textAlign: 'center',
+      marginBottom: 20,
+      paddingBottom: 10,
+      borderBottomWidth: 2,
+      borderBottomColor: '#1e3a5f',
+      borderBottomStyle: 'solid',
+    },
+    doorTitle: {
+      fontSize: 22,
+      fontWeight: 'bold',
+      color: '#1e3a5f',
+      marginBottom: 4,
+    },
+    doorSalle: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: '#3b82f6',
+    },
+    doorRow: {
+      flexDirection: 'row',
+      paddingVertical: 10,
+      paddingHorizontal: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: '#cbd5e1',
+      borderBottomStyle: 'solid',
+      alignItems: 'center',
+    },
+    doorRowAlt: {
+      backgroundColor: '#f0f4f8',
+    },
+    doorHeure: {
+      width: '20%',
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#1e293b',
+    },
+    doorNom: {
+      width: '80%',
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: '#1e293b',
+    },
+
+    // ============================================================
+    // FEUILLE DE PRÉSENCE (Attendance sheet)
+    // ============================================================
+    attendanceHeader: {
+      textAlign: 'center',
+      marginBottom: 15,
+      paddingBottom: 8,
+      borderBottomWidth: 2,
+      borderBottomColor: '#1e3a5f',
+      borderBottomStyle: 'solid',
+    },
+    attendanceTitle: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#1e3a5f',
+      marginBottom: 4,
+    },
+    attendanceSalle: {
+      fontSize: 12,
+      color: '#475569',
+    },
+    attendanceColNum: { width: '8%' },
+    attendanceColHeure: { width: '12%' },
+    attendanceColNom: { width: '22%' },
+    attendanceColPrenom: { width: '18%' },
+    attendanceColClasse: { width: '10%' },
+    attendanceColSignature: { width: '30%' },
+    signatureCell: {
+      borderBottomWidth: 1,
+      borderBottomColor: '#94a3b8',
+      borderBottomStyle: 'dotted',
+      minHeight: 20,
+    },
+
+    // ============================================================
+    // CONVOCATION SUPPLÉANT
+    // ============================================================
+    reserveBanner: {
+      backgroundColor: '#fef3c7',
+      padding: 10,
+      marginBottom: 15,
+      borderRadius: 4,
+      borderWidth: 2,
+      borderColor: '#f59e0b',
+      borderStyle: 'solid',
+    },
+    reserveBannerText: {
+      fontSize: sizes.subtitle,
+      fontWeight: 'bold',
+      color: '#92400e',
+      textAlign: 'center',
     },
   });
 };
@@ -301,10 +407,11 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, date, options,
 
 interface EnseignantsBlockProps {
   enseignants: ExportJuryData['enseignants'];
+  suppleants?: ExportJuryData['suppleants'];
   styles: ReturnType<typeof createStyles>;
 }
 
-const EnseignantsBlock: React.FC<EnseignantsBlockProps> = ({ enseignants, styles }) => (
+const EnseignantsBlock: React.FC<EnseignantsBlockProps> = ({ enseignants, suppleants, styles }) => (
   <View style={styles.enseignantsBlock}>
     <Text style={styles.enseignantsTitle}>Enseignants du jury</Text>
     {enseignants.map((ens, idx) => (
@@ -313,28 +420,39 @@ const EnseignantsBlock: React.FC<EnseignantsBlockProps> = ({ enseignants, styles
         <Text style={styles.enseignantMatiere}>{ens.matierePrincipale}</Text>
       </View>
     ))}
+    {suppleants && suppleants.length > 0 && (
+      <>
+        <Text style={[styles.enseignantsTitle, { marginTop: 8 }]}>Suppléant(s)</Text>
+        {suppleants.map((ens, idx) => (
+          <View key={idx} style={styles.enseignantRow}>
+            <Text style={styles.enseignantName}>{ens.prenom} {ens.nom}</Text>
+            <Text style={styles.enseignantMatiere}>{ens.matierePrincipale}</Text>
+          </View>
+        ))}
+      </>
+    )}
   </View>
 );
 
 interface LetterTextProps {
   juryName: string;
+  salle?: string;
   styles: ReturnType<typeof createStyles>;
 }
 
-const LetterText: React.FC<LetterTextProps> = ({ juryName, styles }) => (
+const LetterText: React.FC<LetterTextProps> = ({ juryName, salle, styles }) => (
   <View style={styles.letterText}>
     <Text style={styles.letterParagraph}>
       Bonjour,
     </Text>
     <Text style={styles.letterParagraph}>
-      Vous trouverez ci-dessous la liste des élèves qui vous sont affectés pour l'épreuve 
-      orale du Diplôme National du Brevet ({juryName}). Chaque élève présentera un projet 
+      Vous trouverez ci-dessous la liste des élèves qui vous sont affectés pour l'épreuve
+      orale du Diplôme National du Brevet ({juryName}).{salle ? ` Vous êtes en salle ${salle}.` : ''} Chaque élève présentera un projet
       correspondant à la matière indiquée.
     </Text>
     <Text style={styles.letterParagraph}>
-      Merci de bien vouloir prendre connaissance de cette liste et de préparer les conditions 
-      d'accueil des candidats. Les horaires et salles définitifs vous seront communiqués 
-      ultérieurement.
+      Merci de bien vouloir prendre connaissance de cette liste et de préparer les conditions
+      d'accueil des candidats.
     </Text>
   </View>
 );
@@ -348,13 +466,13 @@ interface StudentTableProps {
 const StudentTable: React.FC<StudentTableProps> = ({ eleves, options, styles }) => {
   const showSchedule = options.includeScheduleColumns;
   const showTopic = options.includeTopicTitle;
-  
+
   // Ajuster les largeurs si on affiche plus de colonnes
   const colNom = showSchedule || showTopic ? { width: '22%' } : styles.colNom;
   const colPrenom = showSchedule || showTopic ? { width: '18%' } : styles.colPrenom;
   const colClasse = showSchedule || showTopic ? { width: '10%' } : styles.colClasse;
   const colMatiere = showSchedule || showTopic ? { width: '15%' } : { width: '25%' };
-  
+
   return (
     <View style={styles.table}>
       {/* En-tête du tableau */}
@@ -373,11 +491,11 @@ const StudentTable: React.FC<StudentTableProps> = ({ eleves, options, styles }) 
           <Text style={[styles.tableHeaderCell, styles.colSujet]}>Sujet</Text>
         )}
       </View>
-      
+
       {/* Lignes du tableau */}
       {eleves.map((eleve, idx) => (
-        <View 
-          key={idx} 
+        <View
+          key={idx}
           style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlt : {}]}
           wrap={false}
         >
@@ -458,16 +576,19 @@ const JuryPage: React.FC<JuryPageProps> = ({ jury, data, options, styles, isFirs
         styles={styles}
       />
     )}
-    
+
     <View style={styles.jurySection}>
       <Text style={styles.juryTitle}>{jury.juryName}</Text>
-      
-      <EnseignantsBlock enseignants={jury.enseignants} styles={styles} />
-      
-      {options.includeLetterText && (
-        <LetterText juryName={jury.juryName} styles={styles} />
+      {jury.salle && (
+        <Text style={styles.jurySalle}>Salle {jury.salle}</Text>
       )}
-      
+
+      <EnseignantsBlock enseignants={jury.enseignants} suppleants={jury.suppleants} styles={styles} />
+
+      {options.includeLetterText && (
+        <LetterText juryName={jury.juryName} salle={jury.salle} styles={styles} />
+      )}
+
       {jury.eleves.length > 0 ? (
         <>
           <StudentTable eleves={jury.eleves} options={options} styles={styles} />
@@ -477,7 +598,168 @@ const JuryPage: React.FC<JuryPageProps> = ({ jury, data, options, styles, isFirs
         <Text style={styles.emptyJury}>Aucun élève affecté à ce jury</Text>
       )}
     </View>
-    
+
+    <PageFooter scenarioName={data.scenarioName} styles={styles} />
+  </Page>
+);
+
+// ============================================================
+// PAGE CONVOCATION SUPPLÉANT
+// ============================================================
+
+interface SuppleantPageProps {
+  suppleant: ExportJuryData['enseignants'][0];
+  jurys: ExportJuryData[];
+  data: ExportResultData;
+  options: PdfExportOptions;
+  styles: ReturnType<typeof createStyles>;
+}
+
+const SuppleantPage: React.FC<SuppleantPageProps> = ({ suppleant, jurys, data, options, styles }) => (
+  <Page size={options.pageSize} orientation={options.orientation} style={styles.page}>
+    <PageHeader
+      title={`Oral DNB - ${data.scenarioName}`}
+      subtitle={options.headerSchoolName}
+      date={data.dateExport}
+      options={options}
+      styles={styles}
+    />
+
+    <View style={styles.reserveBanner}>
+      <Text style={styles.reserveBannerText}>
+        CONVOCATION — ENSEIGNANT DE RÉSERVE
+      </Text>
+    </View>
+
+    <View style={styles.jurySection}>
+      <Text style={styles.juryTitle}>
+        {suppleant.prenom} {suppleant.nom} — {suppleant.matierePrincipale}
+      </Text>
+
+      <View style={styles.letterText}>
+        <Text style={styles.letterParagraph}>
+          Bonjour,
+        </Text>
+        <Text style={styles.letterParagraph}>
+          Vous êtes désigné(e) en tant que suppléant(e) pour l'épreuve orale du Diplôme National
+          du Brevet. Vous serez amené(e) à remplacer un membre de jury en cas d'absence.
+        </Text>
+        <Text style={styles.letterParagraph}>
+          Vous trouverez ci-dessous la liste des jurys que vous couvrez. Merci de bien vouloir
+          vous tenir disponible et de prendre connaissance des informations ci-dessous.
+        </Text>
+      </View>
+
+      <View style={styles.enseignantsBlock}>
+        <Text style={styles.enseignantsTitle}>Jurys couverts</Text>
+        {jurys.map((jury, idx) => (
+          <View key={idx} style={[styles.enseignantRow, { marginBottom: 6 }]}>
+            <Text style={[styles.enseignantName, { width: '40%' }]}>{jury.juryName}</Text>
+            <Text style={[styles.enseignantMatiere, { width: '30%' }]}>
+              {jury.salle ? `Salle ${jury.salle}` : '—'}
+            </Text>
+            <Text style={[styles.enseignantMatiere, { width: '30%' }]}>
+              {jury.nbAffectes} élève{jury.nbAffectes > 1 ? 's' : ''}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      {/* For each covered jury, show the student list */}
+      {jurys.map((jury, jIdx) => (
+        <View key={jIdx} style={{ marginTop: 15 }}>
+          <Text style={[styles.juryTitle, { fontSize: 12 }]}>
+            {jury.juryName}{jury.salle ? ` — Salle ${jury.salle}` : ''}
+          </Text>
+          <Text style={[styles.enseignantsTitle, { marginBottom: 4 }]}>
+            Enseignants : {jury.enseignants.map(e => `${e.prenom} ${e.nom}`).join(', ')}
+          </Text>
+          <StudentTable eleves={jury.eleves} options={options} styles={styles} />
+        </View>
+      ))}
+    </View>
+
+    <PageFooter scenarioName={data.scenarioName} styles={styles} />
+  </Page>
+);
+
+// ============================================================
+// PAGE LISTE DE PORTE
+// ============================================================
+
+interface DoorListPageProps {
+  jury: ExportJuryData;
+  data: ExportResultData;
+  options: PdfExportOptions;
+  styles: ReturnType<typeof createStyles>;
+}
+
+const DoorListPage: React.FC<DoorListPageProps> = ({ jury, data, options, styles }) => (
+  <Page size={options.pageSize} orientation={options.orientation} style={styles.page}>
+    <View style={styles.doorHeader}>
+      <Text style={styles.doorTitle}>{jury.juryName}</Text>
+      {jury.salle && <Text style={styles.doorSalle}>Salle {jury.salle}</Text>}
+    </View>
+
+    {jury.eleves.map((eleve, idx) => (
+      <View
+        key={idx}
+        style={[styles.doorRow, idx % 2 === 1 ? styles.doorRowAlt : {}]}
+        wrap={false}
+      >
+        <Text style={styles.doorHeure}>{eleve.heurePassage || '—'}</Text>
+        <Text style={styles.doorNom}>{eleve.nom.toUpperCase()} {eleve.prenom}</Text>
+      </View>
+    ))}
+
+    <PageFooter scenarioName={data.scenarioName} styles={styles} />
+  </Page>
+);
+
+// ============================================================
+// PAGE FEUILLE DE PRÉSENCE
+// ============================================================
+
+interface AttendancePageProps {
+  jury: ExportJuryData;
+  data: ExportResultData;
+  options: PdfExportOptions;
+  styles: ReturnType<typeof createStyles>;
+}
+
+const AttendancePage: React.FC<AttendancePageProps> = ({ jury, data, options, styles }) => (
+  <Page size={options.pageSize} orientation={options.orientation} style={styles.page}>
+    <View style={styles.attendanceHeader}>
+      <Text style={styles.attendanceTitle}>Feuille de présence — {jury.juryName}</Text>
+      {jury.salle && <Text style={styles.attendanceSalle}>Salle {jury.salle}</Text>}
+    </View>
+
+    <View style={styles.table}>
+      <View style={styles.tableHeader}>
+        <Text style={[styles.tableHeaderCell, styles.attendanceColNum]}>N°</Text>
+        <Text style={[styles.tableHeaderCell, styles.attendanceColHeure]}>Heure</Text>
+        <Text style={[styles.tableHeaderCell, styles.attendanceColNom]}>Nom</Text>
+        <Text style={[styles.tableHeaderCell, styles.attendanceColPrenom]}>Prénom</Text>
+        <Text style={[styles.tableHeaderCell, styles.attendanceColClasse]}>Classe</Text>
+        <Text style={[styles.tableHeaderCell, styles.attendanceColSignature]}>Signature</Text>
+      </View>
+
+      {jury.eleves.map((eleve, idx) => (
+        <View
+          key={idx}
+          style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlt : {}, { minHeight: 28 }]}
+          wrap={false}
+        >
+          <Text style={[styles.tableCell, styles.attendanceColNum]}>{idx + 1}</Text>
+          <Text style={[styles.tableCell, styles.attendanceColHeure]}>{eleve.heurePassage || '—'}</Text>
+          <Text style={[styles.tableCell, styles.attendanceColNom]}>{eleve.nom}</Text>
+          <Text style={[styles.tableCell, styles.attendanceColPrenom]}>{eleve.prenom}</Text>
+          <Text style={[styles.tableCell, styles.attendanceColClasse]}>{eleve.classe}</Text>
+          <View style={[styles.attendanceColSignature, styles.signatureCell]} />
+        </View>
+      ))}
+    </View>
+
     <PageFooter scenarioName={data.scenarioName} styles={styles} />
   </Page>
 );
@@ -494,13 +776,13 @@ interface UnassignedPageProps {
 
 const UnassignedPage: React.FC<UnassignedPageProps> = ({ data, options, styles }) => {
   if (data.unassigned.length === 0) return null;
-  
+
   return (
     <Page size={options.pageSize} orientation={options.orientation} style={styles.page}>
       <Text style={styles.unassignedTitle}>
         Élèves non affectés ({data.unassigned.length})
       </Text>
-      
+
       <View style={styles.table}>
         <View style={styles.tableHeader}>
           <Text style={[styles.tableHeaderCell, { width: '25%' }]}>Nom</Text>
@@ -509,10 +791,10 @@ const UnassignedPage: React.FC<UnassignedPageProps> = ({ data, options, styles }
           <Text style={[styles.tableHeaderCell, { width: '18%' }]}>Matière(s)</Text>
           <Text style={[styles.tableHeaderCell, { width: '25%' }]}>Raison(s)</Text>
         </View>
-        
+
         {data.unassigned.map((eleve, idx) => (
-          <View 
-            key={idx} 
+          <View
+            key={idx}
             style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlt : {}]}
             wrap={false}
           >
@@ -524,7 +806,7 @@ const UnassignedPage: React.FC<UnassignedPageProps> = ({ data, options, styles }
           </View>
         ))}
       </View>
-      
+
       <PageFooter scenarioName={data.scenarioName} styles={styles} />
     </Page>
   );
@@ -539,15 +821,31 @@ interface PdfJuryDocumentProps {
   options?: Partial<PdfExportOptions>;
 }
 
-export const PdfJuryDocument: React.FC<PdfJuryDocumentProps> = ({ 
-  data, 
-  options: partialOptions = {} 
+export const PdfJuryDocument: React.FC<PdfJuryDocumentProps> = ({
+  data,
+  options: partialOptions = {}
 }) => {
   const options: PdfExportOptions = { ...DEFAULT_PDF_OPTIONS, ...partialOptions };
   const styles = createStyles(options);
-  
+
+  // Collect unique suppléants across all jurys
+  const suppleantMap = new Map<string, { suppleant: ExportJuryData['enseignants'][0]; jurys: ExportJuryData[] }>();
+  for (const jury of data.jurys) {
+    if (jury.suppleants) {
+      for (const sup of jury.suppleants) {
+        const existing = suppleantMap.get(sup.enseignantId);
+        if (existing) {
+          existing.jurys.push(jury);
+        } else {
+          suppleantMap.set(sup.enseignantId, { suppleant: sup, jurys: [jury] });
+        }
+      }
+    }
+  }
+
   return (
     <Document>
+      {/* Pages de convocation par jury */}
       {data.jurys.map((jury, idx) => (
         <JuryPage
           key={jury.juryId}
@@ -558,10 +856,45 @@ export const PdfJuryDocument: React.FC<PdfJuryDocumentProps> = ({
           isFirstJury={idx === 0}
         />
       ))}
-      
+
+      {/* Pages de convocation suppléants */}
+      {[...suppleantMap.values()].map(({ suppleant, jurys }) => (
+        <SuppleantPage
+          key={suppleant.enseignantId}
+          suppleant={suppleant}
+          jurys={jurys}
+          data={data}
+          options={options}
+          styles={styles}
+        />
+      ))}
+
+      {/* Pages non-affectés */}
       {options.includeUnassignedPage && data.unassigned.length > 0 && (
         <UnassignedPage data={data} options={options} styles={styles} />
       )}
+
+      {/* Listes de porte (une par jury) */}
+      {data.jurys.map(jury => (
+        <DoorListPage
+          key={`door-${jury.juryId}`}
+          jury={jury}
+          data={data}
+          options={options}
+          styles={styles}
+        />
+      ))}
+
+      {/* Feuilles de présence (une par jury) */}
+      {data.jurys.map(jury => (
+        <AttendancePage
+          key={`attend-${jury.juryId}`}
+          jury={jury}
+          data={data}
+          options={options}
+          styles={styles}
+        />
+      ))}
     </Document>
   );
 };

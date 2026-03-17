@@ -103,9 +103,12 @@ function mapJury(
   allEleves: Eleve[],
   juryAffectations: Affectation[]
 ): ExportJuryData {
-  // Récupérer les enseignants du jury
-  const juryEnseignants = allEnseignants.filter(e => 
+  // Récupérer les enseignants du jury (titulaires + suppléants)
+  const juryEnseignants = allEnseignants.filter(e =>
     jury.enseignantIds.includes(e.id!)
+  );
+  const jurySuppleants = allEnseignants.filter(e =>
+    jury.suppleantsIds?.includes(e.id!)
   );
   
   // Mapper les élèves affectés
@@ -128,8 +131,17 @@ function mapJury(
     }
   }
   
-  // Trier par classe puis nom
+  // Trier par ordre de passage (heure) puis par nom
   elevesAffectes.sort((a, b) => {
+    // Si les deux ont une heure de passage, trier par heure
+    if (a.heurePassage && b.heurePassage) {
+      const hCmp = a.heurePassage.localeCompare(b.heurePassage);
+      if (hCmp !== 0) return hCmp;
+    }
+    // Ceux avec heure avant ceux sans
+    if (a.heurePassage && !b.heurePassage) return -1;
+    if (!a.heurePassage && b.heurePassage) return 1;
+    // Fallback: classe puis nom
     const classeCompare = a.classe.localeCompare(b.classe);
     if (classeCompare !== 0) return classeCompare;
     return a.nom.localeCompare(b.nom);
@@ -147,6 +159,7 @@ function mapJury(
     horaire: jury.horaire,
     
     enseignants: juryEnseignants.map(mapEnseignant),
+    suppleants: jurySuppleants.length > 0 ? jurySuppleants.map(mapEnseignant) : undefined,
     eleves: elevesAffectes,
     
     capaciteMax: jury.capaciteMax,
