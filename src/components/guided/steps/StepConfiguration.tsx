@@ -61,6 +61,22 @@ interface DroppableJuryProps {
   demiJourneesOral?: string[];
 }
 
+function DroppableSuppleantZone({ juryId }: { juryId: string }) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `suppleant-${juryId}`,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={clsx('jury-suppleant-drop', isOver && 'drop-target')}
+    >
+      <ShieldCheck size={12} />
+      <span>Deposer ici pour suppleant</span>
+    </div>
+  );
+}
+
 function DroppableJury({ jury, enseignants, onCapacityChange, demiJourneesOral }: DroppableJuryProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `jury-${jury.id}`,
@@ -118,6 +134,7 @@ function DroppableJury({ jury, enseignants, onCapacityChange, demiJourneesOral }
           ))}
         </div>
       )}
+      <DroppableSuppleantZone juryId={jury.id!} />
       <div className="jury-footer">
         <span className="jury-matieres">
           {matieres.length > 0 ? matieres.join(', ') : 'Aucune matiere'}
@@ -450,6 +467,23 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
     const { enseignant, fromJuryId } = active.data.current as { enseignant: Enseignant; fromJuryId: string | null };
     const overId = String(over.id);
 
+    // Dropped on suppléant zone
+    if (overId.startsWith('suppleant-')) {
+      const toJuryId = overId.replace('suppleant-', '');
+      // Remove from source first
+      if (fromJuryId) {
+        await moveEnseignantBetweenJurys(enseignant.id!, fromJuryId, null);
+      }
+      // Add as suppléant
+      const jury = getJurysByScenario(createdScenarioId || '').find(j => j.id === toJuryId);
+      if (jury && !jury.suppleantsIds?.includes(enseignant.id!)) {
+        await updateJury(toJuryId, {
+          suppleantsIds: [...(jury.suppleantsIds || []), enseignant.id!],
+        });
+      }
+      return;
+    }
+
     let toJuryId: string | null = null;
     if (overId.startsWith('jury-')) {
       toJuryId = overId.replace('jury-', '');
@@ -460,7 +494,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
     if (fromJuryId !== toJuryId) {
       await moveEnseignantBetweenJurys(enseignant.id!, fromJuryId, toJuryId);
     }
-  }, [moveEnseignantBetweenJurys]);
+  }, [moveEnseignantBetweenJurys, getJurysByScenario, createdScenarioId, updateJury]);
 
   // Continue to next step
   const handleContinue = useCallback(() => {
@@ -484,66 +518,67 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
         onDragEnd={handleDragEnd}
       >
         <div className="guided-step step-config jury-editor">
-          <h1 className="step-title">Vos jurys sont prets !</h1>
-          <p className="step-subtitle">
-            {scenarioJurys.length} jurys crees pour {nbEleves} eleves. Vous pouvez reorganiser les membres par glisser-deposer.
-          </p>
+          {/* Scrollable content */}
+          <div className="jury-editor-scroll">
+            <h1 className="step-title">Vos jurys sont prets !</h1>
+            <p className="step-subtitle">
+              {scenarioJurys.length} jurys crees pour {nbEleves} eleves. Vous pouvez reorganiser les membres par glisser-deposer.
+            </p>
 
-          {/* Stats */}
-          <div className="jury-stats">
-            <div className="stat-item">
-              <span className="stat-value">{scenarioJurys.length}</span>
-              <span className="stat-label">jurys</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-value">{totalCapacity}</span>
-              <span className="stat-label">places totales</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-value">{nbEleves}</span>
-              <span className="stat-label">eleves</span>
-            </div>
-            {totalCapacity < nbEleves && (
-              <div className="stat-item warning">
-                <AlertTriangle size={20} />
-                <span>Capacite insuffisante</span>
+            {/* Stats */}
+            <div className="jury-stats">
+              <div className="stat-item">
+                <span className="stat-value">{scenarioJurys.length}</span>
+                <span className="stat-label">jurys</span>
               </div>
-            )}
-          </div>
+              <div className="stat-item">
+                <span className="stat-value">{totalCapacity}</span>
+                <span className="stat-label">places totales</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-value">{nbEleves}</span>
+                <span className="stat-label">eleves</span>
+              </div>
+              {totalCapacity < nbEleves && (
+                <div className="stat-item warning">
+                  <AlertTriangle size={20} />
+                  <span>Capacite insuffisante</span>
+                </div>
+              )}
+            </div>
 
-          {/* Regenerate button */}
-          <button
-            className="btn btn-secondary regenerate-btn"
-            onClick={handleRegenerateJurys}
-            disabled={creating}
-          >
-            <Shuffle size={18} />
-            Regenerer les jurys
-          </button>
+            {/* Regenerate button */}
+            <button
+              className="btn btn-secondary regenerate-btn"
+              onClick={handleRegenerateJurys}
+              disabled={creating}
+            >
+              <Shuffle size={18} />
+              Regenerer les jurys
+            </button>
 
-          {/* Jury grid */}
-          <div className="jury-grid">
-            {scenarioJurys.map(jury => (
-              <DroppableJury
-                key={jury.id}
-                jury={jury}
-                enseignants={enseignants}
-                onCapacityChange={(cap) => handleJuryCapacityChange(jury.id!, cap)}
-                demiJourneesOral={demiJourneesOral}
-              />
-            ))}
-          </div>
+            {/* Jury grid */}
+            <div className="jury-grid">
+              {scenarioJurys.map(jury => (
+                <DroppableJury
+                  key={jury.id}
+                  jury={jury}
+                  enseignants={enseignants}
+                  onCapacityChange={(cap) => handleJuryCapacityChange(jury.id!, cap)}
+                  demiJourneesOral={demiJourneesOral}
+                />
+              ))}
+            </div>
 
-          {/* Unassigned zone */}
-          {unassignedSelectedEnseignants.length > 0 && (
+            {/* Unassigned zone — toujours visible pour pouvoir y déposer des enseignants */}
             <DroppableUnassigned
               enseignants={unassignedSelectedEnseignants}
               selectedIds={selectedEnseignantIds}
               demiJourneesOral={demiJourneesOral}
             />
-          )}
+          </div>
 
-          {/* Actions */}
+          {/* Actions — fixed at bottom */}
           <div className="step-actions">
             <button className="btn btn-secondary" onClick={() => setShowJuryEditor(false)}>
               Retour
