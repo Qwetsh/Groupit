@@ -80,14 +80,20 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isInitialized, setIsInitialized] = useState(false);
 
+  // Enseignants avec id garanti (filtrer les entrées sans id)
+  const validEnseignants = useMemo(
+    () => enseignants.filter((e): e is typeof e & { id: string } => !!e.id),
+    [enseignants]
+  );
+
   // Initialiser avec tous les enseignants sélectionnés
   useEffect(() => {
-    if (enseignants.length > 0 && !isInitialized) {
-      const allIds = new Set(enseignants.map(e => e.id!).filter(Boolean));
+    if (validEnseignants.length > 0 && !isInitialized) {
+      const allIds = new Set(validEnseignants.map(e => e.id));
       setSelectedEnseignantIds(allIds);
       setIsInitialized(true);
     }
-  }, [enseignants, isInitialized]);
+  }, [validEnseignants, isInitialized]);
 
   // Step 4: Critères
   const [criteres, setCriteres] = useState<CritereInstance[]>([]);
@@ -101,29 +107,29 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
 
   // Extraire les valeurs uniques pour les filtres enseignants
   const distinctMatieres = useMemo(() =>
-    [...new Set(enseignants.map(e => e.matierePrincipale))].filter(Boolean).sort(), [enseignants]);
+    [...new Set(validEnseignants.map(e => e.matierePrincipale))].filter(Boolean).sort(), [validEnseignants]);
 
   const distinctNiveaux = useMemo(() => {
     const niveaux = new Set<string>();
-    enseignants.forEach(e => {
+    validEnseignants.forEach(e => {
       e.classesEnCharge?.forEach(c => {
         const niveau = c.replace(/[^0-9]/g, '')[0];
         if (niveau) niveaux.add(niveau + 'e');
       });
     });
     return [...niveaux].sort((a, b) => parseInt(b) - parseInt(a)) as Niveau[];
-  }, [enseignants]);
+  }, [validEnseignants]);
 
   // Enseignants filtrés par recherche
   const displayedEnseignants = useMemo(() => {
-    if (!searchQuery.trim()) return enseignants;
+    if (!searchQuery.trim()) return validEnseignants;
     const query = searchQuery.toLowerCase();
-    return enseignants.filter(e =>
+    return validEnseignants.filter(e =>
       e.nom.toLowerCase().includes(query) ||
       e.prenom?.toLowerCase().includes(query) ||
       e.matierePrincipale?.toLowerCase().includes(query)
     );
-  }, [enseignants, searchQuery]);
+  }, [validEnseignants, searchQuery]);
 
   // Computed values
   const eleveCount = useMemo(() => {
@@ -173,7 +179,7 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
   };
 
   const selectAll = () => {
-    const allIds = new Set(enseignants.map(e => e.id!).filter(Boolean));
+    const allIds = new Set(validEnseignants.map(e => e.id));
     setSelectedEnseignantIds(allIds);
   };
 
@@ -184,26 +190,26 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
   // Actions de masse par critère
   const selectOnlyPP = () => {
     const ppIds = new Set(
-      enseignants.filter(e => e.estProfPrincipal).map(e => e.id!).filter(Boolean)
+      validEnseignants.filter(e => e.estProfPrincipal).map(e => e.id)
     );
     setSelectedEnseignantIds(ppIds);
   };
 
   const selectOnlyNiveau = (niveau: Niveau) => {
     const niveauIds = new Set(
-      enseignants.filter(e =>
+      validEnseignants.filter(e =>
         e.classesEnCharge?.some(c => {
           const n = c.replace(/[^0-9]/g, '')[0] + 'e';
           return n === niveau;
         })
-      ).map(e => e.id!).filter(Boolean)
+      ).map(e => e.id)
     );
     setSelectedEnseignantIds(niveauIds);
   };
 
   const selectOnlyMatiere = (matiere: string) => {
     const matiereIds = new Set(
-      enseignants.filter(e => e.matierePrincipale === matiere).map(e => e.id!).filter(Boolean)
+      validEnseignants.filter(e => e.matierePrincipale === matiere).map(e => e.id)
     );
     setSelectedEnseignantIds(matiereIds);
   };
@@ -234,7 +240,7 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
       const effectiveCriteres = getEffectiveCriteres(selectedType, criteres);
 
       // Si tous les enseignants sont sélectionnés, pas besoin de filtre
-      const allSelected = selectedEnseignantIds.size === enseignants.length;
+      const allSelected = selectedEnseignantIds.size === validEnseignants.length;
       const enseignantIdsArray = allSelected ? [] : Array.from(selectedEnseignantIds);
 
       const scenarioData = {
@@ -557,7 +563,7 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
                     <span className="counter-text">
                       <strong>{selectedEnseignantIds.size}</strong>
                       <span className="counter-separator">/</span>
-                      <span>{enseignants.length}</span>
+                      <span>{validEnseignants.length}</span>
                       <span className="counter-label">enseignants</span>
                     </span>
                   </div>
@@ -631,13 +637,13 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
                 {/* Liste des enseignants */}
                 <div className="enseignants-list">
                   {displayedEnseignants.map(ens => {
-                    const isSelected = selectedEnseignantIds.has(ens.id!);
+                    const isSelected = selectedEnseignantIds.has(ens.id);
 
                     return (
                       <div
                         key={ens.id}
                         className={`enseignant-item ${isSelected ? 'selected' : ''}`}
-                        onClick={() => toggleEnseignant(ens.id!)}
+                        onClick={() => toggleEnseignant(ens.id)}
                       >
                         <div className="ens-checkbox">
                           {isSelected && <Check size={14} />}

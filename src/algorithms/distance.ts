@@ -64,8 +64,8 @@ function normalizeCommune(commune: string): string {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]/g, '')
-    .replace(/^(le|la|les|l)\s*/i, '');
+    .replace(/^(le |la |les |l')/i, '')
+    .replace(/[^a-z0-9]/g, '');
 }
 
 function extractDepartement(commune: string): string | null {

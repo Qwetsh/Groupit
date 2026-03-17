@@ -329,7 +329,8 @@ export const useJuryStore = create<JuryState>((set, get) => ({
       enseignantsParJury: options.enseignantsParJury || 2,
     });
     
-    // Créer les jurys
+    // Créer tous les jurys puis mettre à jour le state en une seule fois
+    const newJurys: Jury[] = [];
     for (let i = 0; i < distribution.length; i++) {
       const distrib = distribution[i];
       const newJury = await juryRepository.create({
@@ -339,11 +340,12 @@ export const useJuryStore = create<JuryState>((set, get) => ({
         suppleantsIds: distrib.suppleantsIds,
         capaciteMax: capaciteParJury,
       });
-
-      set(state => ({
-        jurys: [...state.jurys, newJury]
-      }));
+      newJurys.push(newJury);
     }
+
+    set(state => ({
+      jurys: [...state.jurys, ...newJurys]
+    }));
   },
 
   computeJuryMatieres: (jury, enseignants) => {

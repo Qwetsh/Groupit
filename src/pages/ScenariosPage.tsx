@@ -147,20 +147,22 @@ export const ScenariosPage: React.FC = () => {
                   <p className="description">{scenario.description}</p>
                 )}
                 <div className="criteres-preview">
-                  {scenario.parametres.criteres
-                    .filter(c => c.actif)
-                    .sort((a, b) => b.poids - a.poids)
-                    .slice(0, 4)
-                    .map((c, i) => (
-                      <span key={i} className={`critere-tag ${c.poids >= 50 ? 'high' : c.poids >= 20 ? 'medium' : 'low'}`}>
+                  {(scenario.parametres.criteresV2?.length
+                    ? scenario.parametres.criteresV2.filter(c => c.actif).sort((a, b) => (b.priorite ?? b.poids ?? 0) - (a.priorite ?? a.poids ?? 0)).slice(0, 4)
+                    : scenario.parametres.criteres.filter(c => c.actif).sort((a, b) => b.poids - a.poids).slice(0, 4)
+                  ).map((c, i) => (
+                      <span key={i} className={`critere-tag ${(c.poids ?? 0) >= 50 ? 'high' : (c.poids ?? 0) >= 20 ? 'medium' : 'low'}`}>
                         {getCritereLabel(c.id)}
                       </span>
                     ))}
-                  {scenario.parametres.criteres.filter(c => c.actif).length > 4 && (
-                    <span className="critere-more">
-                      +{scenario.parametres.criteres.filter(c => c.actif).length - 4}
-                    </span>
-                  )}
+                  {(() => {
+                    const activeCount = scenario.parametres.criteresV2?.length
+                      ? scenario.parametres.criteresV2.filter(c => c.actif).length
+                      : scenario.parametres.criteres.filter(c => c.actif).length;
+                    return activeCount > 4 ? (
+                      <span className="critere-more">+{activeCount - 4}</span>
+                    ) : null;
+                  })()}
                 </div>
               </div>
 

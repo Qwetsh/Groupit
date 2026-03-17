@@ -257,7 +257,10 @@ export interface ExportedData {
 }
 
 export async function exportAllData(): Promise<ExportedData> {
-  return {
+  return db.transaction('r', [
+    db.eleves, db.enseignants, db.affectations, db.scenarios,
+    db.groupes, db.jurys, db.stages, db.fieldDefinitions, db.scenarioArchives,
+  ], async () => ({
     eleves: await db.eleves.toArray(),
     enseignants: await db.enseignants.toArray(),
     affectations: await db.affectations.toArray(),
@@ -267,10 +270,31 @@ export async function exportAllData(): Promise<ExportedData> {
     stages: await db.stages.toArray(),
     fieldDefinitions: await db.fieldDefinitions.toArray(),
     scenarioArchives: await db.scenarioArchives.toArray(),
-  };
+  }));
 }
 
 export async function importAllData(data: Partial<ExportedData>): Promise<void> {
+  // Validation basique des données importées
+  const validateRecords = (records: unknown[], tableName: string) => {
+    if (!Array.isArray(records)) throw new Error(`${tableName}: les données doivent être un tableau`);
+    for (const rec of records) {
+      if (!rec || typeof rec !== 'object') throw new Error(`${tableName}: enregistrement invalide`);
+      if (!('id' in rec) || typeof (rec as Record<string, unknown>).id !== 'string') {
+        throw new Error(`${tableName}: chaque enregistrement doit avoir un id de type string`);
+      }
+    }
+  };
+
+  if (data.eleves) validateRecords(data.eleves, 'eleves');
+  if (data.enseignants) validateRecords(data.enseignants, 'enseignants');
+  if (data.affectations) validateRecords(data.affectations, 'affectations');
+  if (data.scenarios) validateRecords(data.scenarios, 'scenarios');
+  if (data.groupes) validateRecords(data.groupes, 'groupes');
+  if (data.jurys) validateRecords(data.jurys, 'jurys');
+  if (data.stages) validateRecords(data.stages, 'stages');
+  if (data.fieldDefinitions) validateRecords(data.fieldDefinitions, 'fieldDefinitions');
+  if (data.scenarioArchives) validateRecords(data.scenarioArchives, 'scenarioArchives');
+
   await db.transaction('rw', [
     db.eleves,
     db.enseignants,

@@ -284,7 +284,7 @@ export interface StageMatchingOptionsFromCriteria {
   poidsDuree: number;
   poidsDistance: number;
   poidsEquilibrage: number;
-  poidsProfssPrincipal: number;
+  poidsProfPrincipal: number;
   poidsElevesEnCours: number;
   distanceMaxKm?: number;
   dureeMaxMin?: number;
@@ -317,7 +317,7 @@ export function criteresToStageOptions(
     poidsDuree: poidsDistanceTrajet * 0.6, // 60% pour la durée
     poidsDistance: poidsDistanceTrajet * 0.4, // 40% pour la distance
     poidsEquilibrage: getCritereWeight('equilibrage'),
-    poidsProfssPrincipal: getCritereWeight('prof_principal'),
+    poidsProfPrincipal: getCritereWeight('prof_principal'),
     poidsElevesEnCours: getCritereWeight('eleves_en_cours'),
     // Contraintes dures depuis la config
     distanceMaxKm: stageConfig?.distanceMaxKm,

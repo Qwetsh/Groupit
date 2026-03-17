@@ -87,10 +87,18 @@ export function solveGreedy(
   const charges = new Map(context.chargesActuelles);
   const capacites = context.capacites;
   
+  // Pré-calculer le nombre d'options valides par élève (éviter O(n²) dans le sort)
+  const validCountByEleve = new Map<string, number>();
+  for (const p of allPairs) {
+    if (p.isValid) {
+      validCountByEleve.set(p.eleveId, (validCountByEleve.get(p.eleveId) || 0) + 1);
+    }
+  }
+
   // Trier les élèves par "difficulté" (moins d'options valides = plus prioritaire)
   const elevesOrdered = [...eleves].sort((a, b) => {
-    const validA = allPairs.filter(p => p.eleveId === a.id && p.isValid).length;
-    const validB = allPairs.filter(p => p.eleveId === b.id && p.isValid).length;
+    const validA = validCountByEleve.get(a.id) || 0;
+    const validB = validCountByEleve.get(b.id) || 0;
     return validA - validB; // Les plus contraints d'abord
   });
   
@@ -238,7 +246,7 @@ export function improveWithLocalSearch(
               violations: [],
               isValid: true,
             };
-            
+
             currentAffectations[j] = {
               ...aff2,
               enseignantId: ens1.id,
@@ -247,12 +255,22 @@ export function improveWithLocalSearch(
               violations: [],
               isValid: true,
             };
-            
+
+            // Mettre à jour les maps de charges pour le contexte de scoring
+            eleveToEnseignant.set(aff1.eleveId, ens2.id);
+            eleveToEnseignant.set(aff2.eleveId, ens1.id);
+            const list1 = enseignantToEleves.get(ens1.id) || [];
+            const list2 = enseignantToEleves.get(ens2.id) || [];
+            enseignantToEleves.set(ens1.id, list1.filter(id => id !== aff1.eleveId).concat(aff2.eleveId));
+            enseignantToEleves.set(ens2.id, list2.filter(id => id !== aff2.eleveId).concat(aff1.eleveId));
+
+            // Note: chargesActuelles is unchanged for 2-opt swaps (1-for-1 exchange)
+
             // Mettre à jour le score global
             currentScore = Math.round(
               currentAffectations.reduce((sum, a) => sum + a.score, 0) / currentAffectations.length
             );
-            
+
             improved = true;
             
             if (cfg.verbose) {

@@ -287,6 +287,8 @@ export const useEleveStore = create<EleveState>((set, get) => ({
         return false;
       }
 
+      // Filtre nonAffectesOnly est géré au niveau du composant (nécessite les affectations)
+
       // Filtre recherche
       if (filters.recherche) {
         const search = filters.recherche.toLowerCase();

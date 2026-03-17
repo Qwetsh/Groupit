@@ -42,7 +42,6 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
   const [previewEleves, setPreviewEleves] = useState<Partial<Eleve>[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
-  const [_importing, setImporting] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -130,7 +129,6 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
 
   // Final import
   const finalImport = useCallback(async () => {
-    setImporting(true);
     setStep('importing');
     
     try {
@@ -139,8 +137,6 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
     } catch (error) {
       setErrors([`Erreur lors de l'import: ${error}`]);
       setStep('preview');
-    } finally {
-      setImporting(false);
     }
   }, [previewEleves, onImport, onClose]);
 

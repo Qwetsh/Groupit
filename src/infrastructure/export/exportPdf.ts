@@ -64,7 +64,8 @@ export async function previewPdf(
     const blob = await exportPdfJuries(data, options);
     const url = URL.createObjectURL(blob);
     window.open(url, '_blank');
-    // Note: URL.revokeObjectURL sera appelé quand l'onglet sera fermé
+    // Révoquer l'URL après un délai pour laisser le temps au navigateur de charger
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   } catch (error) {
     console.error('[exportPdf] Erreur prévisualisation PDF:', error);
     throw error;

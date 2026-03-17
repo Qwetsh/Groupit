@@ -103,7 +103,6 @@ export function ImportMatiereOralModal({ onClose, matieresAutorisees }: ImportMa
   const [mappings, setMappings] = useState<MatiereMapping[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
-  const [_importing, setImporting] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -351,7 +350,6 @@ export function ImportMatiereOralModal({ onClose, matieresAutorisees }: ImportMa
 
   // Execute import
   const executeImport = useCallback(async () => {
-    setImporting(true);
     setStep('importing');
     
     try {
@@ -393,8 +391,6 @@ export function ImportMatiereOralModal({ onClose, matieresAutorisees }: ImportMa
     } catch (error) {
       setErrors([`Erreur lors de l'import: ${error}`]);
       setStep('preview');
-    } finally {
-      setImporting(false);
     }
   }, [mappings, eleves, updateEleve, onClose]);
 

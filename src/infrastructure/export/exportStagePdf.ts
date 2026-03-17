@@ -194,6 +194,6 @@ export async function previewStagePdf(
   const blob = await generateStagePdf(data, options);
   const url = URL.createObjectURL(blob);
   window.open(url, '_blank');
-  // Note: Ne pas révoquer immédiatement car l'onglet a besoin de l'URL
-  // Le navigateur nettoiera lors de la fermeture de l'onglet
+  // Révoquer l'URL après un délai pour laisser le temps au navigateur de charger
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }

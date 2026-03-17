@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useEleveStore } from '../stores/eleveStore';
 import { useStageStore } from '../stores/stageStore';
@@ -57,7 +57,20 @@ export const ElevesPage: React.FC = () => {
   const [editingEleveId, setEditingEleveId] = useState<string | null>(null);
   const [selectedMatieres, setSelectedMatieres] = useState<string[]>([]);
   const [showMatiereDropdown, setShowMatiereDropdown] = useState<string | null>(null);
+  const matiereDropdownRef = useRef<HTMLDivElement>(null);
   const [showImportMatiereModal, setShowImportMatiereModal] = useState(false);
+
+  // Click-outside handler pour fermer le dropdown matière
+  useEffect(() => {
+    if (!showMatiereDropdown) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (matiereDropdownRef.current && !matiereDropdownRef.current.contains(e.target as Node)) {
+        setShowMatiereDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMatiereDropdown]);
 
   // Get unique classes
   const classes = useMemo(() => {
@@ -152,7 +165,7 @@ export const ElevesPage: React.FC = () => {
       e.matieresOral?.join(';') || '',
       e.tags.join(';')
     ]);
-    const csvContent = [headers.join(','), ...rows.map(r => r.map(c => `"${c}"`).join(','))].join('\n');
+    const csvContent = [headers.join(','), ...rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -550,8 +563,8 @@ export const ElevesPage: React.FC = () => {
                               </span>
                             )}
                             {/* Quick assign dropdown */}
-                            <div className="quick-assign">
-                              <button 
+                            <div className="quick-assign" ref={showMatiereDropdown === eleve.id ? matiereDropdownRef : undefined}>
+                              <button
                                 className="quick-assign-btn"
                                 onClick={() => setShowMatiereDropdown(
                                   showMatiereDropdown === eleve.id ? null : eleve.id!

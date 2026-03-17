@@ -88,7 +88,22 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
 
   // Ref pour positionner le menu via portal
   const toggleRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
+
+  // Refs pour les setTimeout (cleanup on unmount)
+  const timeoutRefs = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const addTimeout = useCallback((fn: () => void, delay: number) => {
+    const id = setTimeout(fn, delay);
+    timeoutRefs.current.push(id);
+    return id;
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      timeoutRefs.current.forEach(clearTimeout);
+    };
+  }, []);
 
   // Calculer la position du menu quand il s'ouvre
   useEffect(() => {
@@ -99,6 +114,22 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
         right: window.innerWidth - rect.right,
       });
     }
+  }, [showMenu]);
+
+  // Click-outside handler pour fermer le menu portal
+  useEffect(() => {
+    if (!showMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        menuRef.current && !menuRef.current.contains(target) &&
+        toggleRef.current && !toggleRef.current.contains(target)
+      ) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showMenu]);
 
   // Préparer les données d'export
@@ -134,7 +165,8 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
       const stageData = exportData as StageExportResultData;
       return (stageData.enseignants?.length > 0 || stageData.unassigned?.length > 0);
     }
-    return (exportData.stats.totalAffectes > 0 || exportData.stats.totalNonAffectes > 0);
+    const data = exportData as ExportResultData;
+    return (data.stats.totalAffectes > 0 || data.stats.totalNonAffectes > 0);
   }, [stageMode, exportData]);
 
   // Nom de fichier
@@ -178,7 +210,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
         downloadExportCsv(exportData as ExportResultData, baseFilename, csvOptions);
       }
       setCsvStatus('success');
-      setTimeout(() => setCsvStatus('idle'), 2000);
+      addTimeout(() => setCsvStatus('idle'), 2000);
     } catch (error) {
       console.error('[ExportButtons] Erreur CSV:', error);
       setCsvStatus('error');
@@ -197,7 +229,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
         downloadExportExcel(exportData as ExportResultData, baseFilename);
       }
       setExcelStatus('success');
-      setTimeout(() => setExcelStatus('idle'), 2000);
+      addTimeout(() => setExcelStatus('idle'), 2000);
     } catch (error) {
       console.error('[ExportButtons] Erreur Excel:', error);
       setExcelStatus('error');
@@ -225,7 +257,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
         });
       }
       setPdfStatus('success');
-      setTimeout(() => setPdfStatus('idle'), 2000);
+      addTimeout(() => setPdfStatus('idle'), 2000);
     } catch (error) {
       console.error('[ExportButtons] Erreur PDF:', error);
       setPdfStatus('error');
@@ -297,6 +329,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
 
         {showMenu && menuPosition && createPortal(
           <div
+            ref={menuRef}
             className="export-menu export-menu-portal"
             style={{
               position: 'fixed',
@@ -307,7 +340,10 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
             <div className="menu-section">
               <span className="menu-label">Export rapide</span>
               <div className="menu-stats">
-                {exportData.stats.totalAffectes} affectés • {exportData.stats.totalNonAffectes} non-affectés
+                {stageMode
+                  ? `${(exportData as StageExportResultData).enseignants?.length ?? 0} enseignants • ${(exportData as StageExportResultData).unassigned?.length ?? 0} non-affectés`
+                  : `${(exportData as ExportResultData).stats.totalAffectes} affectés • ${(exportData as ExportResultData).stats.totalNonAffectes} non-affectés`
+                }
               </div>
             </div>
 
