@@ -87,24 +87,27 @@ export function useKeyboardShortcuts() {
       action: () => navigate('/donnees'),
     },
 
-    // Action shortcuts (Ctrl + key)
+    // Action shortcuts (Alt + Shift + key to avoid hijacking browser defaults)
     {
       key: 'i',
-      ctrl: true,
+      alt: true,
+      shift: true,
       description: 'Importer des données',
       category: 'actions',
       action: () => openModal('import'),
     },
     {
       key: 'n',
-      ctrl: true,
+      alt: true,
+      shift: true,
       description: 'Nouveau scénario',
       category: 'actions',
       action: () => openModal('editScenario'),
     },
     {
       key: 'm',
-      ctrl: true,
+      alt: true,
+      shift: true,
       description: 'Aller au matching',
       category: 'actions',
       action: () => navigate('/board'),

@@ -204,13 +204,15 @@ function scoreEleveJury(
   
   // Normaliser les poids pour avoir un total de 100
   const poidsElevesEnCours = opts.poidsElevesEnCours ?? 0;
-  const totalPoids = opts.poidsMatiereMatch + opts.poidsEquilibrage + opts.poidsMixite + opts.poidsCapacite + poidsElevesEnCours;
+  const poidsPedagogique = opts.poidsPedagogique ?? 0;
+  const totalPoids = opts.poidsMatiereMatch + opts.poidsEquilibrage + opts.poidsMixite + opts.poidsCapacite + poidsElevesEnCours + poidsPedagogique;
   const norm = totalPoids > 0 ? 100 / totalPoids : 1;
 
   const wMatiere = opts.poidsMatiereMatch * norm / 100;
   const wEquilibrage = opts.poidsEquilibrage * norm / 100;
   const wMixite = opts.poidsMixite * norm / 100;
   const wCapacite = opts.poidsCapacite * norm / 100;
+  const wPedagogique = poidsPedagogique * norm / 100;
   const wElevesEnCours = poidsElevesEnCours * norm / 100;
   
   scoreDetail['matiere'] = scoreMatiereBase;
@@ -302,12 +304,20 @@ function scoreEleveJury(
     scoreDetail['elevesEnCours'] = scoreElevesEnCours;
   }
 
-  // 6. Score final pondéré
+  // 6. Score pédagogique (basé sur le poids horaire des matières du jury)
+  let scorePedagogique = 50;
+  if (poidsPedagogique > 0) {
+    scorePedagogique = Math.round(juryContext.poidsPedagogiqueMoyen * 100);
+    scoreDetail['pedagogique'] = scorePedagogique;
+  }
+
+  // 7. Score final pondéré
   const scoreFinal = Math.round(
     scoreMatiereBase * wMatiere +
     scoreEquilibrage * wEquilibrage +
     scoreMixite * wMixite +
     scoreCapacite * wCapacite +
+    scorePedagogique * wPedagogique +
     scoreElevesEnCours * wElevesEnCours
   );
   
@@ -572,7 +582,7 @@ export function improveOralDnbWithSwaps(
   scenario: Scenario,
   maxIterations: number = 100
 ): SolverResultDNB {
-  let currentResult = { ...initialResult };
+  let currentResult = { ...initialResult, affectations: [...initialResult.affectations] };
   let improved = true;
   let iterations = 0;
   

@@ -92,13 +92,18 @@ export const useFieldDefinitionStore = create<FieldDefinitionState>((set, get) =
     try {
       await fieldDefinitionRepository.reorder(orderedIds);
       set((state) => {
+        const orderedSet = new Set(orderedIds);
         const reordered = orderedIds
           .map((id, index) => {
             const field = state.fieldDefinitions.find((f) => f.id === id);
             return field ? { ...field, order: index } : null;
           })
           .filter(Boolean) as FieldDefinition[];
-        return { fieldDefinitions: reordered };
+        // Preserve fields not in orderedIds (append at end)
+        const remaining = state.fieldDefinitions
+          .filter((f) => !orderedSet.has(f.id))
+          .map((f, i) => ({ ...f, order: orderedIds.length + i }));
+        return { fieldDefinitions: [...reordered, ...remaining] };
       });
     } catch (error) {
       set({ error: extractErrorMessage(error) });

@@ -160,14 +160,14 @@ export const useStageStore = create<StageState>((set) => ({
       return { ...existingStage, ...updates };
     } else {
       // Création
-      const stage: Stage = {
+      const stage = {
         ...data,
         id: generateId(),
         eleveId,
-        geoStatus: data.geoStatus ?? (data.adresse ? 'pending' : undefined),
+        geoStatus: data.geoStatus ?? (data.adresse ? 'pending' as const : undefined),
         createdAt: now,
         updatedAt: now,
-      } as Stage;
+      } satisfies Omit<Stage, 'id' | 'createdAt' | 'updatedAt'> & { id: string; createdAt: Date; updatedAt: Date } as Stage;
 
       await db.stages.add(stage);
       set(state => ({ stages: [...state.stages, stage] }));
@@ -200,10 +200,10 @@ export const useStageStore = create<StageState>((set) => ({
         toCreate.push({
           ...data,
           id: generateId(),
-          geoStatus: data.geoStatus ?? (data.adresse ? 'pending' : undefined),
+          geoStatus: data.geoStatus ?? (data.adresse ? 'pending' as const : undefined),
           createdAt: now,
           updatedAt: now,
-        } as Stage);
+        } satisfies Omit<Stage, 'id' | 'createdAt' | 'updatedAt'> & { id: string; createdAt: Date; updatedAt: Date } as Stage);
         created++;
       }
     }

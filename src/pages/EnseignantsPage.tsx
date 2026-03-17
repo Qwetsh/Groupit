@@ -182,7 +182,6 @@ function EnseignantCard({ enseignant, onClick, onEdit, onDelete, onDuplicate }: 
           className="mini-matiere"
           style={{
             background: matiereColor.light,
-            color: matiereColor.gradient.includes('#') ? undefined : undefined
           }}
         >
           {enseignant.matierePrincipale}

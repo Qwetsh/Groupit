@@ -138,8 +138,10 @@ export const DashboardPage: React.FC = () => {
       return result;
     }
 
-    // Vérifier si le scénario actif utilise la distance
-    const usesDistance = activeScenario?.parametres.criteres.some(
+    // Vérifier si le scénario actif utilise la distance (V2 puis fallback V1)
+    const usesDistance = activeScenario?.parametres.criteresV2?.some(
+      c => c.actif && (c.id === 'distance' || c.id === 'secteur')
+    ) ?? activeScenario?.parametres.criteres.some(
       c => c.actif && (c.id === 'distance' || c.id === 'secteur')
     );
 

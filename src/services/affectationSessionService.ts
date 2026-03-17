@@ -236,7 +236,8 @@ export function downloadSessionAsJson(data: SessionExportData, filename?: string
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  // Defer revocation to let the browser finish downloading
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 
 // ============================================================
@@ -366,6 +367,9 @@ export async function importAffectationSession(
     // Supprimer les affectations existantes du scénario
     await context.deleteAffectationsByScenario(scenario.id!);
 
+    // Track unique matched enseignants
+    const matchedEnseignantIds = new Set<string>();
+
     // Traiter les affectations
     for (const affItem of data.affectations) {
       // Matcher l'élève
@@ -402,9 +406,7 @@ export async function importAffectationSession(
       }
 
       report.elevesMatched++;
-      if (!report.enseignantsNotFound.some(e => e.nom === affItem.enseignantNom && e.prenom === affItem.enseignantPrenom)) {
-        report.enseignantsMatched++;
-      }
+      matchedEnseignantIds.add(enseignant.id!);
 
       // Mettre à jour le stage si présent
       if (affItem.stage) {
@@ -430,7 +432,7 @@ export async function importAffectationSession(
           eleveId: eleve.id!,
           enseignantId: enseignant.id!,
           scenarioId: scenario.id!,
-          type: 'suivi_stage',
+          type: (scenario.type || data.scenario.type || 'suivi_stage') as Affectation['type'],
           metadata: {},
           scoreTotal: affItem.scoreTotal,
           scoreDetail: affItem.scoreDetail,
@@ -441,6 +443,9 @@ export async function importAffectationSession(
         report.affectationsSkipped++;
       }
     }
+
+    // Set unique enseignant count
+    report.enseignantsMatched = matchedEnseignantIds.size;
 
     // Traiter les élèves non affectés (mettre à jour leurs stages)
     for (const nonAff of data.nonAffectes) {

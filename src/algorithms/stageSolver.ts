@@ -317,11 +317,19 @@ function greedyAssignment(
   // Calculer la charge moyenne cible (éviter division par zéro)
   const avgLoad = enseignants.length > 0 ? stages.length / enseignants.length : 0;
   
+  // Pré-calculer le nombre de candidats par stage (éviter O(n²) dans le sort)
+  const candidateCountByStage = new Map<string, number>();
+  for (const stage of stages) {
+    let count = 0;
+    for (const ens of enseignants) {
+      if (pairsMap.has(`${stage.stageId}:${ens.enseignantId}`)) count++;
+    }
+    candidateCountByStage.set(stage.stageId, count);
+  }
+
   // Trier les stages par nombre de candidats valides (les plus contraints d'abord)
   const sortedStages = [...stages].sort((a, b) => {
-    const candidatsA = enseignants.filter(e => pairsMap.has(`${a.stageId}:${e.enseignantId}`));
-    const candidatsB = enseignants.filter(e => pairsMap.has(`${b.stageId}:${e.enseignantId}`));
-    return candidatsA.length - candidatsB.length;
+    return (candidateCountByStage.get(a.stageId) || 0) - (candidateCountByStage.get(b.stageId) || 0);
   });
   
   for (const stage of sortedStages) {
@@ -555,8 +563,8 @@ function fallbackRandomAssignment(
 ): { state: SolverState; fallbackRandomCount: number } {
   let fallbackRandomCount = 0;
 
-  // Stages non affectés avec géolocalisation
-  const unassignedStages = stages.filter(s => !state.affectations.has(s.stageId) && s.geo);
+  // Stages non affectés (avec ou sans géolocalisation)
+  const unassignedStages = stages.filter(s => !state.affectations.has(s.stageId));
 
   if (unassignedStages.length === 0) {
     return { state, fallbackRandomCount: 0 };
@@ -731,7 +739,7 @@ export function solveStageMatching(
             enseignantId,
             distanceKm: 0,
             durationMin: 0,
-            score: 75, // Score plus bas pour aléatoire
+            score: 25, // Score plus bas pour aléatoire (inférieur au fallback collège = 50)
             explication: `${ens.prenom} ${ens.nom} - 🎲 Affectation équilibrée`,
           });
         }

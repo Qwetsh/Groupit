@@ -221,7 +221,13 @@ function buildStageArchive(
 ): ValidationResult {
   const eleveMap = new Map(eleves.map(e => [e.id, e]));
   const enseignantMap = new Map(enseignants.map(e => [e.id, e]));
-  const stageMap = new Map(stages.map(s => [s.eleveId, s]));
+  // On garde le dernier stage par élève (les stages sans scenarioId sont priorisés)
+  const stageMap = new Map<string | undefined, Stage>();
+  for (const s of stages) {
+    if (!stageMap.has(s.eleveId) || !s.scenarioId) {
+      stageMap.set(s.eleveId, s);
+    }
+  }
 
   // Grouper les affectations par enseignant
   const affectationsByEnseignant = new Map<string, Affectation[]>();
@@ -260,12 +266,10 @@ function buildStageArchive(
       const stage = stageMap.get(aff.eleveId);
       const metadata = aff.metadata as { distanceKm?: number; durationMin?: number; entreprise?: string } | undefined;
 
-      if (metadata?.distanceKm) {
-        totalDistance += metadata.distanceKm;
+      if (metadata?.distanceKm || metadata?.durationMin) {
+        if (metadata.distanceKm) totalDistance += metadata.distanceKm;
+        if (metadata.durationMin) totalDuration += metadata.durationMin;
         distanceCount++;
-      }
-      if (metadata?.durationMin) {
-        totalDuration += metadata.durationMin;
       }
 
       return {

@@ -781,8 +781,7 @@ export const Board: React.FC = () => {
         });
 
         // Clear and create affectations
-        const existingForScenario = affectations.filter(a => a.scenarioId === activeScenario.id);
-        for (const aff of existingForScenario) await deleteAffectation(aff.id!);
+        await deleteAffectationsByScenario(activeScenario.id!);
 
         for (const aff of result.affectations) {
           const stage = geocodedStages.find(s => s.id === aff.stageId);
@@ -863,8 +862,7 @@ export const Board: React.FC = () => {
         result.affectations.forEach(a => resultsMap.set(a.eleveId, a));
         setDnbResults(resultsMap);
 
-        const existingForScenario = affectations.filter(a => a.scenarioId === activeScenario.id);
-        for (const aff of existingForScenario) await deleteAffectation(aff.id!);
+        await deleteAffectationsByScenario(activeScenario.id!);
 
         for (const aff of result.affectations) {
           await addAffectation({ eleveId: aff.eleveId, enseignantId: '', juryId: aff.juryId, scenarioId: activeScenario.id!, type: 'oral_dnb', metadata: { source: 'algorithm' }, explication: aff.explication, scoreDetail: aff.scoreDetail, scoreTotal: aff.score });
@@ -877,8 +875,7 @@ export const Board: React.FC = () => {
         const result = solveMatching(scenarioEleves, scenarioEnseignants, activeScenario, new Map(), { verbose: false });
         const newAffectations = convertToAffectations(result.affectations, activeScenario);
 
-        const existingForScenario = affectations.filter(a => a.scenarioId === activeScenario.id);
-        for (const aff of existingForScenario) await deleteAffectation(aff.id!);
+        await deleteAffectationsByScenario(activeScenario.id!);
 
         for (const aff of newAffectations) await addAffectation(aff);
 
@@ -890,7 +887,7 @@ export const Board: React.FC = () => {
     } finally {
       setIsRunning(false);
     }
-  }, [activeScenario, isJuryMode, isStageScenario, scenarioEleves, scenarioEnseignants, scenarioJurys, stages, enseignants, affectations, addAffectation, deleteAffectation]);
+  }, [activeScenario, isJuryMode, isStageScenario, scenarioEleves, scenarioEnseignants, scenarioJurys, stages, enseignants, addAffectation, deleteAffectationsByScenario]);
 
   const handleResetAffectations = useCallback(async () => {
     if (!activeScenario) return;

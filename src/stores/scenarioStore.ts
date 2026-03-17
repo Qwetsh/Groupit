@@ -4,7 +4,7 @@
 
 import { create } from 'zustand';
 import type { Scenario, ScenarioMode, ScenarioType, ScenarioParametres, CritereConfig } from '../domain/models';
-import { scenarioRepository } from '../infrastructure/repositories';
+import { scenarioRepository, affectationRepository, groupeRepository, juryRepository } from '../infrastructure/repositories';
 import { extractErrorMessage } from '../utils/errorUtils';
 
 interface ScenarioState {
@@ -148,10 +148,14 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
   
   deleteScenario: async (id) => {
     try {
+      // Cascade: supprimer les données liées avant le scénario
+      await affectationRepository.deleteByScenario(id);
+      await groupeRepository.deleteByScenarioId(id);
+      await juryRepository.deleteByScenarioId(id);
       await scenarioRepository.delete(id);
       set(state => {
         const newScenarios = state.scenarios.filter(s => s.id !== id);
-        const newCurrentId = state.currentScenarioId === id 
+        const newCurrentId = state.currentScenarioId === id
           ? (newScenarios.length > 0 ? newScenarios[0].id : null)
           : state.currentScenarioId;
         return {
