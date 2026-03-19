@@ -23,6 +23,43 @@
   --primary-dark: #1e40af;
   --primary-light: #dbeafe;
   --color-primary: #1d4ed8;
+
+  /* ===== RESPONSIVE SYSTEM ===== */
+  /* Breakpoints (référence, non utilisable dans media queries) */
+  /* sm: 640px  | md: 768px  | lg: 1024px | xl: 1280px | 2xl: 1536px */
+
+  /* Spacing scale */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+
+  /* Page padding - réduit sur petits écrans */
+  --page-padding: 24px;
+  --page-max-width: 1400px;
+
+  /* Sidebar */
+  --sidebar-width: 240px;
+  --sidebar-collapsed-width: 64px;
+
+  /* Modals */
+  --modal-padding: 24px;
+}
+
+/* Responsive overrides */
+@media (max-width: 1024px) {
+  :root {
+    --page-padding: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --page-padding: 12px;
+    --modal-padding: 16px;
+  }
 }
 
 body {

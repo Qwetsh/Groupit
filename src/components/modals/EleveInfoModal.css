@@ -332,3 +332,14 @@
     grid-column: span 1;
   }
 }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 640px) {
+  .eleve-info-modal {
+    max-width: calc(100vw - 24px) !important;
+  }
+
+  .eleve-info-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

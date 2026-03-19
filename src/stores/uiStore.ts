@@ -10,7 +10,7 @@ type Modal = 'import' | 'importMatiereOral' | 'editEleve' | 'editEnseignant' | '
 
 // Guided mode types
 export type GuidedScenarioType = 'suivi_stage' | 'oral_dnb' | null;
-export type GuidedStep = 'welcome' | 'scenario' | 'eleves' | 'themes' | 'enseignants' | 'configuration' | 'salles' | 'recap' | 'results';
+export type GuidedStep = 'welcome' | 'scenario' | 'eleves' | 'themes' | 'binomes' | 'enseignants' | 'configuration' | 'salles' | 'recap' | 'results';
 
 export interface GuidedModeState {
   isActive: boolean;

@@ -2,8 +2,9 @@
 // COMPONENT - CONFLICT PANEL
 // ============================================================
 
+import { useState } from 'react';
 import clsx from 'clsx';
-import { AlertTriangle, XCircle, AlertOctagon, Users, BookOpen, MapPin, UserX } from 'lucide-react';
+import { AlertTriangle, XCircle, AlertOctagon, Users, BookOpen, MapPin, UserX, CheckCircle } from 'lucide-react';
 import type { ConstraintViolation } from '../../domain/models';
 import './ConflictPanel.css';
 
@@ -147,7 +148,3 @@ export function ConflictPanel({
     </div>
   );
 }
-
-// Import React useState
-import { useState } from 'react';
-import { CheckCircle } from 'lucide-react';

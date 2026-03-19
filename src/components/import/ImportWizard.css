@@ -441,3 +441,17 @@
   border-color: #94a3b8;
   cursor: not-allowed;
 }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 640px) {
+  .import-wizard-modal {
+    max-width: calc(100vw - 16px) !important;
+    max-height: calc(100dvh - 16px) !important;
+  }
+
+  .import-wizard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}

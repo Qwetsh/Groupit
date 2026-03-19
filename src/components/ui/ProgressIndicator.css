@@ -463,3 +463,10 @@
     padding: 24px 32px;
   }
 }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 640px) {
+  .progress-modal {
+    max-width: calc(100vw - 24px) !important;
+  }
+}

@@ -19,6 +19,9 @@ export interface ExportEleveData {
   matieresOral: string[];
   matiereAffectee: string | null; // Matière qui a justifié l'affectation
   
+  // Binôme
+  binomeNom?: string; // "Prénom Nom" du partenaire si binôme
+
   // Champs futurs (placeholders)
   datePassage?: string;
   heurePassage?: string;
@@ -144,6 +147,12 @@ export interface PdfExportOptions {
   includeUnassignedPage: boolean;   // Page des non-affectés
   includeStatsPage: boolean;        // Page de statistiques
 
+  // Sections du PDF (sélection dans la modale pré-export)
+  includeSectionConvocEleve: boolean;     // Convocations élèves
+  includeSectionConvocProf: boolean;      // Convocations enseignants (jurys)
+  includeSectionEmargement: boolean;      // Feuilles d'émargement
+  includeSectionFeuillesPorte: boolean;   // Feuilles de porte
+
   // Type d'oral (DNB officiel ou oral blanc de préparation)
   typeOral?: 'dnb' | 'oral_blanc';
 
@@ -181,6 +190,10 @@ export const DEFAULT_PDF_OPTIONS: PdfExportOptions = {
   includeLetterText: true,
   includeUnassignedPage: true,
   includeStatsPage: false,
+  includeSectionConvocEleve: true,
+  includeSectionConvocProf: true,
+  includeSectionEmargement: true,
+  includeSectionFeuillesPorte: true,
   orientation: 'portrait',
   pageSize: 'A4',
   fontSize: 'medium',

@@ -74,17 +74,17 @@ export const scenarioArchiveRepository = {
    * Retourne les entrées formatées pour l'affichage
    */
   async getHistoryForEnseignant(enseignantId: string): Promise<EnseignantHistoryEntry[]> {
-    const allArchives = await db.scenarioArchives.toArray();
+    // Filtrer côté DB avec un curseur pour éviter de charger toutes les archives en mémoire
     const history: EnseignantHistoryEntry[] = [];
 
-    for (const archive of allArchives) {
+    await db.scenarioArchives.each(archive => {
       // Chercher si cet enseignant participe à cet archive
       const participant = archive.participants.find(p => p.enseignantId === enseignantId);
-      if (!participant) continue;
+      if (!participant) return;
 
       // Chercher les affectations de cet enseignant
       const affectation = archive.affectations.find(a => a.enseignantId === enseignantId);
-      
+
       history.push({
         archiveId: archive.id,
         scenarioId: archive.scenarioId,
@@ -97,10 +97,10 @@ export const scenarioArchiveRepository = {
         juryNom: affectation?.juryNom,
         scoreTotal: affectation?.scoreTotal,
       });
-    }
+    });
 
     // Tri par date décroissante
-    return history.sort((a, b) => 
+    return history.sort((a, b) =>
       new Date(b.archivedAt).getTime() - new Date(a.archivedAt).getTime()
     );
   },

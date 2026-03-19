@@ -174,3 +174,14 @@
   gap: 12px;
   flex-wrap: wrap;
 }
+
+/* ===== RESPONSIVE OVERHAUL ===== */
+@media (max-width: 768px) {
+  .info-page {
+    padding: var(--page-padding);
+  }
+
+  .info-page h1 {
+    font-size: 1.25rem;
+  }
+}

@@ -358,12 +358,14 @@
 .results-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-auto-rows: min-content;
   gap: 12px;
   padding: 16px;
   flex: 1;
   overflow-y: auto;
   min-height: 0;
   align-content: start;
+  align-items: start;
 }
 
 .enseignant-tile {
@@ -1234,6 +1236,9 @@
   border-radius: 10px;
   transition: all 0.2s;
   min-height: 140px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .jury-tile.dropping {
@@ -1438,15 +1443,39 @@
   background: linear-gradient(90deg, #4ade80, #16a34a);
 }
 
+/* Jury progress bar (bottom of tile) */
+.jury-progress {
+  height: 3px;
+  background: #e2e8f0;
+  border-radius: 0 0 10px 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.jury-progress .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #a78bfa, #7c3aed);
+  transition: width 0.3s ease;
+}
+
+.jury-progress .progress-fill.full {
+  background: linear-gradient(90deg, #4ade80, #16a34a);
+}
+
+.jury-progress .progress-fill.warning {
+  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+}
+
 /* Jury élèves section */
 .jury-eleves {
   padding: 4px 6px;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: wrap !important;
   gap: 2px;
   min-height: 28px;
-  max-height: 180px;
-  overflow-y: auto;
+  flex: 1;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
   background: white;
   border-radius: 0 0 10px 10px;
 }
@@ -2252,4 +2281,67 @@
   color: #22c55e;
   margin-left: 4px;
   vertical-align: middle;
+}
+
+/* ===== RESPONSIVE OVERHAUL ===== */
+@media (max-width: 768px) {
+  .board-toolbar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 12px;
+  }
+
+  .board-toolbar .toolbar-section {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .board-toolbar button {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+
+  .board-toolbar select {
+    font-size: 12px;
+    max-width: 150px;
+  }
+
+  .board-content {
+    flex-direction: column;
+  }
+
+  .board-sidebar,
+  .board-panel,
+  .board-left-panel,
+  .board-right-panel {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .enseignant-tiles-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
+  }
+
+  .jury-tiles-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .board-toolbar {
+    padding: 6px 8px;
+  }
+
+  .board-toolbar button span:not(.icon) {
+    display: none;
+  }
+
+  .enseignant-tiles-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .jury-tiles-grid {
+    grid-template-columns: 1fr !important;
+  }
 }

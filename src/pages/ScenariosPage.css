@@ -505,3 +505,35 @@
   font-size: 11px;
   font-weight: 500;
 }
+
+/* ===== RESPONSIVE OVERHAUL ===== */
+@media (max-width: 768px) {
+  .scenarios-page {
+    padding: var(--page-padding);
+  }
+
+  .scenarios-page .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .scenarios-page .page-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .scenario-card {
+    padding: 12px;
+  }
+
+  .scenario-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .scenario-card-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

@@ -946,3 +946,49 @@
   box-shadow: none;
   border-radius: 0;
 }
+
+/* ===== RESPONSIVE OVERHAUL ===== */
+@media (max-width: 768px) {
+  .dashboard-page {
+    padding: var(--page-padding);
+  }
+
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .dashboard-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .quick-actions {
+    flex-wrap: wrap;
+  }
+
+  .quick-actions button {
+    flex: 1;
+    min-width: 120px;
+    font-size: 13px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .configurations-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-page {
+    padding: var(--page-padding);
+  }
+
+  .quick-actions button {
+    min-width: 100%;
+    justify-content: center;
+  }
+}

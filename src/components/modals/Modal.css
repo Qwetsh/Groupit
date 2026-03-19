@@ -1911,3 +1911,35 @@
 .stage-param-card.single .param-input-group input {
   width: 70px;
 }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 640px) {
+  .modal-content {
+    max-width: calc(100vw - 24px) !important;
+    max-height: calc(100dvh - 24px);
+    margin: 12px;
+  }
+
+  .modal-content.modal-large {
+    max-width: calc(100vw - 24px) !important;
+  }
+
+  .modal-header {
+    padding: 12px 16px;
+  }
+
+  .modal-body {
+    padding: 16px;
+  }
+
+  .modal-footer {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .modal-footer button {
+    flex: 1;
+    min-width: 0;
+  }
+}

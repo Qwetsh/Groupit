@@ -160,6 +160,22 @@
   background: #1d4ed8;
 }
 
+/* ===== RESPONSIVE ===== */
+@media (max-width: 480px) {
+  .confirm-modal {
+    max-width: calc(100vw - 32px);
+    margin: 16px;
+  }
+
+  .confirm-modal-actions {
+    flex-direction: column;
+  }
+
+  .confirm-modal-actions button {
+    width: 100%;
+  }
+}
+
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
   .confirm-modal {

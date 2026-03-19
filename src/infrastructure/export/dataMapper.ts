@@ -57,10 +57,20 @@ function getMatiereAffectee(
 function mapEleveAffecte(
   eleve: Eleve,
   affectation: Affectation,
-  juryEnseignants: Enseignant[]
+  juryEnseignants: Enseignant[],
+  allEleves?: Eleve[]
 ): ExportEleveData {
   const metadata = affectation.metadata as MetadataOralDNB;
-  
+
+  // Résoudre le nom du binôme
+  let binomeNom: string | undefined;
+  if (eleve.binomeId && allEleves) {
+    const partner = allEleves.find(e => e.id === eleve.binomeId);
+    if (partner) {
+      binomeNom = `${partner.prenom} ${partner.nom}`;
+    }
+  }
+
   return {
     eleveId: eleve.id!,
     nom: eleve.nom,
@@ -68,7 +78,8 @@ function mapEleveAffecte(
     classe: eleve.classe,
     matieresOral: eleve.matieresOral || [],
     matiereAffectee: getMatiereAffectee(eleve, juryEnseignants),
-    
+    binomeNom,
+
     // Champs futurs depuis metadata si disponibles
     datePassage: metadata?.dateCreneau,
     heurePassage: metadata?.heureCreneau,
@@ -118,7 +129,7 @@ function mapJury(
   for (const aff of juryAffectations) {
     const eleve = allEleves.find(e => e.id === aff.eleveId);
     if (eleve) {
-      const exportEleve = mapEleveAffecte(eleve, aff, juryEnseignants);
+      const exportEleve = mapEleveAffecte(eleve, aff, juryEnseignants, allEleves);
       elevesAffectes.push(exportEleve);
       
       // Vérifier si la matière match

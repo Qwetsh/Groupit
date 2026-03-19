@@ -343,11 +343,34 @@
   background: white;
 }
 
+.pdf-modal-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pdf-modal-sections .option-checkbox {
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  transition: all 0.15s;
+}
+
+.pdf-modal-sections .option-checkbox:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
 .pdf-modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 20px;
+}
+
+.pdf-modal-actions .btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .pdf-modal-actions .btn {
@@ -375,4 +398,20 @@
 
 .pdf-modal-actions .btn-primary:hover {
   background: #2563eb;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 640px) {
+  .export-panel-modal,
+  .export-panel-content {
+    max-width: calc(100vw - 16px) !important;
+  }
+
+  .export-actions {
+    flex-direction: column;
+  }
+
+  .export-actions button {
+    width: 100%;
+  }
 }

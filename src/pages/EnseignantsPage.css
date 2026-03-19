@@ -628,5 +628,40 @@
   .mini-classes {
     display: none;
   }
+
+  .enseignants-page {
+    padding: var(--page-padding);
+  }
+
+  .enseignants-page .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .enseignants-page .page-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .enseignants-toolbar {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .enseignants-toolbar input[type="search"],
+  .enseignants-toolbar input[type="text"] {
+    width: 100%;
+  }
+
+  .enseignants-grid-v2 {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .enseignants-grid-v2 {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)) !important;
+  }
 }
 

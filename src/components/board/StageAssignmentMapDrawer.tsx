@@ -342,11 +342,12 @@ export function StageAssignmentMapDrawer({
 
                 {/* Stage markers */}
                 {geoStages.map((stage) => {
+                  if (!stage.lat || !stage.lon) return null;
                   const info = distanceInfos.find(i => i.stage.id === stage.id);
                   return (
-                    <Marker 
-                      key={stage.id} 
-                      position={[stage.lat!, stage.lon!]} 
+                    <Marker
+                      key={stage.id}
+                      position={[stage.lat, stage.lon]}
                       icon={stageIcon}
                     >
                       <Popup>
@@ -372,7 +373,7 @@ export function StageAssignmentMapDrawer({
                 })}
 
                 {/* Polylines from teacher to each stage */}
-                {geoStages.map((stage) => (
+                {geoStages.filter(s => s.lat && s.lon).map((stage) => (
                   <Polyline
                     key={`line-${stage.id}`}
                     positions={[

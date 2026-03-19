@@ -649,3 +649,72 @@
   vertical-align: middle;
   margin: 0 2px;
 }
+
+/* ===== RESPONSIVE OVERHAUL ===== */
+@media (max-width: 768px) {
+  .eleves-page {
+    padding: var(--page-padding);
+  }
+
+  .eleves-page .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .eleves-page .page-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .page-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+
+  .page-tabs button {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 13px;
+    padding: 8px 12px;
+  }
+
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .eleves-table {
+    min-width: 600px;
+  }
+
+  .matieres-table-container {
+    max-height: calc(100dvh - 280px);
+  }
+
+  .eleves-page .toolbar {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .eleves-page .toolbar input[type="search"],
+  .eleves-page .toolbar input[type="text"] {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .eleves-page {
+    padding: var(--page-padding);
+  }
+
+  .eleves-table {
+    font-size: 12px;
+  }
+
+  .eleves-table th,
+  .eleves-table td {
+    padding: 6px 8px;
+  }
+}

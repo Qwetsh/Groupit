@@ -1426,3 +1426,26 @@
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+/* ===== RESPONSIVE OVERHAUL ===== */
+@media (max-width: 768px) {
+  .aide-page {
+    padding: var(--page-padding);
+  }
+
+  .aide-page h1 {
+    font-size: 1.25rem;
+  }
+
+  .aide-content {
+    max-width: 100% !important;
+  }
+
+  .aide-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .aide-sidebar {
+    display: none;
+  }
+}

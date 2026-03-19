@@ -190,3 +190,11 @@
     padding: 12px 20px;
   }
 }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 640px) {
+  .shortcuts-panel {
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+}

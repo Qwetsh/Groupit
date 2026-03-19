@@ -398,7 +398,6 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, date, options,
       <View style={styles.headerMeta}>
         <Text>{options.headerSchoolName || 'Établissement'}</Text>
         <Text>Année {options.headerYear || new Date().getFullYear()}</Text>
-        <Text>Exporté le {new Date(date).toLocaleDateString('fr-FR')}</Text>
       </View>
     </View>
   );
@@ -722,7 +721,9 @@ const DoorListPage: React.FC<DoorListPageProps> = ({ jury, data, options, styles
           style={[styles.doorRow, idx % 2 === 1 ? styles.doorRowAlt : {}]}
         >
           <Text style={styles.doorHeure}>{eleve.heurePassage || '—'}</Text>
-          <Text style={styles.doorNom}>{eleve.nom.toUpperCase()} {eleve.prenom}</Text>
+          <Text style={styles.doorNom}>
+            {eleve.nom.toUpperCase()} {eleve.prenom}{eleve.binomeNom ? ` & ${eleve.binomeNom}` : ''}
+          </Text>
         </View>
       ))}
     </View>
@@ -779,6 +780,78 @@ const AttendancePage: React.FC<AttendancePageProps> = ({ jury, data, options, st
     <PageFooter scenarioName={data.scenarioName} styles={styles} />
   </Page>
 );
+
+// ============================================================
+// PAGE CONVOCATION ÉLÈVE — une page par élève
+// ============================================================
+
+interface EleveConvocationPageProps {
+  eleve: ExportJuryData['eleves'][0];
+  jury: ExportJuryData;
+  data: ExportResultData;
+  options: PdfExportOptions;
+  styles: ReturnType<typeof createStyles>;
+  isOralBlanc: boolean;
+}
+
+const EleveConvocationPage: React.FC<EleveConvocationPageProps> = ({ eleve, jury, data, options, styles, isOralBlanc }) => {
+  const titleLabel = isOralBlanc ? 'Oral blanc' : 'Oral DNB';
+  const epreuve = isOralBlanc
+    ? "l'oral blanc de préparation au Diplôme National du Brevet"
+    : "l'épreuve orale du Diplôme National du Brevet";
+  const dateOralFormatted = options.dateOral
+    ? new Date(options.dateOral).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    : null;
+
+  return (
+    <Page size={options.pageSize} orientation={options.orientation} style={styles.page}>
+      <PageHeader
+        title={`${titleLabel} — Convocation élève`}
+        subtitle={options.headerSchoolName}
+        date={data.dateExport}
+        options={options}
+        styles={styles}
+      />
+
+      <View wrap={false}>
+        <Text style={[styles.juryTitle, { marginBottom: 8 }]}>
+          {eleve.prenom} {eleve.nom}
+        </Text>
+        <Text style={[styles.jurySalle, { marginBottom: 4 }]}>
+          Classe : {eleve.classe}
+        </Text>
+
+        <View style={styles.letterText}>
+          <Text style={styles.letterParagraph}>
+            Bonjour,
+          </Text>
+          <Text style={styles.letterParagraph}>
+            Vous êtes convoqué(e) pour {epreuve}.{dateOralFormatted ? ` L'épreuve aura lieu le ${dateOralFormatted}.` : ''}
+          </Text>
+          <Text style={styles.letterParagraph}>
+            Vous passerez devant le {jury.juryName}{jury.salle ? `, en salle ${jury.salle}` : ''}.
+            {eleve.heurePassage ? ` Votre heure de passage est prévue à ${eleve.heurePassage}.` : ''}
+            {eleve.binomeNom ? ` Vous passerez en binôme avec ${eleve.binomeNom}.` : ''}
+          </Text>
+          <Text style={styles.letterParagraph}>
+            Votre matière de présentation : {eleve.matiereAffectee || eleve.matieresOral.join(', ') || '—'}.
+          </Text>
+        </View>
+
+        <View style={[styles.letterText, { marginTop: 8 }]}>
+          <Text style={styles.letterParagraph}>
+            Vous êtes prié(e) de vous présenter 10 minutes avant l'heure prévue, muni(e) de la présente convocation et d'une pièce d'identité.
+          </Text>
+          <Text style={styles.letterParagraph}>
+            Nous vous prions d'agréer l'expression de nos salutations distinguées.
+          </Text>
+        </View>
+      </View>
+
+      <PageFooter scenarioName={data.scenarioName} styles={styles} />
+    </Page>
+  );
+};
 
 // ============================================================
 // PAGE NON-AFFECTÉS — wrap={false} sur le tableau
@@ -861,8 +934,8 @@ export const PdfJuryDocument: React.FC<PdfJuryDocumentProps> = ({
 
   return (
     <Document>
-      {/* Pages de convocation par jury */}
-      {data.jurys.map((jury, idx) => (
+      {/* Pages de convocation enseignants par jury */}
+      {options.includeSectionConvocProf && data.jurys.map((jury, idx) => (
         <JuryPage
           key={jury.juryId}
           jury={jury}
@@ -874,8 +947,8 @@ export const PdfJuryDocument: React.FC<PdfJuryDocumentProps> = ({
         />
       ))}
 
-      {/* Pages de convocation suppléants */}
-      {[...suppleantMap.values()].map(({ suppleant, jurys }) => (
+      {/* Pages de convocation suppléants (rattachées aux convoc profs) */}
+      {options.includeSectionConvocProf && [...suppleantMap.values()].map(({ suppleant, jurys }) => (
         <SuppleantPage
           key={suppleant.enseignantId}
           suppleant={suppleant}
@@ -887,13 +960,28 @@ export const PdfJuryDocument: React.FC<PdfJuryDocumentProps> = ({
         />
       ))}
 
+      {/* Pages de convocation élèves (une par élève) */}
+      {options.includeSectionConvocEleve && data.jurys.flatMap(jury =>
+        jury.eleves.map(eleve => (
+          <EleveConvocationPage
+            key={`convoc-eleve-${eleve.eleveId}`}
+            eleve={eleve}
+            jury={jury}
+            data={data}
+            options={options}
+            styles={styles}
+            isOralBlanc={isOralBlanc}
+          />
+        ))
+      )}
+
       {/* Pages non-affectés */}
       {options.includeUnassignedPage && data.unassigned.length > 0 && (
         <UnassignedPage data={data} options={options} styles={styles} />
       )}
 
       {/* Listes de porte (une par jury) */}
-      {data.jurys.map(jury => (
+      {options.includeSectionFeuillesPorte && data.jurys.map(jury => (
         <DoorListPage
           key={`door-${jury.juryId}`}
           jury={jury}
@@ -903,8 +991,8 @@ export const PdfJuryDocument: React.FC<PdfJuryDocumentProps> = ({
         />
       ))}
 
-      {/* Feuilles de présence (une par jury) */}
-      {data.jurys.map(jury => (
+      {/* Feuilles de présence / émargement (une par jury) */}
+      {options.includeSectionEmargement && data.jurys.map(jury => (
         <AttendancePage
           key={`attend-${jury.juryId}`}
           jury={jury}
