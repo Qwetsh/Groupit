@@ -21,7 +21,7 @@
   position: fixed;
   top: 0;
   right: 0;
-  width: 440px;
+  width: min(440px, 100vw);
   max-width: 100vw;
   height: 100vh;
   background: var(--bg-primary, #fff);
@@ -594,5 +594,13 @@
 
   .heures-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 640px) {
+  .enseignant-profile-drawer {
+    width: 100vw !important;
+    max-width: 100vw !important;
   }
 }

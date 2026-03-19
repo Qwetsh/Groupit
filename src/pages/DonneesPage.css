@@ -648,4 +648,48 @@
   .btn-add-field {
     margin-left: 0;
   }
+
+  .donnees-page .page-header {
+    padding: var(--page-padding);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .donnees-page .page-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .donnees-toolbar input[type="search"],
+  .donnees-toolbar input[type="text"] {
+    width: 100%;
+  }
+
+  .donnees-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .donnees-table {
+    font-size: 12px;
+  }
+
+  .donnees-table th,
+  .donnees-table td {
+    padding: 6px 8px;
+    white-space: nowrap;
+  }
+
+  .donnees-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    padding: 0 var(--page-padding);
+  }
+
+  .donnees-tabs button {
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 13px;
+  }
 }

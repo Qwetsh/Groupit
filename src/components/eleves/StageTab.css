@@ -81,7 +81,7 @@
 }
 
 .stage-table {
-  min-width: 900px;
+  min-width: 0;
 }
 
 .stage-table th:nth-child(4),
@@ -1159,4 +1159,36 @@
 .skip-option .candidate-name.skip {
   color: #9ca3af;
   font-style: italic;
+}
+
+/* ===== RESPONSIVE OVERHAUL ===== */
+@media (max-width: 768px) {
+  .stage-tab {
+    padding: var(--page-padding, 12px);
+  }
+
+  .stage-tab .toolbar {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .stage-tab .toolbar input,
+  .stage-tab .toolbar select {
+    width: 100%;
+  }
+
+  .stage-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .stage-table {
+    min-width: 700px;
+    font-size: 12px;
+  }
+
+  .stage-table th,
+  .stage-table td {
+    padding: 6px 8px;
+  }
 }

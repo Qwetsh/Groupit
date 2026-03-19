@@ -149,16 +149,41 @@ export function assignTimeSlots(
     // Distribuer les élèves dans les demi-journées selon le mode
     const distribution = distributeStudents(juryAffectations.length, demiJournees, slotsByDemiJournee, mode);
 
-    // Assigner les créneaux
+    // Assigner les créneaux (binômes = même créneau, durée doublée → saute un slot)
+    let slotIdx = 0;
+    const assignedIds = new Set<string>();
+
     for (let i = 0; i < juryAffectations.length; i++) {
       const aff = juryAffectations[i];
-      const slot = distribution[i];
-      if (slot) {
-        updates.set(aff.id, {
-          dateCreneau: getDemiJourneeLabel(slot.demiJournee),
-          heureCreneau: slot.heure,
-        });
+      if (assignedIds.has(aff.eleveId)) continue;
+
+      const slot = distribution[slotIdx];
+      if (!slot) break;
+
+      const eleve = elevesById.get(aff.eleveId);
+      const isBinome = eleve?.binomeId != null;
+
+      updates.set(aff.id, {
+        dateCreneau: getDemiJourneeLabel(slot.demiJournee),
+        heureCreneau: slot.heure,
+      });
+      assignedIds.add(aff.eleveId);
+
+      // Si binôme, assigner le partenaire au même créneau
+      if (isBinome) {
+        const partnerAff = juryAffectations.find(a => a.eleveId === eleve!.binomeId);
+        if (partnerAff && !assignedIds.has(partnerAff.eleveId)) {
+          updates.set(partnerAff.id, {
+            dateCreneau: getDemiJourneeLabel(slot.demiJournee),
+            heureCreneau: slot.heure,
+          });
+          assignedIds.add(partnerAff.eleveId);
+          // Sauter un créneau supplémentaire (durée doublée)
+          slotIdx++;
+        }
       }
+
+      slotIdx++;
     }
   }
 

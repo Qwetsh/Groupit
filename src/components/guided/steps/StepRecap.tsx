@@ -88,17 +88,16 @@ export function StepRecap({ onBack }: StepRecapProps) {
       const savedAffectations = await addAffectations(affectationsToAdd);
       setAffectationCount(affectationsToAdd.length);
 
-      // Assign time slots
-      const demiJournees = scenario.parametres.oralDnb?.demiJourneesOral || [];
-      if (demiJournees.length > 1) {
+      // Assign time slots (fallback sur jeudi_matin si aucune demi-journée configurée)
+      const demiJournees = scenario.parametres.oralDnb?.demiJourneesOral;
+      const effectiveDemiJournees = demiJournees && demiJournees.length > 0 ? demiJournees : ['jeudi_matin'];
+      if (effectiveDemiJournees.length > 1) {
         // Show distribution modal to let user choose mode
         setPendingAffectations(savedAffectations);
         setState('choosing_distribution');
-      } else if (demiJournees.length === 1) {
-        // Single demi-journée: assign directly
-        await applyTimeSlots(savedAffectations, demiJournees, 'fill_first');
-        setState('success');
       } else {
+        // Single demi-journée: assign directly
+        await applyTimeSlots(savedAffectations, effectiveDemiJournees, 'fill_first');
         setState('success');
       }
 

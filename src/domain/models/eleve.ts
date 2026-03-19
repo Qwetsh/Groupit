@@ -56,6 +56,9 @@ export interface Eleve {
   // Matière(s) choisie(s) par l'élève pour son oral
   matieresOral?: string[];
 
+  // Binôme : ID de l'élève partenaire (passage en duo, même jury/sujet/créneau)
+  binomeId?: string;
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;

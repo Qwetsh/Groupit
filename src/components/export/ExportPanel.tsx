@@ -87,6 +87,12 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
   const [typeOral, setTypeOral] = useState<'dnb' | 'oral_blanc'>('dnb');
   const [showPdfModal, setShowPdfModal] = useState(false);
 
+  // Sections PDF à inclure
+  const [sectionConvocEleve, setSectionConvocEleve] = useState(true);
+  const [sectionConvocProf, setSectionConvocProf] = useState(true);
+  const [sectionEmargement, setSectionEmargement] = useState(true);
+  const [sectionFeuillesPorte, setSectionFeuillesPorte] = useState(true);
+
   // Options stage (séparées)
   const [stageCsvOptions] = useState(() => ({ ...DEFAULT_STAGE_CSV_OPTIONS }));
   const [stagePdfOptions] = useState(() => ({
@@ -275,6 +281,10 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
           headerScenarioName: scenario.nom,
           dateOral: dateOral || undefined,
           typeOral,
+          includeSectionConvocEleve: sectionConvocEleve,
+          includeSectionConvocProf: sectionConvocProf,
+          includeSectionEmargement: sectionEmargement,
+          includeSectionFeuillesPorte: sectionFeuillesPorte,
         });
       }
       setPdfStatus('success');
@@ -284,7 +294,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
       setPdfStatus('error');
       setErrorMessage('Erreur PDF');
     }
-  }, [exportData, baseFilename, pdfOptions, scenario.nom, hasData, stageMode, stagePdfOptions, dateOral, typeOral]);
+  }, [exportData, baseFilename, pdfOptions, scenario.nom, hasData, stageMode, stagePdfOptions, dateOral, typeOral, sectionConvocEleve, sectionConvocProf, sectionEmargement, sectionFeuillesPorte]);
 
   if (!hasData) return null;
 
@@ -619,11 +629,53 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
               />
             </div>
 
+            <div className="pdf-modal-field">
+              <label className="pdf-modal-label">Sections à inclure</label>
+              <div className="pdf-modal-sections">
+                <label className="option-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={sectionConvocEleve}
+                    onChange={() => setSectionConvocEleve(v => !v)}
+                  />
+                  Convocations élèves
+                </label>
+                <label className="option-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={sectionConvocProf}
+                    onChange={() => setSectionConvocProf(v => !v)}
+                  />
+                  Convocations enseignants
+                </label>
+                <label className="option-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={sectionEmargement}
+                    onChange={() => setSectionEmargement(v => !v)}
+                  />
+                  Feuilles d'émargement
+                </label>
+                <label className="option-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={sectionFeuillesPorte}
+                    onChange={() => setSectionFeuillesPorte(v => !v)}
+                  />
+                  Feuilles de porte
+                </label>
+              </div>
+            </div>
+
             <div className="pdf-modal-actions">
               <button className="btn btn-secondary" onClick={() => setShowPdfModal(false)}>
                 Annuler
               </button>
-              <button className="btn btn-primary" onClick={doExportPdf}>
+              <button
+                className="btn btn-primary"
+                onClick={doExportPdf}
+                disabled={!sectionConvocEleve && !sectionConvocProf && !sectionEmargement && !sectionFeuillesPorte}
+              >
                 Générer le PDF
               </button>
             </div>

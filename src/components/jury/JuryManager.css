@@ -187,7 +187,7 @@
   display: grid;
   grid-template-columns: 280px 1fr;
   gap: 20px;
-  min-height: 400px;
+  min-height: 200px;
 }
 
 /* Unassigned Zone Wrapper */
@@ -758,4 +758,29 @@
 
 .jury-ready-banner .btn-go-affectations:hover svg {
   transform: translateX(4px);
+}
+
+/* ===== RESPONSIVE OVERHAUL ===== */
+@media (max-width: 768px) {
+  .jury-manager {
+    padding: var(--page-padding, 12px);
+  }
+
+  .jury-manager-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .jury-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .jury-card {
+    min-height: auto;
+  }
+
+  .jury-form-grid {
+    grid-template-columns: 1fr !important;
+  }
 }

@@ -365,12 +365,24 @@ export async function geocodeBatchWithFallback(
     const item = items[i];
     options?.onProgress?.(i + 1, items.length, item.address);
 
-    const result = await geocodeWithFallback(item.address, {
-      codePostal: item.codePostal,
-      ville: item.ville,
-    });
+    try {
+      const result = await geocodeWithFallback(item.address, {
+        codePostal: item.codePostal,
+        ville: item.ville,
+      });
 
-    results.set(item.id, result);
+      results.set(item.id, result);
+    } catch (error) {
+      results.set(item.id, {
+        success: false,
+        status: 'ERROR',
+        precision: 'NONE',
+        errorMessage: error instanceof Error ? error.message : 'Erreur inattendue lors du géocodage',
+        provider: 'unknown',
+        confidence: 'unknown',
+        fromCache: false,
+      });
+    }
 
     // Délai entre items (sauf pour le dernier)
     if (i < items.length - 1 && !result.fromCache) {

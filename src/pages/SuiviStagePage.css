@@ -720,3 +720,43 @@
 .test-data-stats strong {
   color: #92400e;
 }
+
+/* ===== RESPONSIVE OVERHAUL ===== */
+@media (max-width: 768px) {
+  .suivi-stage-page {
+    padding: 0;
+  }
+
+  .suivi-stage-page .page-header {
+    padding: var(--page-padding);
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .suivi-stage-page .page-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .suivi-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    padding: 0 var(--page-padding);
+  }
+
+  .suivi-tabs button {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .suivi-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .suivi-table {
+    font-size: 12px;
+    min-width: 600px;
+  }
+}

@@ -23,6 +23,11 @@ interface NavItem {
   highlight?: boolean;
 }
 
+interface SidebarProps {
+  isMobile?: boolean;
+  mobileOpen?: boolean;
+}
+
 // Section 1: Actions principales
 const actionItems: NavItem[] = [
   { path: '/', label: 'Tableau de bord', icon: <LayoutDashboard size={20} /> },
@@ -42,11 +47,14 @@ const helpItems: NavItem[] = [
   { path: '/parametres', label: 'Paramètres', icon: <Settings size={20} /> },
 ];
 
-export const Sidebar: React.FC = () => {
+export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, mobileOpen = false }) => {
   const [collapsed, setCollapsed] = useState(false);
   const toggleShortcutsHelp = useUIStore(state => state.toggleShortcutsHelp);
 
-  // Helper pour wrappé avec tooltip si collapsed
+  // En mobile, la sidebar est toujours étendue (pas de mode collapsed)
+  const isCollapsed = isMobile ? false : collapsed;
+
+  // Helper pour wrapper avec tooltip si collapsed
   const NavItemLink = ({ item, highlight = false }: { item: NavItem; highlight?: boolean }) => {
     const link = (
       <NavLink
@@ -54,11 +62,11 @@ export const Sidebar: React.FC = () => {
         className={({ isActive }) => `nav-link ${isActive ? 'active' : ''} ${highlight ? 'highlight' : ''}`}
       >
         <span className="nav-icon">{item.icon}</span>
-        {!collapsed && <span className="nav-label">{item.label}</span>}
+        {!isCollapsed && <span className="nav-label">{item.label}</span>}
       </NavLink>
     );
 
-    if (collapsed) {
+    if (isCollapsed) {
       return (
         <Tooltip content={item.label} position="right" delay={200}>
           {link}
@@ -68,28 +76,34 @@ export const Sidebar: React.FC = () => {
     return link;
   };
 
+  const sidebarClass = [
+    'sidebar',
+    isCollapsed ? 'collapsed' : '',
+    isMobile && mobileOpen ? 'mobile-open' : '',
+  ].filter(Boolean).join(' ');
+
   return (
-    <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+    <aside className={sidebarClass}>
       <div className="sidebar-header">
-        {!collapsed && (
+        {!isCollapsed && (
           <div className="logo">
             <span className="logo-icon">G</span>
             <span className="logo-text">Groupit</span>
           </div>
         )}
-        <Tooltip content={collapsed ? 'Développer' : 'Réduire'} position="right" delay={200}>
+        <Tooltip content={isCollapsed ? 'Développer' : 'Réduire'} position="right" delay={200}>
           <button
             className="collapse-btn"
             onClick={() => setCollapsed(!collapsed)}
           >
-            {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
         </Tooltip>
       </div>
 
       <nav className="sidebar-nav">
         {/* Section 1: Actions principales */}
-        {!collapsed && <div className="nav-section-label">Actions</div>}
+        {!isCollapsed && <div className="nav-section-label">Actions</div>}
         <ul className="nav-list">
           {actionItems.map(item => (
             <li key={item.path}>
@@ -101,7 +115,7 @@ export const Sidebar: React.FC = () => {
         <div className="nav-divider" />
 
         {/* Section 2: Données */}
-        {!collapsed && <div className="nav-section-label">Données</div>}
+        {!isCollapsed && <div className="nav-section-label">Données</div>}
         <ul className="nav-list">
           {dataItems.map(item => (
             <li key={item.path}>
@@ -129,10 +143,10 @@ export const Sidebar: React.FC = () => {
             onClick={toggleShortcutsHelp}
           >
             <Keyboard size={16} />
-            {!collapsed && <span>Raccourcis</span>}
+            {!isCollapsed && <span>Raccourcis</span>}
           </button>
         </Tooltip>
-        {!collapsed && (
+        {!isCollapsed && (
           <div className="version-info">
             <span>v1.0.0</span>
             <span className="local-badge">100% Local</span>

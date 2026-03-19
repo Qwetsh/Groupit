@@ -8,6 +8,7 @@ import { useUIStore, type GuidedStep } from '../../stores/uiStore';
 import { StepScenarioChoice } from './steps/StepScenarioChoice';
 import { StepImportEleves } from './steps/StepImportEleves';
 import { StepThemesEleves } from './steps/StepThemesEleves';
+import { StepBinomes } from './steps/StepBinomes';
 import { StepImportEnseignants } from './steps/StepImportEnseignants';
 import { StepConfiguration } from './steps/StepConfiguration';
 import { StepSalles } from './steps/StepSalles';
@@ -17,13 +18,14 @@ import './GuidedMode.css';
 
 // Steps for the wizard (base + oral_dnb adds 'themes' + 'salles')
 const STEPS_BASE: GuidedStep[] = ['scenario', 'eleves', 'enseignants', 'configuration', 'recap', 'results'];
-const STEPS_ORAL_DNB: GuidedStep[] = ['scenario', 'eleves', 'themes', 'enseignants', 'configuration', 'salles', 'recap', 'results'];
+const STEPS_ORAL_DNB: GuidedStep[] = ['scenario', 'eleves', 'themes', 'binomes', 'enseignants', 'configuration', 'salles', 'recap', 'results'];
 
 const STEP_LABELS: Record<GuidedStep, string> = {
   welcome: 'Bienvenue',
   scenario: 'Type',
   eleves: 'Eleves',
   themes: 'Themes',
+  binomes: 'Binômes',
   enseignants: 'Enseignants',
   configuration: 'Configuration',
   salles: 'Salles',
@@ -66,6 +68,8 @@ export function GuidedMode() {
         return <StepImportEleves onNext={handleNext} onBack={handleBack} />;
       case 'themes':
         return <StepThemesEleves onNext={handleNext} onBack={handleBack} />;
+      case 'binomes':
+        return <StepBinomes onNext={handleNext} onBack={handleBack} />;
       case 'enseignants':
         return <StepImportEnseignants onNext={handleNext} onBack={handleBack} />;
       case 'configuration':

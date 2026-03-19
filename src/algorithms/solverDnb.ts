@@ -432,86 +432,131 @@ export function solveOralDnb(
   const affectations: MatchingResultDNB[] = [];
   const nonAffectes: string[] = [];
   const sansMatchMatiere: string[] = [];
-  
+
+  // Identifier les binômes (paires d'élèves liés)
+  const alreadyAssigned = new Set<string>();
+
+  /**
+   * Affecte un élève (et son binôme éventuel) à un jury.
+   * Retourne true si l'affectation a réussi.
+   */
+  function affectEleve(eleve: Eleve, juryId: string, score: ScoreEleveJury, ctx: JuryContext): boolean {
+    const partner = eleve.binomeId ? eleves.find(e => e.id === eleve.binomeId) : null;
+    const slotsNeeded = partner && !alreadyAssigned.has(partner.id!) ? 2 : 1;
+
+    if (ctx.capaciteRestante < slotsNeeded) return false;
+
+    // Affecter l'élève principal
+    affectations.push({
+      eleveId: eleve.id!,
+      juryId,
+      matiereEleve: score.matiereEleve,
+      matieresJury: ctx.matieres,
+      matiereMatch: score.matiereMatch,
+      score: score.score,
+      scoreDetail: score.scoreDetail,
+      explication: generateExplication(eleve, ctx, score),
+    });
+    ctx.capaciteRestante--;
+    ctx.chargeActuelle++;
+    alreadyAssigned.add(eleve.id!);
+
+    // Affecter le binôme au même jury
+    if (partner && !alreadyAssigned.has(partner.id!)) {
+      const partnerScore = scoreEleveJury(partner, ctx, scenario, scoringOptions);
+      affectations.push({
+        eleveId: partner.id!,
+        juryId,
+        matiereEleve: partnerScore.matiereEleve,
+        matieresJury: ctx.matieres,
+        matiereMatch: partnerScore.matiereMatch,
+        score: partnerScore.score,
+        scoreDetail: partnerScore.scoreDetail,
+        explication: {
+          ...generateExplication(partner, ctx, partnerScore),
+          raisonPrincipale: `Binôme avec ${eleve.prenom} ${eleve.nom} — ${generateExplication(partner, ctx, partnerScore).raisonPrincipale}`,
+        },
+      });
+      ctx.capaciteRestante--;
+      ctx.chargeActuelle++;
+      alreadyAssigned.add(partner.id!);
+
+      if (!partnerScore.matiereMatch && partner.matieresOral?.length) {
+        sansMatchMatiere.push(partner.id!);
+      }
+    }
+
+    return true;
+  }
+
   // Phase 1: Affecter les élèves avec correspondance matière
   const elevesRestants: Eleve[] = [];
-  
+
   for (const eleve of elevesOrdered) {
+    if (alreadyAssigned.has(eleve.id!)) continue; // Déjà affecté comme binôme
+
     let bestMatch: { juryId: string; score: ScoreEleveJury } | null = null;
-    
+    const partner = eleve.binomeId ? eleves.find(e => e.id === eleve.binomeId) : null;
+    const slotsNeeded = partner && !alreadyAssigned.has(partner.id!) ? 2 : 1;
+
     // Chercher d'abord un jury avec correspondance matière
     for (const [juryId, ctx] of juryContexts) {
-      if (ctx.capaciteRestante <= 0) continue;
-      
+      if (ctx.capaciteRestante < slotsNeeded) continue;
+
       const scoreResult = scoreEleveJury(eleve, ctx, scenario, scoringOptions);
-      
+
       if (scoreResult.matiereMatch) {
         if (!bestMatch || scoreResult.score > bestMatch.score.score) {
           bestMatch = { juryId, score: scoreResult };
         }
       }
     }
-    
+
     if (bestMatch) {
-      // Affectation avec correspondance matière
       const ctx = juryContexts.get(bestMatch.juryId)!;
-      
-      affectations.push({
-        eleveId: eleve.id!,
-        juryId: bestMatch.juryId,
-        matiereEleve: bestMatch.score.matiereEleve,
-        matieresJury: ctx.matieres,
-        matiereMatch: true,
-        score: bestMatch.score.score,
-        scoreDetail: bestMatch.score.scoreDetail,
-        explication: generateExplication(eleve, ctx, bestMatch.score),
-      });
-      
-      // Mettre à jour la capacité
-      ctx.capaciteRestante--;
-      ctx.chargeActuelle++;
+      affectEleve(eleve, bestMatch.juryId, bestMatch.score, ctx);
+
+      if (!bestMatch.score.matiereMatch && eleve.matieresOral?.length) {
+        // ne devrait pas arriver en phase 1, mais par sécurité
+      }
     } else {
       // Garder pour la phase 2
       elevesRestants.push(eleve);
     }
   }
-  
+
   // Phase 2: Affecter les élèves restants (sans correspondance matière)
   for (const eleve of elevesRestants) {
+    if (alreadyAssigned.has(eleve.id!)) continue;
+
     let bestMatch: { juryId: string; score: ScoreEleveJury } | null = null;
-    
+    const partner = eleve.binomeId ? eleves.find(e => e.id === eleve.binomeId) : null;
+    const slotsNeeded = partner && !alreadyAssigned.has(partner.id!) ? 2 : 1;
+
     for (const [juryId, ctx] of juryContexts) {
-      if (ctx.capaciteRestante <= 0) continue;
-      
+      if (ctx.capaciteRestante < slotsNeeded) continue;
+
       const scoreResult = scoreEleveJury(eleve, ctx, scenario, scoringOptions);
-      
+
       if (!bestMatch || scoreResult.score > bestMatch.score.score) {
         bestMatch = { juryId, score: scoreResult };
       }
     }
-    
+
     if (bestMatch) {
       const ctx = juryContexts.get(bestMatch.juryId)!;
-      
-      affectations.push({
-        eleveId: eleve.id!,
-        juryId: bestMatch.juryId,
-        matiereEleve: bestMatch.score.matiereEleve,
-        matieresJury: ctx.matieres,
-        matiereMatch: bestMatch.score.matiereMatch,
-        score: bestMatch.score.score,
-        scoreDetail: bestMatch.score.scoreDetail,
-        explication: generateExplication(eleve, ctx, bestMatch.score),
-      });
-      
-      ctx.capaciteRestante--;
-      ctx.chargeActuelle++;
-      
+      affectEleve(eleve, bestMatch.juryId, bestMatch.score, ctx);
+
       if (!bestMatch.score.matiereMatch && eleve.matieresOral?.length) {
         sansMatchMatiere.push(eleve.id!);
       }
     } else {
       nonAffectes.push(eleve.id!);
+      // Si l'élève a un binôme non encore affecté, le marquer aussi
+      if (partner && !alreadyAssigned.has(partner.id!)) {
+        nonAffectes.push(partner.id!);
+        alreadyAssigned.add(partner.id!);
+      }
     }
   }
   
@@ -634,11 +679,13 @@ export function improveOralDnbWithSwaps(
           const idx2 = currentResult.affectations.findIndex(a => a.eleveId === eleveAEchanger.eleveId);
           
           // Recalculer les scores
-          const eleve1 = eleves.find(e => e.id === affSansMatch.eleveId)!;
-          const eleve2 = eleves.find(e => e.id === eleveAEchanger.eleveId)!;
-          
-          const newCtx1 = juryContexts.get(juryId)!;
-          const newCtx2 = juryContexts.get(affSansMatch.juryId)!;
+          const eleve1 = eleves.find(e => e.id === affSansMatch.eleveId);
+          const eleve2 = eleves.find(e => e.id === eleveAEchanger.eleveId);
+          if (!eleve1 || !eleve2) continue;
+
+          const newCtx1 = juryContexts.get(juryId);
+          const newCtx2 = juryContexts.get(affSansMatch.juryId);
+          if (!newCtx1 || !newCtx2) continue;
           
           const newScore1 = scoreEleveJury(eleve1, newCtx1, scenario, scoringOptions);
           const newScore2 = scoreEleveJury(eleve2, newCtx2, scenario, scoringOptions);

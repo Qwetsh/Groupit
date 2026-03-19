@@ -329,3 +329,11 @@
   background: #f8fafc;
   border-color: #cbd5e1;
 }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 640px) {
+  .import-session-drawer {
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+}

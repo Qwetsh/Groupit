@@ -43,6 +43,10 @@ interface EleveState {
   selectAllEleves: () => void;
   deselectAllEleves: () => void;
 
+  // Binômes
+  setBinome: (eleveAId: string, eleveBId: string) => Promise<void>;
+  removeBinome: (eleveId: string) => Promise<void>;
+
   // Getters
   getFilteredEleves: () => Eleve[];
   getEleveById: (id: string) => Eleve | undefined;
@@ -223,6 +227,60 @@ export const useEleveStore = create<EleveState>((set, get) => ({
             ? { ...e, contraintes: e.contraintes.filter(c => c.cibleId !== cibleId), updatedAt: new Date() }
             : e
         );
+        eleveBackupService.persist(eleves);
+        return { eleves };
+      });
+    } catch (error) {
+      set({ error: extractErrorMessage(error) });
+      throw error;
+    }
+  },
+
+  setBinome: async (eleveAId, eleveBId) => {
+    try {
+      // D'abord, dissocier les anciens binômes éventuels
+      const stateNow = get();
+      const eleveA = stateNow.eleves.find(e => e.id === eleveAId);
+      const eleveB = stateNow.eleves.find(e => e.id === eleveBId);
+      if (eleveA?.binomeId && eleveA.binomeId !== eleveBId) {
+        await getRepo().update(eleveA.binomeId, { binomeId: undefined });
+      }
+      if (eleveB?.binomeId && eleveB.binomeId !== eleveAId) {
+        await getRepo().update(eleveB.binomeId, { binomeId: undefined });
+      }
+      // Lier A ↔ B
+      await getRepo().update(eleveAId, { binomeId: eleveBId });
+      await getRepo().update(eleveBId, { binomeId: eleveAId });
+      set(state => {
+        const eleves = state.eleves.map(e => {
+          if (e.id === eleveAId) return { ...e, binomeId: eleveBId, updatedAt: new Date() };
+          if (e.id === eleveBId) return { ...e, binomeId: eleveAId, updatedAt: new Date() };
+          // Dissocier les anciens partenaires
+          if (e.binomeId === eleveAId && e.id !== eleveBId) return { ...e, binomeId: undefined, updatedAt: new Date() };
+          if (e.binomeId === eleveBId && e.id !== eleveAId) return { ...e, binomeId: undefined, updatedAt: new Date() };
+          return e;
+        });
+        eleveBackupService.persist(eleves);
+        return { eleves };
+      });
+    } catch (error) {
+      set({ error: extractErrorMessage(error) });
+      throw error;
+    }
+  },
+
+  removeBinome: async (eleveId) => {
+    try {
+      const eleve = get().eleves.find(e => e.id === eleveId);
+      if (!eleve?.binomeId) return;
+      const partnerId = eleve.binomeId;
+      await getRepo().update(eleveId, { binomeId: undefined });
+      await getRepo().update(partnerId, { binomeId: undefined });
+      set(state => {
+        const eleves = state.eleves.map(e => {
+          if (e.id === eleveId || e.id === partnerId) return { ...e, binomeId: undefined, updatedAt: new Date() };
+          return e;
+        });
         eleveBackupService.persist(eleves);
         return { eleves };
       });

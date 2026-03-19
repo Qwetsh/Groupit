@@ -3,17 +3,18 @@
 /* ============================================================ */
 
 .sidebar {
-  width: 240px;
+  width: var(--sidebar-width);
   height: 100vh;
+  height: 100dvh;
   background: #1e293b;
   display: flex;
   flex-direction: column;
-  transition: width 0.2s ease;
+  transition: width 0.2s ease, transform 0.2s ease;
   flex-shrink: 0;
 }
 
 .sidebar.collapsed {
-  width: 64px;
+  width: var(--sidebar-collapsed-width);
 }
 
 /* Header */
@@ -21,7 +22,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
+  padding: var(--space-md);
   border-bottom: 1px solid #334155;
 }
 
@@ -53,7 +54,7 @@
 .collapse-btn {
   background: #334155;
   border: none;
-  padding: 8px;
+  padding: var(--space-sm);
   min-width: 36px;
   min-height: 36px;
   border-radius: 6px;
@@ -74,7 +75,7 @@
 /* Navigation */
 .sidebar-nav {
   flex: 1;
-  padding: 16px 8px;
+  padding: var(--space-md) var(--space-sm);
   overflow-y: auto;
 }
 
@@ -133,7 +134,7 @@
 .nav-divider {
   height: 1px;
   background: #334155;
-  margin: 16px 4px;
+  margin: var(--space-md) 4px;
 }
 
 /* Section labels */
@@ -144,7 +145,7 @@
   letter-spacing: 0.5px;
   color: #64748b;
   padding: 0 12px;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
 }
 
 /* Highlighted nav link (action principale) */
@@ -169,7 +170,7 @@
 
 /* Footer */
 .sidebar-footer {
-  padding: 16px;
+  padding: var(--space-md);
   border-top: 1px solid #334155;
 }
 
@@ -194,9 +195,9 @@
 .shortcuts-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-sm);
   width: 100%;
-  padding: 8px 12px;
+  padding: var(--space-sm) 12px;
   margin-bottom: 12px;
   background: #334155;
   border: none;
@@ -219,4 +220,33 @@
 
 .sidebar.collapsed .shortcuts-btn span {
   display: none;
+}
+
+/* ============================================================ */
+/* MOBILE RESPONSIVE */
+/* ============================================================ */
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 999;
+    width: var(--sidebar-width) !important;
+    transform: translateX(-100%);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.3);
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+
+  /* Toujours afficher les labels en mobile (pas de mode collapsed) */
+  .sidebar.collapsed {
+    width: var(--sidebar-width) !important;
+  }
+
+  .sidebar .collapse-btn {
+    display: none;
+  }
 }

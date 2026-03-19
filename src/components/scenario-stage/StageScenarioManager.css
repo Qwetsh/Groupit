@@ -952,3 +952,32 @@
   align-items: center;
   gap: 0.5rem;
 }
+
+/* ===== RESPONSIVE OVERHAUL ===== */
+@media (max-width: 768px) {
+  .stage-scenario-manager {
+    padding: var(--page-padding, 12px);
+  }
+
+  .stage-scenario-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .stage-scenario-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .stage-scenario-actions button {
+    flex: 1;
+    min-width: 0;
+    font-size: 12px;
+  }
+
+  .stage-scenario-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

@@ -199,3 +199,10 @@
   color: #6b7280;
   font-size: 0.875rem;
 }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 640px) {
+  .criteres-editor {
+    max-width: calc(100vw - 24px) !important;
+  }
+}
