@@ -3,7 +3,7 @@
 // ============================================================
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { ChevronRight, Check, Users, GraduationCap, AlertTriangle, Shuffle, GripVertical, Filter, Clock, ShieldCheck, Calendar, CalendarOff } from 'lucide-react';
+import { ChevronRight, Check, GraduationCap, AlertTriangle, Shuffle, GripVertical, Filter, Clock, ShieldCheck, Calendar, CalendarOff } from 'lucide-react';
 import { DndContext, DragOverlay, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import clsx from 'clsx';
@@ -638,15 +638,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
           {/* Eleves info (auto for Oral DNB) */}
           {isOralDnb && (
             <div className="form-group">
-              <label>Eleves concernes</label>
-              <div className="auto-selection-info">
-                <Users size={20} />
-                <div>
-                  <strong>{nbEleves} eleves de 3eme</strong>
-                  <span>Selection automatique de tous les eleves de 3eme</span>
-                </div>
-                <Check size={20} className="check-icon" />
-              </div>
+              <label>Eleves concernes <span className="label-count">{nbEleves} eleves de 3eme</span></label>
             </div>
           )}
 
