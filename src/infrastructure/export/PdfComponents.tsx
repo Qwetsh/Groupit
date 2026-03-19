@@ -398,6 +398,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, date, options,
       <View style={styles.headerMeta}>
         <Text>{options.headerSchoolName || 'Établissement'}</Text>
         <Text>Année {options.headerYear || new Date().getFullYear()}</Text>
+        {date && <Text>{date}</Text>}
       </View>
     </View>
   );

@@ -385,7 +385,7 @@ export async function geocodeBatchWithFallback(
     }
 
     // Délai entre items (sauf pour le dernier)
-    if (i < items.length - 1 && !result.fromCache) {
+    if (i < items.length - 1 && !results.get(item.id)?.fromCache) {
       await delay(delayMs);
     }
   }
