@@ -37,6 +37,47 @@ async function hashEleve(nom: string, prenom: string, classe: string): Promise<s
 }
 
 /**
+ * Vérifie si une session a déjà des notes enregistrées (final_scores).
+ */
+export async function checkSessionHasScores(sessionCode: string): Promise<{ hasScores: boolean; count: number }> {
+  try {
+    const code = sessionCode.toUpperCase().slice(0, 8);
+    const { data: session } = await supabase
+      .from('exam_sessions')
+      .select('id')
+      .eq('code', code)
+      .single();
+
+    if (!session) return { hasScores: false, count: 0 };
+
+    const { data: jurys } = await supabase
+      .from('session_jurys')
+      .select('id')
+      .eq('session_id', session.id);
+
+    if (!jurys || jurys.length === 0) return { hasScores: false, count: 0 };
+
+    const juryIds = jurys.map(j => j.id);
+    const { data: eleves } = await supabase
+      .from('session_eleves')
+      .select('id')
+      .in('jury_id', juryIds);
+
+    if (!eleves || eleves.length === 0) return { hasScores: false, count: 0 };
+
+    const eleveIds = eleves.map(e => e.id);
+    const { count } = await supabase
+      .from('final_scores')
+      .select('id', { count: 'exact', head: true })
+      .in('eleve_id', eleveIds);
+
+    return { hasScores: (count ?? 0) > 0, count: count ?? 0 };
+  } catch {
+    return { hasScores: false, count: 0 };
+  }
+}
+
+/**
  * Upload les données d'une session vers Supabase pour la PWA jury et le dashboard.
  * Crée la session, les jurys et les élèves pseudonymisés.
  *

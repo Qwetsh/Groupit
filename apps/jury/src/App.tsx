@@ -13,15 +13,22 @@ export type Screen =
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ type: 'join' });
+  const [toast, setToast] = useState<string | null>(null);
   const presenceRef = useRef<RealtimeChannel | null>(null);
 
-  // Gérer le Presence : connecté quand on a un juryId, déconnecté sinon
+  // Auto-dismiss toast
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2500);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  // Gérer le Presence
   const activeSessionId = screen.type !== 'join' ? screen.sessionId : null;
   const activeJuryId = screen.type !== 'join' ? screen.juryId : null;
 
   useEffect(() => {
     if (!activeSessionId || !activeJuryId) {
-      // Cleanup si retour au join
       if (presenceRef.current) {
         supabase.removeChannel(presenceRef.current);
         presenceRef.current = null;
@@ -49,31 +56,58 @@ export default function App() {
     };
   }, [activeSessionId, activeJuryId]);
 
-  switch (screen.type) {
-    case 'join':
-      return <JoinScreen onJoined={(juryId, sessionId) =>
-        setScreen({ type: 'students', juryId, sessionId })
-      } />;
+  const content = (() => {
+    switch (screen.type) {
+      case 'join':
+        return <JoinScreen onJoined={(juryId, sessionId) =>
+          setScreen({ type: 'students', juryId, sessionId })
+        } />;
 
-    case 'students':
-      return <StudentListScreen
-        juryId={screen.juryId}
-        onSelectEleve={(eleve) =>
-          setScreen({ type: 'evaluate', juryId: screen.juryId, sessionId: screen.sessionId, eleve })
-        }
-        onDisconnect={() => setScreen({ type: 'join' })}
-      />;
+      case 'students':
+        return <StudentListScreen
+          juryId={screen.juryId}
+          onSelectEleve={(eleve) =>
+            setScreen({ type: 'evaluate', juryId: screen.juryId, sessionId: screen.sessionId, eleve })
+          }
+          onDisconnect={() => setScreen({ type: 'join' })}
+        />;
 
-    case 'evaluate':
-      return <EvaluateScreen
-        eleve={screen.eleve}
-        juryId={screen.juryId}
-        onDone={() =>
-          setScreen({ type: 'students', juryId: screen.juryId, sessionId: screen.sessionId })
-        }
-        onBack={() =>
-          setScreen({ type: 'students', juryId: screen.juryId, sessionId: screen.sessionId })
-        }
-      />;
-  }
+      case 'evaluate':
+        return <EvaluateScreen
+          eleve={screen.eleve}
+          juryId={screen.juryId}
+          onDone={() => {
+            setToast('Note enregistrée ✓');
+            setScreen({ type: 'students', juryId: screen.juryId, sessionId: screen.sessionId });
+          }}
+          onBack={() =>
+            setScreen({ type: 'students', juryId: screen.juryId, sessionId: screen.sessionId })
+          }
+        />;
+    }
+  })();
+
+  return (
+    <>
+      {content}
+      {toast && (
+        <div style={{
+          position: 'fixed',
+          bottom: 24,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#276749',
+          color: '#fff',
+          padding: '10px 20px',
+          borderRadius: 10,
+          fontSize: 14,
+          fontWeight: 600,
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          zIndex: 9999,
+        }}>
+          {toast}
+        </div>
+      )}
+    </>
+  );
 }
