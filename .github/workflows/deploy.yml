@@ -1,27 +1,21 @@
-﻿# Workflow pour déployer l'application sur GitHub Pages
+# Workflow pour déployer Groupit + PWA Jury sur GitHub Pages
 name: Deploy to GitHub Pages
 
 on:
-  # Se déclenche sur les push vers la branche main
   push:
     branches: ['main']
-
-  # Permet de lancer manuellement depuis l'onglet Actions
   workflow_dispatch:
 
-# Permissions pour déployer sur GitHub Pages
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Empêche les déploiements simultanés
 concurrency:
   group: 'pages'
   cancel-in-progress: true
 
 jobs:
-  # Job de build
   build:
     runs-on: ubuntu-latest
     steps:
@@ -34,11 +28,27 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies
+      # Build Groupit (app principale)
+      - name: Install dependencies (root)
         run: npm ci
 
-      - name: Build
+      - name: Build Groupit
         run: npm run build
+
+      # Build PWA Jury
+      - name: Install dependencies (shared)
+        run: cd packages/shared && npm ci
+
+      - name: Install dependencies (jury)
+        run: cd apps/jury && npm ci
+
+      - name: Build PWA Jury
+        run: cd apps/jury && npm run build
+
+      # Combiner les deux builds : dist/ = Groupit, dist/groupit-jury/ = PWA
+      - name: Combine builds
+        run: |
+          cp -r apps/jury/dist ./dist/groupit-jury
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -48,7 +58,6 @@ jobs:
         with:
           path: './dist'
 
-  # Job de déploiement
   deploy:
     environment:
       name: github-pages

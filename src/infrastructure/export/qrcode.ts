@@ -4,7 +4,7 @@
 
 import QRCode from 'qrcode';
 
-const DEFAULT_JURY_PWA_URL = 'https://qwetsh.github.io/groupit-jury/';
+const DEFAULT_JURY_PWA_URL = 'https://qwetsh.github.io/Groupit/groupit-jury/';
 
 /**
  * Génère un QR code en base64 data URL pour un jury donné.
