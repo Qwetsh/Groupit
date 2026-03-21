@@ -53,6 +53,7 @@ export function StudentListScreen({ juryId, onSelectEleve, onDisconnect }: Stude
     switch (status) {
       case 'validated': return { bg: '#c6f6d5', color: '#276749', label: '✓ Noté' };
       case 'in_progress': return { bg: '#bee3f8', color: '#2b6cb0', label: '🎤 En cours' };
+      case 'absent': return { bg: '#fed7d7', color: '#9b2c2c', label: 'Absent' };
       default: return { bg: '#f1f5f9', color: '#64748b', label: 'À passer' };
     }
   }
@@ -83,7 +84,7 @@ export function StudentListScreen({ juryId, onSelectEleve, onDisconnect }: Stude
       <div style={styles.list}>
         {eleves.map((eleve, idx) => {
           const st = getStatusStyle(eleve.status);
-          const isClickable = eleve.status === 'pending' || eleve.status === 'validated';
+          const isClickable = eleve.status === 'pending' || eleve.status === 'validated' || eleve.status === 'absent';
 
           return (
             <button
