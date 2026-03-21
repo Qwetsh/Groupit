@@ -18,7 +18,9 @@ export interface ExportEleveData {
   classe: string;
   matieresOral: string[];
   matiereAffectee: string | null; // Matière qui a justifié l'affectation
-  
+  parcoursOral?: string;
+  sujetOral?: string;
+
   // Binôme
   binomeNom?: string; // "Prénom Nom" du partenaire si binôme
 

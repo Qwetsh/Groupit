@@ -396,9 +396,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, date, options,
         </>
       )}
       <View style={styles.headerMeta}>
-        <Text>{options.headerSchoolName || 'Établissement'}</Text>
         <Text>Année {options.headerYear || new Date().getFullYear()}</Text>
-        {date && <Text>{date}</Text>}
       </View>
     </View>
   );
@@ -484,7 +482,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ eleves, options, styles }) 
         <Text style={[styles.tableHeaderCell, colNom]}>Nom</Text>
         <Text style={[styles.tableHeaderCell, colPrenom]}>Prénom</Text>
         <Text style={[styles.tableHeaderCell, colClasse]}>Classe</Text>
-        <Text style={[styles.tableHeaderCell, colMatiere]}>Matière</Text>
+        <Text style={[styles.tableHeaderCell, colMatiere]}>Parcours / Sujet</Text>
         {showSchedule && (
           <Text style={[styles.tableHeaderCell, colHeure]}>Heure</Text>
         )}
@@ -501,8 +499,8 @@ const StudentTable: React.FC<StudentTableProps> = ({ eleves, options, styles }) 
           <Text style={[styles.tableCell, colNom]}>{eleve.nom}</Text>
           <Text style={[styles.tableCell, colPrenom]}>{eleve.prenom}</Text>
           <Text style={[styles.tableCell, colClasse]}>{eleve.classe}</Text>
-          <Text style={[styles.tableCell, colMatiere, eleve.matiereAffectee ? styles.tableCellMatch : {}]}>
-            {eleve.matiereAffectee || eleve.matieresOral.join(', ') || '-'}
+          <Text style={[styles.tableCell, colMatiere]}>
+            {[eleve.parcoursOral, eleve.sujetOral].filter(Boolean).join(' — ') || '-'}
           </Text>
           {showSchedule && (
             <Text style={[styles.tableCell, colHeure]}>{eleve.heurePassage || '-'}</Text>
@@ -824,9 +822,6 @@ const EleveConvocationPage: React.FC<EleveConvocationPageProps> = ({ eleve, jury
 
         <View style={styles.letterText}>
           <Text style={styles.letterParagraph}>
-            Bonjour,
-          </Text>
-          <Text style={styles.letterParagraph}>
             Vous êtes convoqué(e) pour {epreuve}.{dateOralFormatted ? ` L'épreuve aura lieu le ${dateOralFormatted}.` : ''}
           </Text>
           <Text style={styles.letterParagraph}>
@@ -834,9 +829,11 @@ const EleveConvocationPage: React.FC<EleveConvocationPageProps> = ({ eleve, jury
             {eleve.heurePassage ? ` Votre heure de passage est prévue à ${eleve.heurePassage}.` : ''}
             {eleve.binomeNom ? ` Vous passerez en binôme avec ${eleve.binomeNom}.` : ''}
           </Text>
-          <Text style={styles.letterParagraph}>
-            Votre matière de présentation : {eleve.matiereAffectee || eleve.matieresOral.join(', ') || '—'}.
-          </Text>
+          {(eleve.parcoursOral || eleve.sujetOral) && (
+            <Text style={styles.letterParagraph}>
+              {eleve.parcoursOral ? `Parcours : ${eleve.parcoursOral}.` : ''}{eleve.sujetOral ? ` Sujet : ${eleve.sujetOral}.` : ''}
+            </Text>
+          )}
         </View>
 
         <View style={[styles.letterText, { marginTop: 8 }]}>

@@ -1,10 +1,11 @@
 // ============================================================
-// GUIDED STEP - THEMES / MATIERES ORAL DNB
+// GUIDED STEP - SUJETS ORAL DNB (Parcours + Sujet + Matières)
 // ============================================================
 
 import { useState, useCallback, useRef, useMemo } from 'react';
 import {
   Upload,
+  Download,
   FileSpreadsheet,
   Check,
   ChevronRight,
@@ -16,10 +17,14 @@ import {
   Shuffle,
 } from 'lucide-react';
 import clsx from 'clsx';
-import Papa from 'papaparse';
 import { useEleveStore } from '../../../stores/eleveStore';
-import { MATIERES_HEURES_3E } from '../../../domain/models';
+import { MATIERES_HEURES_3E, PARCOURS_ORAL_DNB } from '../../../domain/models';
 import type { Eleve } from '../../../domain/models';
+import {
+  generateTemplateOralDNB,
+  parseOralDNBFile,
+  type OralDNBImportRow,
+} from '../../../infrastructure/export/templateOralDNB';
 import '../GuidedMode.css';
 
 interface StepThemesElevesProps {
@@ -27,71 +32,7 @@ interface StepThemesElevesProps {
   onBack: () => void;
 }
 
-// For now themes = matières. Later this will be a proper Theme model
-// with associated matières (e.g. "Histoire de l'art" -> ["Arts Plastiques", "Histoire-Géographie"])
-const AVAILABLE_THEMES = MATIERES_HEURES_3E.map(m => m.matiere);
-
-// Aliases for smart CSV import
-const MATIERE_ALIASES: Record<string, string> = {
-  'francais': 'Français',
-  'français': 'Français',
-  'maths': 'Mathématiques',
-  'math': 'Mathématiques',
-  'mathematiques': 'Mathématiques',
-  'mathématiques': 'Mathématiques',
-  'histoire': 'Histoire-Géographie',
-  'histoire-geo': 'Histoire-Géographie',
-  'histoire-géo': 'Histoire-Géographie',
-  'histoire geo': 'Histoire-Géographie',
-  'histoire géo': 'Histoire-Géographie',
-  'hg': 'Histoire-Géographie',
-  'hgemc': 'Histoire-Géographie',
-  'svt': 'SVT',
-  'sciences de la vie': 'SVT',
-  'physique': 'Physique-Chimie',
-  'physique-chimie': 'Physique-Chimie',
-  'physique chimie': 'Physique-Chimie',
-  'pc': 'Physique-Chimie',
-  'technologie': 'Technologie',
-  'techno': 'Technologie',
-  'anglais': 'Anglais',
-  'espagnol': 'Espagnol',
-  'allemand': 'Allemand',
-  'italien': 'Italien',
-  'eps': 'EPS',
-  'sport': 'EPS',
-  'musique': 'Éducation Musicale',
-  'education musicale': 'Éducation Musicale',
-  'éducation musicale': 'Éducation Musicale',
-  'arts plastiques': 'Arts Plastiques',
-  'arts': 'Arts Plastiques',
-  'dessin': 'Arts Plastiques',
-  'latin': 'Latin',
-  'grec': 'Grec',
-  'emc': 'EMC',
-  'lv2': 'LV2',
-};
-
-function normalizeTheme(raw: string): string | null {
-  if (!raw || !raw.trim()) return null;
-  const cleaned = raw.trim().toLowerCase();
-
-  // Check aliases
-  if (MATIERE_ALIASES[cleaned]) return MATIERE_ALIASES[cleaned];
-
-  // Exact match (case-insensitive)
-  const exact = AVAILABLE_THEMES.find(t => t.toLowerCase() === cleaned);
-  if (exact) return exact;
-
-  // Partial match
-  const partial = AVAILABLE_THEMES.find(
-    t => t.toLowerCase().includes(cleaned) || cleaned.includes(t.toLowerCase())
-  );
-  if (partial) return partial;
-
-  // Return as-is with capitalization (custom theme)
-  return raw.trim().charAt(0).toUpperCase() + raw.trim().slice(1);
-}
+const AVAILABLE_MATIERES = MATIERES_HEURES_3E.map(m => m.matiere);
 
 function removeAccents(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -101,38 +42,19 @@ function findEleveMatch(
   nom: string,
   prenom: string,
   eleves: Eleve[]
-): { eleve: Eleve | null; confidence: 'exact' | 'partial' | 'none' } {
-  const nomClean = nom.trim().toLowerCase();
-  const prenomClean = prenom.trim().toLowerCase();
+): Eleve | null {
+  const nomClean = removeAccents(nom.trim().toLowerCase());
+  const prenomClean = removeAccents(prenom.trim().toLowerCase());
+  if (!nomClean) return null;
 
-  // Exact match
-  const exact = eleves.find(
-    e => e.nom.toLowerCase() === nomClean && e.prenom.toLowerCase() === prenomClean
-  );
-  if (exact) return { eleve: exact, confidence: 'exact' };
-
-  // Match without accents
-  const nomNoAccent = removeAccents(nomClean);
-  const prenomNoAccent = removeAccents(prenomClean);
-  const partial = eleves.find(e => {
+  return eleves.find(e => {
     const eNom = removeAccents(e.nom.toLowerCase());
     const ePrenom = removeAccents(e.prenom.toLowerCase());
     return (
-      (eNom === nomNoAccent && ePrenom === prenomNoAccent) ||
-      (eNom.includes(nomNoAccent) && ePrenom.includes(prenomNoAccent))
+      (eNom === nomClean && ePrenom === prenomClean) ||
+      (eNom.includes(nomClean) && ePrenom.includes(prenomClean))
     );
-  });
-  if (partial) return { eleve: partial, confidence: 'partial' };
-
-  // Try nom only (for common cases where prénom is in the same column)
-  const nomOnly = eleves.find(e => {
-    const fullName = removeAccents(`${e.nom} ${e.prenom}`.toLowerCase());
-    const fullSearch = removeAccents(`${nomClean} ${prenomClean}`);
-    return fullName === fullSearch || fullName.includes(fullSearch) || fullSearch.includes(fullName);
-  });
-  if (nomOnly) return { eleve: nomOnly, confidence: 'partial' };
-
-  return { eleve: null, confidence: 'none' };
+  }) || null;
 }
 
 // ============================================================
@@ -146,31 +68,26 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
   const [searchFilter, setSearchFilter] = useState('');
   const [expandedClasses, setExpandedClasses] = useState<Set<string>>(new Set());
   const [showImport, setShowImport] = useState(false);
-  const [importStep, setImportStep] = useState<'upload' | 'mapping' | 'preview'>('upload');
   const [dragActive, setDragActive] = useState(false);
 
   // Import state
-  const [csvHeaders, setCsvHeaders] = useState<string[]>([]);
-  const [csvRows, setCsvRows] = useState<Record<string, string>[]>([]);
-  const [nomColumn, setNomColumn] = useState('');
-  const [prenomColumn, setPrenomColumn] = useState('');
-  const [themeColumn, setThemeColumn] = useState('');
   const [importPreview, setImportPreview] = useState<
-    Array<{
-      nom: string;
-      prenom: string;
-      theme: string | null;
-      eleveId: string | null;
-      confidence: 'exact' | 'partial' | 'none';
-    }>
+    Array<OralDNBImportRow & { eleveId: string | null; matched: boolean }>
   >([]);
   const [importing, setImporting] = useState(false);
   const [importDone, setImportDone] = useState(false);
   const [importStats, setImportStats] = useState({ success: 0, skipped: 0 });
 
+  // Inline editing
+  const [editingField, setEditingField] = useState<{
+    eleveId: string;
+    field: 'sujetOral';
+  } | null>(null);
+  const [editValue, setEditValue] = useState('');
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Filter 3ème students
+  // Filter 3eme students
   const eleves3e = useMemo(
     () => eleves.filter(e => e.classe?.startsWith('3')),
     [eleves]
@@ -184,7 +101,6 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
       if (!groups[cls]) groups[cls] = [];
       groups[cls].push(e);
     }
-    // Sort classes
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   }, [eleves3e]);
 
@@ -197,7 +113,9 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
 
   // Stats
   const totalEleves = eleves3e.length;
-  const elevesWithTheme = eleves3e.filter(e => e.matieresOral && e.matieresOral.length > 0).length;
+  const elevesComplete = eleves3e.filter(
+    e => e.parcoursOral && e.sujetOral
+  ).length;
 
   // Filtered eleves
   const filteredGroups = useMemo(() => {
@@ -210,6 +128,8 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
           e =>
             e.nom.toLowerCase().includes(lower) ||
             e.prenom.toLowerCase().includes(lower) ||
+            (e.parcoursOral || '').toLowerCase().includes(lower) ||
+            (e.sujetOral || '').toLowerCase().includes(lower) ||
             (e.matieresOral || []).some(m => m.toLowerCase().includes(lower))
         ),
       ] as [string, Eleve[]])
@@ -226,69 +146,108 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
     });
   }, []);
 
-  // DEV: assign random themes to all students without one
-  const handleRandomThemes = useCallback(async () => {
-    for (const eleve of eleves3e) {
-      if (!eleve.matieresOral?.length) {
-        const randomTheme = AVAILABLE_THEMES[Math.floor(Math.random() * AVAILABLE_THEMES.length)];
-        await updateEleve(eleve.id!, { matieresOral: [randomTheme] });
-      }
-    }
-  }, [eleves3e, updateEleve]);
+  // ============================================================
+  // INLINE EDITING
+  // ============================================================
 
-  // Set theme for an eleve
-  const handleSetTheme = useCallback(
-    async (eleveId: string, theme: string) => {
-      if (theme === '') {
-        await updateEleve(eleveId, { matieresOral: [] });
-      } else {
-        await updateEleve(eleveId, { matieresOral: [theme] });
-      }
+  const handleSetParcours = useCallback(
+    async (eleveId: string, parcours: string) => {
+      await updateEleve(eleveId, {
+        parcoursOral: parcours || undefined,
+      });
     },
     [updateEleve]
   );
 
+  const handleSetMatiere = useCallback(
+    async (eleveId: string, index: number, matiere: string) => {
+      const eleve = eleves3e.find(e => e.id === eleveId);
+      if (!eleve) return;
+      const matieres = [...(eleve.matieresOral || [])];
+      if (matiere) {
+        matieres[index] = matiere;
+      } else {
+        matieres.splice(index, 1);
+      }
+      await updateEleve(eleveId, { matieresOral: matieres.filter(Boolean) });
+    },
+    [updateEleve, eleves3e]
+  );
+
+  const startEditSujet = useCallback((eleveId: string, currentValue: string) => {
+    setEditingField({ eleveId, field: 'sujetOral' });
+    setEditValue(currentValue || '');
+  }, []);
+
+  const commitEditSujet = useCallback(async () => {
+    if (!editingField) return;
+    await updateEleve(editingField.eleveId, {
+      sujetOral: editValue.trim() || undefined,
+    });
+    setEditingField(null);
+    setEditValue('');
+  }, [editingField, editValue, updateEleve]);
+
   // ============================================================
-  // CSV IMPORT
+  // TEMPLATE DOWNLOAD
+  // ============================================================
+
+  const handleDownloadTemplate = useCallback(async () => {
+    await generateTemplateOralDNB(eleves3e);
+  }, [eleves3e]);
+
+  // DEV: assign random data for testing
+  const handleRandomThemes = useCallback(async () => {
+    const parcoursList = [...PARCOURS_ORAL_DNB];
+    const matieresList = MATIERES_HEURES_3E.map(m => m.matiere);
+    const sujets = [
+      'La biodiversité au collège', 'Mon stage en entreprise', 'Marie Curie',
+      'Le harcèlement scolaire', 'Le street art engagé', "L'eau dans tous ses états",
+      'Les énergies renouvelables', 'La Révolution française', 'Le système solaire',
+      'Les réseaux sociaux', 'Le développement durable', 'La musique et les maths',
+    ];
+    for (const eleve of eleves3e) {
+      if (!eleve.parcoursOral) {
+        const parcours = parcoursList[Math.floor(Math.random() * parcoursList.length)];
+        const sujet = sujets[Math.floor(Math.random() * sujets.length)];
+        const mat1 = matieresList[Math.floor(Math.random() * matieresList.length)];
+        const mat2Candidates = matieresList.filter(m => m !== mat1);
+        const mat2 = Math.random() > 0.5 ? mat2Candidates[Math.floor(Math.random() * mat2Candidates.length)] : undefined;
+        await updateEleve(eleve.id!, {
+          parcoursOral: parcours,
+          sujetOral: sujet,
+          matieresOral: mat2 ? [mat1, mat2] : [mat1],
+        });
+      }
+    }
+  }, [eleves3e, updateEleve]);
+
+  // ============================================================
+  // FILE IMPORT
   // ============================================================
 
   const handleFile = useCallback(
     async (file: File) => {
-      return new Promise<void>((resolve, reject) => {
-        Papa.parse(file, {
-          header: true,
-          skipEmptyLines: true,
-          encoding: 'UTF-8',
-          complete: results => {
-            const data = results.data as Record<string, string>[];
-            if (data.length > 0) {
-              const hdrs = Object.keys(data[0]);
-              setCsvHeaders(hdrs);
-              setCsvRows(data);
+      try {
+        const rows = await parseOralDNBFile(file);
 
-              // Auto-detect columns
-              const nomCandidates = ['nom', 'élève', 'eleve', 'nom élève', 'nom eleve', 'name', 'lastname', 'nom de famille'];
-              const prenomCandidates = ['prénom', 'prenom', 'firstname'];
-              const themeCandidates = ['matière', 'matiere', 'sujet', 'thème', 'theme', 'discipline', 'oral', 'matière oral', 'sujet oral'];
-
-              for (const h of hdrs) {
-                const hLower = h.toLowerCase();
-                if (nomCandidates.some(c => hLower.includes(c)) && !nomColumn) setNomColumn(h);
-                if (prenomCandidates.some(c => hLower.includes(c)) && !prenomColumn) setPrenomColumn(h);
-                if (themeCandidates.some(c => hLower.includes(c)) && !themeColumn) setThemeColumn(h);
-              }
-
-              setImportStep('mapping');
-              resolve();
-            } else {
-              reject(new Error('Fichier vide'));
-            }
-          },
-          error: err => reject(err),
+        const preview = rows.map(row => {
+          const eleve = findEleveMatch(row.nom, row.prenom, eleves3e);
+          return {
+            ...row,
+            eleveId: eleve?.id || null,
+            matched: !!eleve,
+          };
         });
-      });
+
+        setImportPreview(preview);
+        setShowImport(true);
+        setImportDone(false);
+      } catch (error) {
+        console.error('Error parsing file:', error);
+      }
     },
-    [nomColumn, prenomColumn, themeColumn]
+    [eleves3e]
   );
 
   const handleDrop = useCallback(
@@ -297,9 +256,7 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
       e.stopPropagation();
       setDragActive(false);
       const file = e.dataTransfer.files[0];
-      if (file && (file.name.endsWith('.csv') || file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
-        handleFile(file);
-      }
+      if (file) handleFile(file);
     },
     [handleFile]
   );
@@ -310,36 +267,18 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
     setDragActive(e.type === 'dragenter' || e.type === 'dragover');
   }, []);
 
-  const generatePreview = useCallback(() => {
-    const preview = csvRows.map(row => {
-      const nom = row[nomColumn] || '';
-      const prenom = row[prenomColumn] || '';
-      const rawTheme = row[themeColumn] || '';
-
-      const theme = normalizeTheme(rawTheme);
-      const { eleve, confidence } = findEleveMatch(nom, prenom, eleves3e);
-
-      return {
-        nom,
-        prenom,
-        theme,
-        eleveId: eleve?.id || null,
-        confidence,
-      };
-    }).filter(r => r.nom || r.prenom);
-
-    setImportPreview(preview);
-    setImportStep('preview');
-  }, [csvRows, nomColumn, prenomColumn, themeColumn, eleves3e]);
-
   const executeImport = useCallback(async () => {
     setImporting(true);
     let success = 0;
     let skipped = 0;
 
     for (const item of importPreview) {
-      if (item.eleveId && item.theme) {
-        await updateEleve(item.eleveId, { matieresOral: [item.theme] });
+      if (item.eleveId && (item.parcours || item.sujet)) {
+        await updateEleve(item.eleveId, {
+          parcoursOral: item.parcours || undefined,
+          sujetOral: item.sujet || undefined,
+          matieresOral: item.matieres.length > 0 ? item.matieres : undefined,
+        });
         success++;
       } else {
         skipped++;
@@ -353,12 +292,6 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
 
   const resetImport = useCallback(() => {
     setShowImport(false);
-    setImportStep('upload');
-    setCsvHeaders([]);
-    setCsvRows([]);
-    setNomColumn('');
-    setPrenomColumn('');
-    setThemeColumn('');
     setImportPreview([]);
     setImportDone(false);
     setImportStats({ success: 0, skipped: 0 });
@@ -367,178 +300,37 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
   // Preview stats
   const previewStats = useMemo(() => {
     const total = importPreview.length;
-    const matched = importPreview.filter(r => r.eleveId).length;
-    const withTheme = importPreview.filter(r => r.theme).length;
-    const ready = importPreview.filter(r => r.eleveId && r.theme).length;
-    return { total, matched, withTheme, ready };
+    const matched = importPreview.filter(r => r.matched).length;
+    const withData = importPreview.filter(r => r.parcours || r.sujet).length;
+    const ready = importPreview.filter(r => r.matched && (r.parcours || r.sujet)).length;
+    return { total, matched, withData, ready };
   }, [importPreview]);
 
   // ============================================================
   // RENDER: IMPORT MODE
   // ============================================================
   if (showImport) {
-    // Import done
     if (importDone) {
       return (
         <div className="guided-step step-themes">
-          <h1 className="step-title success">Import termine !</h1>
+          <h1 className="step-title success">Import terminé !</h1>
           <p className="step-subtitle">
-            {importStats.success} eleve(s) mis a jour
-            {importStats.skipped > 0 && `, ${importStats.skipped} ignore(s)`}.
+            {importStats.success} élève(s) mis à jour
+            {importStats.skipped > 0 && `, ${importStats.skipped} ignoré(s)`}.
           </p>
           <div className="step-actions">
             <button className="btn btn-primary btn-large" onClick={resetImport}>
               <Check size={20} />
-              Retour a la liste
+              Retour à la liste
             </button>
           </div>
         </div>
       );
     }
 
-    // Upload step
-    if (importStep === 'upload') {
-      return (
-        <div className="guided-step step-themes">
-          <h1 className="step-title">Importer les themes</h1>
-          <p className="step-subtitle">
-            Importez un fichier CSV contenant les noms des eleves et leur theme/matiere d'oral.
-          </p>
-
-          <div
-            className={clsx('upload-zone-guided', dragActive && 'active')}
-            onDragEnter={handleDrag}
-            onDragLeave={handleDrag}
-            onDragOver={handleDrag}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
-              hidden
-            />
-            <Upload size={40} />
-            <h3>Glissez votre fichier ici</h3>
-            <p>ou cliquez pour selectionner</p>
-            <span className="format-hint">CSV, Excel (.xlsx, .xls)</span>
-          </div>
-
-          <div className="import-help-box">
-            <h4>Format attendu</h4>
-            <p>Votre fichier doit contenir au minimum :</p>
-            <ul>
-              <li>Une colonne <strong>Nom</strong> de l'eleve</li>
-              <li>Une colonne <strong>Prenom</strong> de l'eleve</li>
-              <li>Une colonne <strong>Theme/Matiere</strong> choisi(e)</li>
-            </ul>
-            <p className="import-help-note">
-              Les noms d'eleves seront automatiquement associes a ceux deja importes,
-              meme en cas de differences d'accents ou de casse.
-            </p>
-          </div>
-
-          <div className="step-actions">
-            <button className="btn btn-secondary" onClick={resetImport}>
-              Annuler
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    // Mapping step
-    if (importStep === 'mapping') {
-      return (
-        <div className="guided-step step-themes">
-          <h1 className="step-title">Configuration des colonnes</h1>
-          <p className="step-subtitle">
-            {csvRows.length} lignes detectees. Associez les colonnes a leurs champs.
-          </p>
-
-          <div className="config-form">
-            <div className="form-group">
-              <label>Colonne Nom</label>
-              <select
-                className="form-input"
-                value={nomColumn}
-                onChange={e => setNomColumn(e.target.value)}
-              >
-                <option value="">-- Selectionner --</option>
-                {csvHeaders.map(h => (
-                  <option key={h} value={h}>{h}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Colonne Prenom</label>
-              <select
-                className="form-input"
-                value={prenomColumn}
-                onChange={e => setPrenomColumn(e.target.value)}
-              >
-                <option value="">-- Selectionner --</option>
-                {csvHeaders.map(h => (
-                  <option key={h} value={h}>{h}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label>Colonne Theme / Matiere</label>
-              <select
-                className="form-input"
-                value={themeColumn}
-                onChange={e => setThemeColumn(e.target.value)}
-              >
-                <option value="">-- Selectionner --</option>
-                {csvHeaders.map(h => (
-                  <option key={h} value={h}>{h}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Preview of first rows */}
-          {nomColumn && prenomColumn && themeColumn && (
-            <div className="import-preview-sample">
-              <h4>Apercu des premieres lignes</h4>
-              <div className="preview-sample-list">
-                {csvRows.slice(0, 3).map((row, i) => (
-                  <div key={i} className="preview-sample-row">
-                    <span className="sample-name">{row[prenomColumn]} {row[nomColumn]}</span>
-                    <span className="sample-arrow">→</span>
-                    <span className="sample-theme">{normalizeTheme(row[themeColumn]) || '—'}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="step-actions">
-            <button className="btn btn-secondary" onClick={() => setImportStep('upload')}>
-              Retour
-            </button>
-            <button
-              className="btn btn-primary btn-large"
-              onClick={generatePreview}
-              disabled={!nomColumn || !prenomColumn || !themeColumn}
-            >
-              Apercu
-              <ChevronRight size={20} />
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    // Preview step
     return (
       <div className="guided-step step-themes">
-        <h1 className="step-title">Verification de l'import</h1>
+        <h1 className="step-title">Vérification de l'import</h1>
 
         <div className="import-stats-bar">
           <div className="import-stat">
@@ -547,39 +339,41 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
           </div>
           <div className="import-stat">
             <span className="stat-value">{previewStats.matched}</span>
-            <span className="stat-label">eleves trouves</span>
+            <span className="stat-label">élèves trouvés</span>
           </div>
           <div className="import-stat">
-            <span className="stat-value">{previewStats.withTheme}</span>
-            <span className="stat-label">avec theme</span>
+            <span className="stat-value">{previewStats.withData}</span>
+            <span className="stat-label">avec données</span>
           </div>
           <div className={clsx('import-stat', previewStats.ready > 0 && 'success')}>
             <span className="stat-value">{previewStats.ready}</span>
-            <span className="stat-label">prets</span>
+            <span className="stat-label">prêts</span>
           </div>
         </div>
 
         <div className="import-preview-table">
-          <div className="preview-header-row">
-            <span>Eleve (fichier)</span>
-            <span>Correspondance</span>
-            <span>Theme</span>
+          <div className="preview-header-row oral-preview">
+            <span>Élève</span>
+            <span>Parcours</span>
+            <span>Sujet</span>
+            <span>Matière(s)</span>
+            <span>Match</span>
           </div>
           <div className="preview-body">
             {importPreview.map((item, i) => (
-              <div key={i} className={clsx('preview-row', item.confidence === 'none' && 'no-match')}>
-                <span className="preview-cell-name">{item.prenom} {item.nom}</span>
-                <span className={clsx('match-badge', item.confidence)}>
-                  {item.confidence === 'exact' && <><Check size={12} /> Exact</>}
-                  {item.confidence === 'partial' && <><AlertTriangle size={12} /> Partiel</>}
-                  {item.confidence === 'none' && <><X size={12} /> Non trouve</>}
+              <div key={i} className={clsx('preview-row oral-preview', !item.matched && 'no-match')}>
+                <span className="preview-cell-name">{item.nom} {item.prenom}</span>
+                <span className="preview-cell-parcours">
+                  {item.parcours ? (
+                    <span className="parcours-badge-small">{item.parcours}</span>
+                  ) : '—'}
                 </span>
-                <span className="preview-cell-theme">
-                  {item.theme ? (
-                    <span className="theme-badge-small">{item.theme}</span>
-                  ) : (
-                    <span className="no-theme">—</span>
-                  )}
+                <span className="preview-cell-sujet">{item.sujet || '—'}</span>
+                <span className="preview-cell-matieres">
+                  {item.matieres.length > 0 ? item.matieres.join(', ') : '—'}
+                </span>
+                <span className={clsx('match-badge', item.matched ? 'exact' : 'none')}>
+                  {item.matched ? <><Check size={12} /> OK</> : <><X size={12} /> ?</>}
                 </span>
               </div>
             ))}
@@ -587,15 +381,15 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
         </div>
 
         <div className="step-actions">
-          <button className="btn btn-secondary" onClick={() => setImportStep('mapping')}>
-            Retour
+          <button className="btn btn-secondary" onClick={resetImport}>
+            Annuler
           </button>
           <button
             className="btn btn-primary btn-large"
             onClick={executeImport}
             disabled={previewStats.ready === 0 || importing}
           >
-            {importing ? 'Import en cours...' : `Importer ${previewStats.ready} theme(s)`}
+            {importing ? 'Import en cours...' : `Importer ${previewStats.ready} sujet(s)`}
             <Check size={20} />
           </button>
         </div>
@@ -604,52 +398,71 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
   }
 
   // ============================================================
-  // RENDER: MANUAL MODE (default view)
+  // RENDER: MAIN VIEW (tableau éditable)
   // ============================================================
   return (
     <div className="guided-step step-themes">
-      <h1 className="step-title">Themes de l'oral</h1>
+      <h1 className="step-title">Sujets de l'oral DNB</h1>
       <p className="step-subtitle">
-        Attribuez a chaque eleve son theme ou sa matiere pour l'oral du DNB.
+        Attribuez à chaque élève son parcours, sujet et matière(s) pour l'oral.
       </p>
 
       {/* Stats bar */}
       <div className="themes-stats-bar">
         <div className="themes-stat">
           <BookOpen size={20} />
-          <span className="stat-value">{elevesWithTheme}</span>
-          <span className="stat-label">/ {totalEleves} eleves avec un theme</span>
+          <span className="stat-value">{elevesComplete}</span>
+          <span className="stat-label">/ {totalEleves} élèves complétés</span>
         </div>
-        {elevesWithTheme === totalEleves && totalEleves > 0 && (
+        {elevesComplete === totalEleves && totalEleves > 0 && (
           <span className="all-done-badge">
             <Check size={14} /> Complet
           </span>
         )}
       </div>
 
-      {/* Actions: search + import */}
+      {/* Actions: search + template + import */}
       <div className="themes-actions-bar">
         <div className="themes-search">
           <Search size={16} />
           <input
             type="text"
-            placeholder="Rechercher un eleve..."
+            placeholder="Rechercher un élève, parcours, sujet..."
             value={searchFilter}
             onChange={e => setSearchFilter(e.target.value)}
           />
         </div>
-        <button className="btn btn-secondary" onClick={() => setShowImport(true)}>
-          <FileSpreadsheet size={16} />
-          Importer un fichier
+        <button className="btn btn-secondary" onClick={handleDownloadTemplate}>
+          <Download size={16} />
+          Télécharger le template
         </button>
         <button
-          className="btn btn-secondary dev-random-btn"
+          className="btn btn-secondary"
           onClick={handleRandomThemes}
-          title="DEV: Attribuer des themes aleatoires"
+          title="DEV: Remplir aléatoirement"
+          style={{ borderColor: 'rgba(245, 158, 11, 0.4)', color: '#f59e0b', fontSize: '0.75rem' }}
         >
           <Shuffle size={16} />
           Random
         </button>
+        <div
+          className="import-drop-zone-inline"
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])}
+            hidden
+          />
+          <Upload size={16} className={clsx(dragActive && 'drag-active')} />
+          <span>Importer</span>
+        </div>
       </div>
 
       {/* Students grouped by class */}
@@ -663,37 +476,101 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
               <ChevronDown size={16} className="expand-icon" />
               <span className="class-name">{cls}</span>
               <span className="class-count">
-                {elvs.filter(e => e.matieresOral?.length).length}/{elvs.length}
+                {elvs.filter(e => e.parcoursOral && e.sujetOral).length}/{elvs.length}
               </span>
             </button>
 
             {expandedClasses.has(cls) && (
-              <div className="class-students">
-                {elvs.map(eleve => (
-                  <div key={eleve.id} className="student-theme-row">
-                    <span className="student-name">
-                      {eleve.nom} {eleve.prenom}
-                    </span>
-                    <select
-                      className={clsx(
-                        'theme-select',
-                        eleve.matieresOral?.length && 'has-theme'
-                      )}
-                      value={eleve.matieresOral?.[0] || ''}
-                      onChange={e => handleSetTheme(eleve.id!, e.target.value)}
+              <div className="class-students oral-table">
+                {/* Table header */}
+                <div className="oral-table-header">
+                  <span className="col-name">Élève</span>
+                  <span className="col-parcours">Parcours</span>
+                  <span className="col-sujet">Sujet</span>
+                  <span className="col-matiere">Matière 1</span>
+                  <span className="col-matiere">Matière 2</span>
+                </div>
+                {elvs.map(eleve => {
+                  const isComplete = eleve.parcoursOral && eleve.sujetOral;
+                  const isEditingSujet =
+                    editingField?.eleveId === eleve.id && editingField.field === 'sujetOral';
+
+                  return (
+                    <div
+                      key={eleve.id}
+                      className={clsx('oral-table-row', isComplete && 'complete')}
                     >
-                      <option value="">-- Choisir un theme --</option>
-                      {AVAILABLE_THEMES.map(theme => (
-                        <option key={theme} value={theme}>
-                          {theme}
-                        </option>
-                      ))}
-                    </select>
-                    {eleve.matieresOral?.length ? (
-                      <Check size={16} className="theme-check" />
-                    ) : null}
-                  </div>
-                ))}
+                      {/* Nom */}
+                      <span className="col-name student-name">
+                        {eleve.nom} {eleve.prenom}
+                      </span>
+
+                      {/* Parcours (select) */}
+                      <select
+                        className={clsx('oral-select', eleve.parcoursOral && 'has-value')}
+                        value={eleve.parcoursOral || ''}
+                        onChange={e => handleSetParcours(eleve.id!, e.target.value)}
+                      >
+                        <option value="">--</option>
+                        {PARCOURS_ORAL_DNB.map(p => (
+                          <option key={p} value={p}>{p}</option>
+                        ))}
+                      </select>
+
+                      {/* Sujet (click to edit) */}
+                      {isEditingSujet ? (
+                        <input
+                          className="oral-input col-sujet"
+                          type="text"
+                          value={editValue}
+                          onChange={e => setEditValue(e.target.value)}
+                          onBlur={commitEditSujet}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') commitEditSujet();
+                            if (e.key === 'Escape') setEditingField(null);
+                          }}
+                          autoFocus
+                          placeholder="Titre du sujet..."
+                        />
+                      ) : (
+                        <span
+                          className={clsx('col-sujet sujet-cell', !eleve.sujetOral && 'empty')}
+                          onClick={() => startEditSujet(eleve.id!, eleve.sujetOral || '')}
+                          title="Cliquer pour modifier"
+                        >
+                          {eleve.sujetOral || 'Cliquer pour saisir...'}
+                        </span>
+                      )}
+
+                      {/* Matière 1 */}
+                      <select
+                        className={clsx('oral-select oral-select-sm', eleve.matieresOral?.[0] && 'has-value')}
+                        value={eleve.matieresOral?.[0] || ''}
+                        onChange={e => handleSetMatiere(eleve.id!, 0, e.target.value)}
+                      >
+                        <option value="">--</option>
+                        {AVAILABLE_MATIERES.map(m => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+
+                      {/* Matière 2 */}
+                      <select
+                        className={clsx('oral-select oral-select-sm', eleve.matieresOral?.[1] && 'has-value')}
+                        value={eleve.matieresOral?.[1] || ''}
+                        onChange={e => handleSetMatiere(eleve.id!, 1, e.target.value)}
+                      >
+                        <option value="">--</option>
+                        {AVAILABLE_MATIERES.map(m => (
+                          <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+
+                      {/* Status indicator */}
+                      {isComplete && <Check size={14} className="row-check" />}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -702,8 +579,8 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
         {filteredGroups.length === 0 && (
           <div className="no-data-warning">
             {searchFilter
-              ? 'Aucun eleve ne correspond a votre recherche.'
-              : 'Aucun eleve de 3eme trouve. Retournez a l\'etape precedente pour en importer.'}
+              ? 'Aucun élève ne correspond à votre recherche.'
+              : "Aucun élève de 3ème trouvé. Retournez à l'étape précédente pour en importer."}
           </div>
         )}
       </div>
@@ -713,10 +590,7 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
         <button className="btn btn-secondary" onClick={onBack}>
           Retour
         </button>
-        <button
-          className="btn btn-primary btn-large"
-          onClick={onNext}
-        >
+        <button className="btn btn-primary btn-large" onClick={onNext}>
           Continuer
           <ChevronRight size={20} />
         </button>

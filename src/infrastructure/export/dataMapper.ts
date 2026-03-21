@@ -78,6 +78,8 @@ function mapEleveAffecte(
     classe: eleve.classe,
     matieresOral: eleve.matieresOral || [],
     matiereAffectee: getMatiereAffectee(eleve, juryEnseignants),
+    parcoursOral: eleve.parcoursOral,
+    sujetOral: eleve.sujetOral,
     binomeNom,
 
     // Champs futurs depuis metadata si disponibles
