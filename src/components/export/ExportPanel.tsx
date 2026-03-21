@@ -37,6 +37,7 @@ import {
   DEFAULT_STAGE_PDF_OPTIONS,
   type StageExportResultData,
 } from '../../infrastructure/export';
+import { checkSessionHasScores } from '../../infrastructure/export/supabaseUpload';
 import './ExportPanel.css';
 
 interface ExportButtonsProps {
@@ -254,6 +255,21 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
 
   const doExportPdf = useCallback(async () => {
     if (!hasData) return;
+
+    // D. Protection : vérifier si des notes existent déjà avant ré-export
+    if (sessionCode) {
+      try {
+        const { hasScores, count } = await checkSessionHasScores(sessionCode);
+        if (hasScores) {
+          const confirmed = window.confirm(
+            `${count} note(s) déjà enregistrée(s) pour la session "${sessionCode.toUpperCase()}". ` +
+            `Ré-exporter écrasera ces notes. Continuer ?`
+          );
+          if (!confirmed) return;
+        }
+      } catch { /* ignore, proceed with export */ }
+    }
+
     setShowPdfModal(false);
     setPdfStatus('loading');
     setErrorMessage(null);

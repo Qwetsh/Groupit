@@ -18,19 +18,64 @@ interface EvaluateScreenProps {
   onBack: () => void;
 }
 
+// Retry avec backoff exponentiel (1s, 2s, 4s)
+async function withRetry(
+  fn: () => PromiseLike<{ error: unknown }>,
+  maxRetries = 3
+): Promise<{ error: unknown }> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    const result = await fn();
+    if (!result.error) return result;
+    if (attempt < maxRetries) {
+      await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+    } else {
+      return result;
+    }
+  }
+  return fn(); // unreachable, satisfies TS
+}
+
+const STORAGE_KEY = (id: string) => `jury-scores-${id}`;
+
 export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: EvaluateScreenProps) {
   void _juryId;
   const [scores, setScores] = useState<Record<string, number | undefined>>({});
   const [pointsForts, setPointsForts] = useState('');
   const [axesAmelioration, setAxesAmelioration] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const mountedRef = useRef(true);
+  const restoredRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
     return () => { mountedRef.current = false; };
   }, []);
+
+  // A. Restaurer depuis localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY(eleve.id));
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.scores) setScores(data.scores);
+        if (data.pointsForts) setPointsForts(data.pointsForts);
+        if (data.axesAmelioration) setAxesAmelioration(data.axesAmelioration);
+      }
+    } catch { /* ignore */ }
+    restoredRef.current = true;
+  }, [eleve.id]);
+
+  // A. Sauvegarder dans localStorage à chaque changement
+  useEffect(() => {
+    if (!restoredRef.current) return;
+    try {
+      localStorage.setItem(STORAGE_KEY(eleve.id), JSON.stringify({
+        scores, pointsForts, axesAmelioration,
+      }));
+    } catch { /* quota exceeded, ignore */ }
+  }, [scores, pointsForts, axesAmelioration, eleve.id]);
 
   // Mettre le status en in_progress
   useEffect(() => {
@@ -43,11 +88,13 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
   const allScored = allCriteriaScored(scores);
 
   const handleSubmit = useCallback(async () => {
+    if (submitting) return;
+    setSubmitting(true);
     setSubmitError(null);
     const { totalOral, totalSujet, total } = computeTotals(scores);
 
-    // Sauvegarder l'évaluation
-    const { error: evalErr } = await supabase.from('evaluations').upsert({
+    // B. Upsert evaluations avec retry
+    const { error: evalErr } = await withRetry(() => supabase.from('evaluations').upsert({
       eleve_id: eleve.id,
       juror_slot: 'A',
       score_expression: scores.expression,
@@ -62,16 +109,17 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
       points_forts: pointsForts || null,
       axes_amelioration: axesAmelioration || null,
       submitted_at: new Date().toISOString(),
-    }, { onConflict: 'eleve_id,juror_slot' });
+    }, { onConflict: 'eleve_id,juror_slot' }));
 
     if (evalErr) {
-      setSubmitError('Erreur de sauvegarde. Réessayez.');
+      setSubmitError('Erreur persistante. Vérifiez votre connexion et réessayez.');
       console.error('[EvaluateScreen] upsert evaluation:', evalErr);
+      setSubmitting(false);
       return;
     }
 
-    // Valider directement comme score final
-    const { error: fsErr } = await supabase.from('final_scores').upsert({
+    // B. Upsert final_scores avec retry
+    const { error: fsErr } = await withRetry(() => supabase.from('final_scores').upsert({
       eleve_id: eleve.id,
       score_expression: scores.expression!,
       score_diaporama: scores.diaporama!,
@@ -84,25 +132,32 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
       total,
       points_forts: pointsForts || null,
       axes_amelioration: axesAmelioration || null,
-    }, { onConflict: 'eleve_id' });
+    }, { onConflict: 'eleve_id' }));
 
     if (fsErr) {
-      setSubmitError('Erreur de sauvegarde du score final.');
+      setSubmitError('Erreur persistante. Vérifiez votre connexion et réessayez.');
       console.error('[EvaluateScreen] upsert final_scores:', fsErr);
+      setSubmitting(false);
       return;
     }
 
-    const { error: statusErr } = await supabase.from('session_eleves').update({ status: 'validated' }).eq('id', eleve.id);
-    if (statusErr) console.error('[EvaluateScreen] update status:', statusErr);
+    // Update status (non-critique, retry quand même)
+    await withRetry(() => supabase.from('session_eleves').update({ status: 'validated' }).eq('id', eleve.id));
+
+    // A. Supprimer le brouillon local après succès confirmé
+    try { localStorage.removeItem(STORAGE_KEY(eleve.id)); } catch { /* ignore */ }
 
     if (mountedRef.current) onDone();
-  }, [scores, pointsForts, axesAmelioration, eleve.id, onDone]);
+  }, [scores, pointsForts, axesAmelioration, eleve.id, onDone, submitting]);
 
   return (
     <div style={styles.container}>
       <div style={styles.header}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button onClick={onBack} style={styles.backBtn}>← Retour</button>
+          <button onClick={onBack} disabled={submitting} style={{
+            ...styles.backBtn,
+            opacity: submitting ? 0.4 : 1,
+          }}>← Retour</button>
           <div style={{
             background: 'rgba(255,255,255,0.2)',
             padding: '4px 14px',
@@ -198,18 +253,20 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
       <div style={{ padding: '4px 16px 24px' }}>
         <button
           onClick={handleSubmit}
-          disabled={!allScored}
+          disabled={!allScored || submitting}
           style={{
             ...styles.btnValidate,
-            opacity: allScored ? 1 : 0.45,
+            opacity: (allScored && !submitting) ? 1 : 0.45,
             background: allScored
               ? 'linear-gradient(135deg, #276749 0%, #22543d 100%)'
               : 'linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)',
           }}
         >
-          {allScored
-            ? `✓ Terminé — ${totals.total}/20`
-            : `Critères restants : ${CRITERIA.filter(c => scores[c.id] === undefined).length}`}
+          {submitting
+            ? 'Enregistrement...'
+            : allScored
+              ? `✓ Terminé — ${totals.total}/20`
+              : `Critères restants : ${CRITERIA.filter(c => scores[c.id] === undefined).length}`}
         </button>
       </div>
     </div>
