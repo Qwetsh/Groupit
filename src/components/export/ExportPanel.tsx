@@ -676,7 +676,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
                 className="pdf-modal-date"
                 value={sessionCode}
                 placeholder="Code session (ex: ORAL2026)"
-                maxLength={20}
+                maxLength={8}
                 onChange={e => setSessionCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
               />
               {sessionCode && (
