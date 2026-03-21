@@ -9,6 +9,7 @@ import type { ExportResultData, PdfExportOptions } from './types';
 import { DEFAULT_PDF_OPTIONS } from './types';
 import { downloadBlob } from '../utils/download';
 import { generateAllJuryQRCodes } from './qrcode';
+import { uploadSessionToSupabase } from './supabaseUpload';
 
 /**
  * Génère un Blob PDF à partir des données d'export
@@ -53,8 +54,26 @@ export async function downloadExportPdf(
   options: Partial<PdfExportOptions> = {}
 ): Promise<void> {
   try {
+    // Upload vers Supabase si un code session est fourni (en parallèle du PDF)
+    const opts = { ...DEFAULT_PDF_OPTIONS, ...options };
+    let uploadPromise: Promise<unknown> | undefined;
+    if (opts.sessionCode) {
+      uploadPromise = uploadSessionToSupabase(data, opts as PdfExportOptions & { sessionCode: string })
+        .then(result => {
+          if (!result.success) {
+            console.warn('[exportPdf] Upload Supabase échoué:', result.error);
+          } else {
+            console.log('[exportPdf] Session uploadée vers Supabase');
+          }
+        })
+        .catch(err => console.warn('[exportPdf] Upload Supabase erreur:', err));
+    }
+
     const blob = await exportPdfJuries(data, options);
     downloadPdf(blob, filename);
+
+    // Attendre la fin de l'upload (non-bloquant pour le PDF)
+    if (uploadPromise) await uploadPromise;
   } catch (error) {
     console.error('[exportPdf] Erreur génération PDF:', error);
     throw error;
