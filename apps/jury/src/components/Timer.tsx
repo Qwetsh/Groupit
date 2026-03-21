@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 function formatTime(seconds: number) {
   const m = Math.floor(seconds / 60);
@@ -8,36 +8,77 @@ function formatTime(seconds: number) {
 
 interface TimerProps {
   duration: number;
+  /** Si fourni, affiche le temps écoulé sans contrôles */
+  elapsedSeconds?: number;
+  /** Appelé à chaque seconde avec le nombre de secondes écoulées */
+  onTick?: (elapsed: number) => void;
   onEnd?: () => void;
 }
 
-export function Timer({ duration, onEnd }: TimerProps) {
+export function Timer({ duration, elapsedSeconds, onTick, onEnd }: TimerProps) {
   const [remaining, setRemaining] = useState(duration);
   const [running, setRunning] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const elapsedRef = useRef(0);
+  const onTickRef = useRef(onTick);
+  onTickRef.current = onTick;
 
   useEffect(() => {
     setRemaining(duration);
     setRunning(false);
+    elapsedRef.current = 0;
     if (intervalRef.current) clearInterval(intervalRef.current);
   }, [duration]);
 
+  const tick = useCallback(() => {
+    setRemaining((r) => {
+      elapsedRef.current++;
+      onTickRef.current?.(elapsedRef.current);
+      if (r <= 1) {
+        clearInterval(intervalRef.current!);
+        setRunning(false);
+        onEnd?.();
+        return 0;
+      }
+      return r - 1;
+    });
+  }, [onEnd]);
+
   useEffect(() => {
     if (running && remaining > 0) {
-      intervalRef.current = setInterval(() => {
-        setRemaining((r) => {
-          if (r <= 1) {
-            clearInterval(intervalRef.current!);
-            setRunning(false);
-            onEnd?.();
-            return 0;
-          }
-          return r - 1;
-        });
-      }, 1000);
+      intervalRef.current = setInterval(tick, 1000);
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [running, remaining, onEnd]);
+  }, [running, remaining, tick]);
+
+  // Mode lecture seule : afficher le temps passé
+  if (elapsedSeconds !== undefined) {
+    return (
+      <div style={{
+        background: '#f0fff4',
+        borderRadius: 12,
+        padding: '10px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        border: '1px solid #c6f6d5',
+      }}>
+        <span style={{ fontSize: 16 }}>✓</span>
+        <span style={{
+          fontFamily: "'JetBrains Mono', 'SF Mono', monospace",
+          fontSize: 18,
+          fontWeight: 700,
+          color: '#276749',
+          letterSpacing: 1,
+        }}>
+          {formatTime(elapsedSeconds)}
+        </span>
+        <span style={{ fontSize: 13, color: '#4a5568' }}>
+          écoulé{elapsedSeconds >= duration ? ' (temps dépassé)' : ''}
+        </span>
+      </div>
+    );
+  }
 
   const pct = ((duration - remaining) / duration) * 100;
   const isWarning = remaining <= 120 && remaining > 0 && running;
@@ -89,7 +130,7 @@ export function Timer({ duration, onEnd }: TimerProps) {
         {running && (
           <button onClick={() => { setRunning(false); if (intervalRef.current) clearInterval(intervalRef.current); }} style={btnStyle('#d69e2e')}>⏸</button>
         )}
-        <button onClick={() => { setRunning(false); if (intervalRef.current) clearInterval(intervalRef.current); setRemaining(duration); }} style={btnStyle('#718096')}>↺</button>
+        <button onClick={() => { setRunning(false); if (intervalRef.current) clearInterval(intervalRef.current); setRemaining(duration); elapsedRef.current = 0; }} style={btnStyle('#718096')}>↺</button>
       </div>
     </div>
   );
