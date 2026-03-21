@@ -30,7 +30,7 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
   const [dateOral, setDateOral] = useState<string | null>(null);
   const [jurys, setJurys] = useState<JuryWithEleves[]>([]);
   const [allFinalScores, setAllFinalScores] = useState<FinalScoreRow[]>([]);
-  const [connectedJuryIds, setConnectedJuryIds] = useState<Set<string>>(new Set());
+  const connectedJuryIdsRef = useRef<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -100,7 +100,7 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
             eleves: eleves || [],
             finalScores: scoreMap,
             evaluations,
-            connected: connectedJuryIds.has(jury.id),
+            connected: connectedJuryIdsRef.current.has(jury.id),
           };
         })
       );
@@ -175,7 +175,7 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState();
         const ids = new Set<string>(Object.keys(state));
-        setConnectedJuryIds(ids);
+        connectedJuryIdsRef.current = ids;
         // Mettre à jour les jurys existants sans reload complet
         setJurys(prev => prev.map(j => ({ ...j, connected: ids.has(j.id) })));
       })
