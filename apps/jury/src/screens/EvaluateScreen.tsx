@@ -103,6 +103,13 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
           if (data.axesAmelioration) setAxesAmelioration(data.axesAmelioration);
         }
       } catch { /* ignore */ }
+
+      // Restaurer le timer même en mode non-revisit (ex: refresh en cours d'évaluation)
+      try {
+        const savedTime = localStorage.getItem(TIMER_KEY(eleve.id));
+        if (savedTime) setSavedElapsed(parseInt(savedTime, 10));
+      } catch { /* ignore */ }
+
       restoredRef.current = true;
     }
     restore();
@@ -284,7 +291,7 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
         {isRevisit ? (
           <Timer duration={timerDuration} elapsedSeconds={savedElapsed ?? 0} />
         ) : (
-          <Timer duration={timerDuration} onTick={handleTimerTick} />
+          <Timer duration={timerDuration} initialElapsed={savedElapsed} onTick={handleTimerTick} />
         )}
       </div>
 

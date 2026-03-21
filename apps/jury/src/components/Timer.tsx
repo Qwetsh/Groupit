@@ -10,25 +10,28 @@ interface TimerProps {
   duration: number;
   /** Si fourni, affiche le temps écoulé sans contrôles */
   elapsedSeconds?: number;
+  /** Temps déjà écoulé à restaurer (mode interactif) */
+  initialElapsed?: number;
   /** Appelé à chaque seconde avec le nombre de secondes écoulées */
   onTick?: (elapsed: number) => void;
   onEnd?: () => void;
 }
 
-export function Timer({ duration, elapsedSeconds, onTick, onEnd }: TimerProps) {
-  const [remaining, setRemaining] = useState(duration);
+export function Timer({ duration, elapsedSeconds, initialElapsed, onTick, onEnd }: TimerProps) {
+  const initElapsed = initialElapsed ?? 0;
+  const [remaining, setRemaining] = useState(Math.max(0, duration - initElapsed));
   const [running, setRunning] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const elapsedRef = useRef(0);
+  const elapsedRef = useRef(initElapsed);
   const onTickRef = useRef(onTick);
   onTickRef.current = onTick;
 
   useEffect(() => {
-    setRemaining(duration);
+    setRemaining(Math.max(0, duration - initElapsed));
     setRunning(false);
-    elapsedRef.current = 0;
+    elapsedRef.current = initElapsed;
     if (intervalRef.current) clearInterval(intervalRef.current);
-  }, [duration]);
+  }, [duration, initElapsed]);
 
   const tick = useCallback(() => {
     setRemaining((r) => {
