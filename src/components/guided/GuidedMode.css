@@ -865,6 +865,11 @@
   border-color: #3b82f6;
 }
 
+.form-input option {
+  background: #1e293b;
+  color: white;
+}
+
 .class-selector {
   display: flex;
   flex-wrap: wrap;
