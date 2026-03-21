@@ -32,10 +32,11 @@ async function withRetry(
       return result;
     }
   }
-  return fn(); // unreachable, satisfies TS
+  return fn();
 }
 
 const STORAGE_KEY = (id: string) => `jury-scores-${id}`;
+const TIMER_KEY = (id: string) => `jury-timer-${id}`;
 
 export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: EvaluateScreenProps) {
   void _juryId;
@@ -44,6 +45,9 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
   const [axesAmelioration, setAxesAmelioration] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // true si l'élève a déjà été noté (on revient dessus pour modifier)
+  const [isRevisit, setIsRevisit] = useState(false);
+  const [savedElapsed, setSavedElapsed] = useState<number | undefined>(undefined);
 
   const mountedRef = useRef(true);
   const restoredRef = useRef(false);
@@ -53,21 +57,57 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
     return () => { mountedRef.current = false; };
   }, []);
 
-  // A. Restaurer depuis localStorage
+  // Charger les scores existants : d'abord Supabase (si validé), puis localStorage en fallback
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY(eleve.id));
-      if (saved) {
-        const data = JSON.parse(saved);
-        if (data.scores) setScores(data.scores);
-        if (data.pointsForts) setPointsForts(data.pointsForts);
-        if (data.axesAmelioration) setAxesAmelioration(data.axesAmelioration);
-      }
-    } catch { /* ignore */ }
-    restoredRef.current = true;
-  }, [eleve.id]);
+    async function restore() {
+      // Vérifier si l'élève a déjà un final_score en base
+      if (eleve.status === 'validated') {
+        const { data: fs } = await supabase
+          .from('final_scores')
+          .select('*')
+          .eq('eleve_id', eleve.id)
+          .single();
 
-  // A. Sauvegarder dans localStorage à chaque changement
+        if (fs) {
+          setScores({
+            expression: fs.score_expression ?? undefined,
+            diaporama: fs.score_diaporama ?? undefined,
+            reactivite: fs.score_reactivite ?? undefined,
+            contenu: fs.score_contenu ?? undefined,
+            structure: fs.score_structure ?? undefined,
+            engagement: fs.score_engagement ?? undefined,
+          });
+          setPointsForts(fs.points_forts || '');
+          setAxesAmelioration(fs.axes_amelioration || '');
+          setIsRevisit(true);
+
+          // Restaurer le temps écoulé
+          try {
+            const savedTime = localStorage.getItem(TIMER_KEY(eleve.id));
+            if (savedTime) setSavedElapsed(parseInt(savedTime, 10));
+          } catch { /* ignore */ }
+
+          restoredRef.current = true;
+          return;
+        }
+      }
+
+      // Fallback : localStorage
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY(eleve.id));
+        if (saved) {
+          const data = JSON.parse(saved);
+          if (data.scores) setScores(data.scores);
+          if (data.pointsForts) setPointsForts(data.pointsForts);
+          if (data.axesAmelioration) setAxesAmelioration(data.axesAmelioration);
+        }
+      } catch { /* ignore */ }
+      restoredRef.current = true;
+    }
+    restore();
+  }, [eleve.id, eleve.status]);
+
+  // Sauvegarder dans localStorage à chaque changement
   useEffect(() => {
     if (!restoredRef.current) return;
     try {
@@ -77,9 +117,16 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
     } catch { /* quota exceeded, ignore */ }
   }, [scores, pointsForts, axesAmelioration, eleve.id]);
 
-  // Mettre le status en in_progress
+  // Mettre le status en in_progress (seulement si pas déjà validé)
   useEffect(() => {
-    supabase.from('session_eleves').update({ status: 'in_progress' }).eq('id', eleve.id);
+    if (eleve.status !== 'validated') {
+      supabase.from('session_eleves').update({ status: 'in_progress' }).eq('id', eleve.id);
+    }
+  }, [eleve.id, eleve.status]);
+
+  // Sauvegarder le temps du timer
+  const handleTimerTick = useCallback((elapsed: number) => {
+    try { localStorage.setItem(TIMER_KEY(eleve.id), String(elapsed)); } catch { /* ignore */ }
   }, [eleve.id]);
 
   const isCollectif = eleve.binome_id !== null;
@@ -89,11 +136,19 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
 
   const handleSubmit = useCallback(async () => {
     if (submitting) return;
+
+    // Confirmation si modification d'une note existante
+    if (isRevisit) {
+      const confirmed = window.confirm(
+        'Cet élève a déjà été noté. Voulez-vous écraser la note précédente ?'
+      );
+      if (!confirmed) return;
+    }
+
     setSubmitting(true);
     setSubmitError(null);
     const { totalOral, totalSujet, total } = computeTotals(scores);
 
-    // B. Upsert evaluations avec retry
     const { error: evalErr } = await withRetry(() => supabase.from('evaluations').upsert({
       eleve_id: eleve.id,
       juror_slot: 'A',
@@ -118,7 +173,6 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
       return;
     }
 
-    // B. Upsert final_scores avec retry
     const { error: fsErr } = await withRetry(() => supabase.from('final_scores').upsert({
       eleve_id: eleve.id,
       score_expression: scores.expression!,
@@ -141,14 +195,12 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
       return;
     }
 
-    // Update status (non-critique, retry quand même)
     await withRetry(() => supabase.from('session_eleves').update({ status: 'validated' }).eq('id', eleve.id));
 
-    // A. Supprimer le brouillon local après succès confirmé
     try { localStorage.removeItem(STORAGE_KEY(eleve.id)); } catch { /* ignore */ }
 
     if (mountedRef.current) onDone();
-  }, [scores, pointsForts, axesAmelioration, eleve.id, onDone, submitting]);
+  }, [scores, pointsForts, axesAmelioration, eleve.id, onDone, submitting, isRevisit]);
 
   return (
     <div style={styles.container}>
@@ -175,11 +227,29 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
           {eleve.sujet && ` · ${eleve.sujet}`}
           {isCollectif && ' · Collectif'}
         </div>
+        {isRevisit && (
+          <div style={{
+            marginTop: 6,
+            fontSize: 11,
+            fontWeight: 700,
+            color: '#fefcbf',
+            background: 'rgba(255,255,255,0.15)',
+            display: 'inline-block',
+            padding: '2px 10px',
+            borderRadius: 8,
+          }}>
+            Modification
+          </div>
+        )}
       </div>
 
-      {/* Timer */}
+      {/* Timer : interactif ou lecture seule */}
       <div style={{ padding: '12px 16px 0' }}>
-        <Timer duration={timerDuration} />
+        {isRevisit ? (
+          <Timer duration={timerDuration} elapsedSeconds={savedElapsed ?? 0} />
+        ) : (
+          <Timer duration={timerDuration} onTick={handleTimerTick} />
+        )}
       </div>
 
       {/* Oral */}
@@ -258,14 +328,18 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
             ...styles.btnValidate,
             opacity: (allScored && !submitting) ? 1 : 0.45,
             background: allScored
-              ? 'linear-gradient(135deg, #276749 0%, #22543d 100%)'
+              ? isRevisit
+                ? 'linear-gradient(135deg, #c05621 0%, #9c4221 100%)'
+                : 'linear-gradient(135deg, #276749 0%, #22543d 100%)'
               : 'linear-gradient(135deg, #2b6cb0 0%, #1a365d 100%)',
           }}
         >
           {submitting
             ? 'Enregistrement...'
             : allScored
-              ? `✓ Terminé — ${totals.total}/20`
+              ? isRevisit
+                ? `Modifier la note — ${totals.total}/20`
+                : `✓ Terminé — ${totals.total}/20`
               : `Critères restants : ${CRITERIA.filter(c => scores[c.id] === undefined).length}`}
         </button>
       </div>
