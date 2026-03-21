@@ -49,15 +49,19 @@ export async function uploadSessionToSupabase(
   try {
     // 1. Auth anonyme
     const { data: { session: authSession } } = await supabase.auth.getSession();
+    console.log('[supabaseUpload] Session auth existante:', !!authSession);
     if (!authSession) {
       const { error: authErr } = await supabase.auth.signInAnonymously();
       if (authErr) {
+        console.error('[supabaseUpload] Auth anonyme échouée:', authErr);
         return { success: false, error: `Auth échouée: ${authErr.message}` };
       }
+      console.log('[supabaseUpload] Auth anonyme OK');
     }
 
     // Code session limité à 8 chars (VARCHAR(8) en DB)
     const sessionCode = options.sessionCode.toUpperCase().slice(0, 8);
+    console.log(`[supabaseUpload] Début upload session "${sessionCode}" — ${data.jurys.length} jurys, URL: ${SUPABASE_URL}`);
 
     // 2. Vérifier si la session existe déjà
     const { data: existingSession } = await supabase
@@ -96,6 +100,7 @@ export async function uploadSessionToSupabase(
       const expiryYear = now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear();
       const expiresAt = new Date(expiryYear, 6, 3).toISOString(); // 3 juillet
 
+      console.log('[supabaseUpload] Création session...');
       const { data: newSession, error: sessErr } = await supabase
         .from('exam_sessions')
         .insert({
@@ -108,9 +113,11 @@ export async function uploadSessionToSupabase(
         .single();
 
       if (sessErr || !newSession) {
+        console.error('[supabaseUpload] Erreur insert exam_sessions:', sessErr);
         return { success: false, error: `Erreur création session: ${sessErr?.message}` };
       }
 
+      console.log('[supabaseUpload] Session créée:', newSession.id);
       sessionId = newSession.id;
     }
 
