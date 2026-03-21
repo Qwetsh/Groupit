@@ -2,6 +2,13 @@ import { CRITERIA } from '@groupit/shared';
 import type { FinalScoreRow } from '@groupit/shared';
 import type { JuryWithEleves } from '../hooks/useSessionData';
 
+function formatDuration(seconds: number | null | undefined): string {
+  if (!seconds) return '—';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 interface JuryTableProps {
   jurys: JuryWithEleves[];
 }
@@ -84,6 +91,7 @@ export function JuryTable({ jurys }: JuryTableProps) {
                   <th style={{ ...styles.th, textAlign: 'center' as const }}>Oral</th>
                   <th style={{ ...styles.th, textAlign: 'center' as const }}>Sujet</th>
                   <th style={{ ...styles.th, textAlign: 'center' as const, fontWeight: 800 }}>Total</th>
+                  <th style={{ ...styles.th, textAlign: 'center' as const }}>Durée</th>
                 </tr>
               </thead>
               <tbody>
@@ -132,6 +140,9 @@ export function JuryTable({ jurys }: JuryTableProps) {
                         borderRadius: 6,
                       }}>
                         {fs ? `${fs.total}` : '—'}
+                      </td>
+                      <td style={{ ...styles.td, textAlign: 'center' as const, fontSize: 12, color: '#64748b' }}>
+                        {formatDuration(eleve.duree_passage)}
                       </td>
                     </tr>
                   );
