@@ -57,10 +57,10 @@ export function JuryTable({ jurys }: JuryTableProps) {
                   borderRadius: 12,
                   fontSize: 12,
                   fontWeight: 600,
-                  background: jury.membersCount >= 2 ? '#c6f6d5' : jury.membersCount === 1 ? '#fefcbf' : '#f1f5f9',
-                  color: jury.membersCount >= 2 ? '#276749' : jury.membersCount === 1 ? '#975a16' : '#94a3b8',
+                  background: jury.connected ? '#c6f6d5' : '#f1f5f9',
+                  color: jury.connected ? '#276749' : '#94a3b8',
                 }}>
-                  {jury.membersCount} juré{jury.membersCount > 1 ? 's' : ''} connecté{jury.membersCount > 1 ? 's' : ''}
+                  {jury.connected ? '● Connecté' : '○ Hors ligne'}
                 </span>
                 <span style={{ fontSize: 13, color: '#64748b' }}>
                   {evalues}/{jury.eleves.length} évalué{evalues > 1 ? 's' : ''}

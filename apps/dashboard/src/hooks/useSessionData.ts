@@ -11,7 +11,7 @@ export interface JuryWithEleves extends SessionJuryRow {
   eleves: SessionEleveRow[];
   finalScores: Map<string, FinalScoreRow>;
   evaluations: EvaluationRow[];
-  membersCount: number;
+  connected: boolean;
 }
 
 export interface SessionData {
@@ -30,6 +30,7 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
   const [dateOral, setDateOral] = useState<string | null>(null);
   const [jurys, setJurys] = useState<JuryWithEleves[]>([]);
   const [allFinalScores, setAllFinalScores] = useState<FinalScoreRow[]>([]);
+  const [connectedJuryIds, setConnectedJuryIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,16 +70,11 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
 
       if (!juryRows) { setLoading(false); return; }
 
-      // 4. Pour chaque jury : élèves, évaluations, scores finaux, membres
+      // 4. Pour chaque jury : élèves, évaluations, scores finaux
       const jurysWithData: JuryWithEleves[] = await Promise.all(
         juryRows.map(async (jury) => {
-          const [
-            { data: eleves },
-            { data: members },
-          ] = await Promise.all([
-            supabase.from('session_eleves').select('*').eq('jury_id', jury.id).order('ordre_passage'),
-            supabase.from('jury_members').select('id').eq('jury_id', jury.id),
-          ]);
+          const { data: eleves } = await supabase
+            .from('session_eleves').select('*').eq('jury_id', jury.id).order('ordre_passage');
 
           const eleveIds = (eleves || []).map(e => e.id);
 
@@ -104,7 +100,7 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
             eleves: eleves || [],
             finalScores: scoreMap,
             evaluations,
-            membersCount: members?.length || 0,
+            connected: connectedJuryIds.has(jury.id),
           };
         })
       );
@@ -152,9 +148,6 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
   useEffect(() => {
     if (!sessionId) return;
 
-    // On écoute session_eleves (scoped via jury_id qui appartient à la session)
-    // et final_scores. Note : Supabase realtime ne supporte pas les JOINs,
-    // donc on utilise un reload debounced pour minimiser les requêtes.
     const channel = supabase
       .channel(`dashboard-${sessionId}`)
       .on('postgres_changes', {
@@ -171,6 +164,25 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
 
     return () => { supabase.removeChannel(channel); };
   }, [sessionId, debouncedReload]);
+
+  // Presence : écouter les jurys connectés en temps réel
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const channel = supabase.channel(`presence:session:${sessionId}`);
+
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState();
+        const ids = new Set<string>(Object.keys(state));
+        setConnectedJuryIds(ids);
+        // Mettre à jour les jurys existants sans reload complet
+        setJurys(prev => prev.map(j => ({ ...j, connected: ids.has(j.id) })));
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [sessionId]);
 
   return {
     sessionId,

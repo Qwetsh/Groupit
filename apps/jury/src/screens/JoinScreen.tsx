@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@groupit/shared';
 
 interface JoinScreenProps {
-  onJoined: (juryId: string) => void;
+  onJoined: (juryId: string, sessionId: string) => void;
 }
 
 export function JoinScreen({ onJoined }: JoinScreenProps) {
@@ -45,7 +45,7 @@ export function JoinScreen({ onJoined }: JoinScreenProps) {
         throw new Error('Numéro de jury introuvable');
       }
 
-      onJoined(jury.id);
+      onJoined(jury.id, session.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {

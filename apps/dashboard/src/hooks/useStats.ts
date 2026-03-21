@@ -28,7 +28,7 @@ export interface JuryStats {
   totalEleves: number;
   evalues: number;
   moyenne: number;
-  membersCount: number;
+  connected: boolean;
 }
 
 export interface ParcoursStats {
@@ -119,7 +119,7 @@ export function useStats(jurys: JuryWithEleves[], allFinalScores: FinalScoreRow[
         totalEleves: j.eleves.length,
         evalues: scores.length,
         moyenne: Math.round(moyenne * 100) / 100,
-        membersCount: j.membersCount,
+        connected: j.connected,
       };
     });
   }, [jurys]);
