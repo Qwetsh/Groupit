@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@groupit/shared';
 import type { SessionEleveRow } from '@groupit/shared';
 
@@ -46,6 +46,58 @@ export function StudentListScreen({ juryId, onSelectEleve, onDisconnect }: Stude
     return () => { supabase.removeChannel(channel); };
   }, [juryId]);
 
+  const handleToggleAbsent = useCallback(async (eleve: SessionEleveRow) => {
+    const isAbsent = eleve.status === 'absent';
+    const msg = isAbsent
+      ? `Remettre ${eleve.display_name} comme "À passer" ?`
+      : `Marquer ${eleve.display_name} comme absent ?`;
+    if (!window.confirm(msg)) return;
+    const newStatus = isAbsent ? 'pending' : 'absent';
+    await supabase.from('session_eleves').update({ status: newStatus }).eq('id', eleve.id);
+  }, []);
+
+  const handleExport = useCallback(async () => {
+    const { data: scores } = await supabase
+      .from('final_scores')
+      .select('*')
+      .in('eleve_id', eleves.map(e => e.id));
+
+    const scoreMap = new Map((scores || []).map(s => [s.eleve_id, s]));
+    const sep = ';';
+    const header = ['Élève', 'Classe', 'Parcours', 'Sujet', 'Note', 'Oral /8', 'Sujet /12', 'Points forts', "Axes d'amélioration", 'Statut'].join(sep);
+
+    const rows = eleves.map(e => {
+      const fs = scoreMap.get(e.id);
+      const esc = (v: string | null | undefined) => {
+        if (!v) return '';
+        const s = v.replace(/"/g, '""');
+        return s.includes(sep) || s.includes('"') || s.includes('\n') ? `"${s}"` : s;
+      };
+      return [
+        esc(e.display_name),
+        esc(e.classe),
+        esc(e.parcours),
+        esc(e.sujet),
+        fs ? String(fs.total) : '',
+        fs ? String(fs.total_oral) : '',
+        fs ? String(fs.total_sujet) : '',
+        esc(fs?.points_forts),
+        esc(fs?.axes_amelioration),
+        e.status === 'validated' ? 'Noté' : e.status === 'absent' ? 'Absent' : 'En attente',
+      ].join(sep);
+    });
+
+    const bom = '\uFEFF';
+    const csv = bom + [header, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `notes-jury.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [eleves]);
+
   const validated = eleves.filter(e => e.status === 'validated').length;
   const total = eleves.length;
 
@@ -53,7 +105,7 @@ export function StudentListScreen({ juryId, onSelectEleve, onDisconnect }: Stude
     switch (status) {
       case 'validated': return { bg: '#c6f6d5', color: '#276749', label: '✓ Noté' };
       case 'in_progress': return { bg: '#bee3f8', color: '#2b6cb0', label: '🎤 En cours' };
-      case 'absent': return { bg: '#fed7d7', color: '#9b2c2c', label: 'Absent' };
+      case 'absent': return { bg: '#fed7d7', color: '#9b2c2c', label: 'Abs' };
       default: return { bg: '#f1f5f9', color: '#64748b', label: 'À passer' };
     }
   }
@@ -68,7 +120,12 @@ export function StudentListScreen({ juryId, onSelectEleve, onDisconnect }: Stude
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button onClick={onDisconnect} style={styles.backBtn}>← Quitter</button>
         </div>
-        <div style={styles.headerTitle}>Élèves du jury</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
+          <div style={styles.headerTitle}>Élèves du jury</div>
+          {validated > 0 && (
+            <button onClick={handleExport} style={styles.exportBtn}>⬇ CSV</button>
+          )}
+        </div>
         <div style={styles.progress}>
           {validated}/{total} passé{validated > 1 ? 's' : ''}
         </div>
@@ -84,22 +141,23 @@ export function StudentListScreen({ juryId, onSelectEleve, onDisconnect }: Stude
       <div style={styles.list}>
         {eleves.map((eleve, idx) => {
           const st = getStatusStyle(eleve.status);
-          const isClickable = eleve.status === 'pending' || eleve.status === 'validated' || eleve.status === 'absent';
+          const isAbsent = eleve.status === 'absent';
+          const isClickable = eleve.status === 'pending' || eleve.status === 'validated';
 
           return (
-            <button
+            <div
               key={eleve.id}
-              onClick={() => isClickable && onSelectEleve(eleve)}
-              disabled={!isClickable}
               style={{
                 ...styles.card,
-                opacity: isClickable ? 1 : 0.7,
-                cursor: isClickable ? 'pointer' : 'default',
+                opacity: (isClickable || isAbsent) ? 1 : 0.7,
                 borderLeft: `4px solid ${st.color}`,
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
+                <div
+                  onClick={() => isClickable && onSelectEleve(eleve)}
+                  style={{ flex: 1, cursor: isClickable ? 'pointer' : 'default' }}
+                >
                   <div style={styles.eleveNum}>#{idx + 1}</div>
                   <div style={styles.eleveName}>{eleve.display_name}</div>
                   <div style={styles.eleveInfo}>
@@ -111,19 +169,28 @@ export function StudentListScreen({ juryId, onSelectEleve, onDisconnect }: Stude
                     <div style={styles.eleveSujet}>{eleve.sujet}</div>
                   )}
                 </div>
-                <div style={{
-                  padding: '4px 10px',
-                  borderRadius: 8,
-                  background: st.bg,
-                  color: st.color,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  whiteSpace: 'nowrap',
-                }}>
-                  {st.label}
-                </div>
+                {isAbsent ? (
+                  <button
+                    onClick={() => handleToggleAbsent(eleve)}
+                    style={styles.absBadge}
+                  >
+                    {st.label}
+                  </button>
+                ) : (
+                  <div style={{
+                    padding: '4px 10px',
+                    borderRadius: 8,
+                    background: st.bg,
+                    color: st.color,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    whiteSpace: 'nowrap',
+                  }}>
+                    {st.label}
+                  </div>
+                )}
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
@@ -180,7 +247,16 @@ const styles: Record<string, React.CSSProperties> = {
   headerTitle: {
     fontSize: 20,
     fontWeight: 800,
-    marginTop: 8,
+  },
+  exportBtn: {
+    background: 'rgba(255,255,255,0.2)',
+    border: '1px solid rgba(255,255,255,0.3)',
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 600,
+    padding: '4px 10px',
+    borderRadius: 8,
+    cursor: 'pointer',
   },
   progress: {
     fontSize: 13,
@@ -235,6 +311,17 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#4a5568',
     fontStyle: 'italic',
     marginTop: 4,
+  },
+  absBadge: {
+    padding: '4px 10px',
+    borderRadius: 8,
+    background: '#fed7d7',
+    color: '#9b2c2c',
+    fontSize: 12,
+    fontWeight: 700,
+    whiteSpace: 'nowrap' as const,
+    border: '1.5px dashed #fc8181',
+    cursor: 'pointer',
   },
   doneCard: {
     background: '#f0fff4',
