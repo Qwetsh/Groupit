@@ -85,6 +85,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
 
   const [dateOral, setDateOral] = useState('');
   const [typeOral, setTypeOral] = useState<'dnb' | 'oral_blanc'>('dnb');
+  const [sessionCode, setSessionCode] = useState('');
   const [showPdfModal, setShowPdfModal] = useState(false);
 
   // Sections PDF à inclure
@@ -251,15 +252,6 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
     }
   }, [exportData, baseFilename, hasData, stageMode]);
 
-  const handlePdfClick = useCallback(() => {
-    if (!hasData) return;
-    if (isOralDnb) {
-      setShowPdfModal(true);
-    } else {
-      doExportPdf();
-    }
-  }, [hasData, isOralDnb]);
-
   const doExportPdf = useCallback(async () => {
     if (!hasData) return;
     setShowPdfModal(false);
@@ -281,6 +273,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
           headerScenarioName: scenario.nom,
           dateOral: dateOral || undefined,
           typeOral,
+          sessionCode: sessionCode || undefined,
           includeSectionConvocEleve: sectionConvocEleve,
           includeSectionConvocProf: sectionConvocProf,
           includeSectionEmargement: sectionEmargement,
@@ -294,7 +287,16 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
       setPdfStatus('error');
       setErrorMessage('Erreur PDF');
     }
-  }, [exportData, baseFilename, pdfOptions, scenario.nom, hasData, stageMode, stagePdfOptions, dateOral, typeOral, sectionConvocEleve, sectionConvocProf, sectionEmargement, sectionFeuillesPorte]);
+  }, [exportData, baseFilename, pdfOptions, scenario.nom, hasData, stageMode, stagePdfOptions, dateOral, typeOral, sessionCode, sectionConvocEleve, sectionConvocProf, sectionEmargement, sectionFeuillesPorte]);
+
+  const handlePdfClick = useCallback(() => {
+    if (!hasData) return;
+    if (isOralDnb) {
+      setShowPdfModal(true);
+    } else {
+      doExportPdf();
+    }
+  }, [hasData, isOralDnb, doExportPdf]);
 
   if (!hasData) return null;
 
@@ -665,6 +667,23 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
                   Feuilles de porte
                 </label>
               </div>
+            </div>
+
+            <div className="pdf-modal-field">
+              <label className="pdf-modal-label">QR Code — Notation en ligne (optionnel)</label>
+              <input
+                type="text"
+                className="pdf-modal-date"
+                value={sessionCode}
+                placeholder="Code session (ex: ORAL2026)"
+                maxLength={20}
+                onChange={e => setSessionCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+              />
+              {sessionCode && (
+                <span style={{ fontSize: 11, color: '#64748b', marginTop: 4, display: 'block' }}>
+                  Un QR code sera ajouté sur chaque convocation enseignant pour accéder à la notation en ligne.
+                </span>
+              )}
             </div>
 
             <div className="pdf-modal-actions">

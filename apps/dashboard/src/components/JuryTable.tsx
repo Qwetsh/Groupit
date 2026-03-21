@@ -1,0 +1,258 @@
+import { CRITERIA } from '@groupit/shared';
+import type { FinalScoreRow } from '@groupit/shared';
+import type { JuryWithEleves } from '../hooks/useSessionData';
+
+interface JuryTableProps {
+  jurys: JuryWithEleves[];
+}
+
+function getScoreColor(total: number): string {
+  if (total >= 16) return '#276749';
+  if (total >= 14) return '#2c7a7b';
+  if (total >= 10) return '#2b6cb0';
+  return '#c53030';
+}
+
+function getScoreBg(total: number): string {
+  if (total >= 16) return '#c6f6d5';
+  if (total >= 14) return '#b2f5ea';
+  if (total >= 10) return '#ebf4ff';
+  return '#fed7d7';
+}
+
+function getStatusBadge(status: string) {
+  switch (status) {
+    case 'validated': return { label: '✓', bg: '#c6f6d5', color: '#276749' };
+    case 'scored': return { label: '⏳', bg: '#fefcbf', color: '#975a16' };
+    case 'in_progress': return { label: '🎤', bg: '#bee3f8', color: '#2b6cb0' };
+    case 'lobby': return { label: '…', bg: '#e9d8fd', color: '#6b46c1' };
+    default: return { label: '—', bg: '#f1f5f9', color: '#94a3b8' };
+  }
+}
+
+const scoreKey: Record<string, keyof FinalScoreRow> = {
+  expression: 'score_expression',
+  diaporama: 'score_diaporama',
+  reactivite: 'score_reactivite',
+  contenu: 'score_contenu',
+  structure: 'score_structure',
+  engagement: 'score_engagement',
+};
+
+export function JuryTable({ jurys }: JuryTableProps) {
+  return (
+    <div>
+      {jurys.map(jury => {
+        const evalues = jury.eleves.filter(e => jury.finalScores.has(e.id)).length;
+        return (
+          <div key={jury.id} style={styles.juryBlock}>
+            <div style={styles.juryHeader}>
+              <div>
+                <span style={styles.juryName}>{jury.jury_name}</span>
+                {jury.salle && <span style={styles.jurySalle}>Salle {jury.salle}</span>}
+              </div>
+              <div style={styles.juryMeta}>
+                <span style={{
+                  padding: '2px 8px',
+                  borderRadius: 12,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  background: jury.membersCount >= 2 ? '#c6f6d5' : jury.membersCount === 1 ? '#fefcbf' : '#f1f5f9',
+                  color: jury.membersCount >= 2 ? '#276749' : jury.membersCount === 1 ? '#975a16' : '#94a3b8',
+                }}>
+                  {jury.membersCount} juré{jury.membersCount > 1 ? 's' : ''} connecté{jury.membersCount > 1 ? 's' : ''}
+                </span>
+                <span style={{ fontSize: 13, color: '#64748b' }}>
+                  {evalues}/{jury.eleves.length} évalué{evalues > 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
+
+            <table style={styles.table}>
+              <thead>
+                <tr>
+                  <th style={styles.th}>Élève</th>
+                  <th style={styles.th}>Classe</th>
+                  <th style={styles.th}>Parcours</th>
+                  <th style={styles.th}>Statut</th>
+                  {CRITERIA.map(c => (
+                    <th key={c.id} style={{ ...styles.th, ...styles.thSmall }} title={c.label}>
+                      {c.label.split(' ')[0]?.slice(0, 4)}
+                    </th>
+                  ))}
+                  <th style={{ ...styles.th, textAlign: 'center' as const }}>Oral</th>
+                  <th style={{ ...styles.th, textAlign: 'center' as const }}>Sujet</th>
+                  <th style={{ ...styles.th, textAlign: 'center' as const, fontWeight: 800 }}>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {jury.eleves.map(eleve => {
+                  const fs = jury.finalScores.get(eleve.id);
+                  const badge = getStatusBadge(eleve.status);
+                  return (
+                    <tr key={eleve.id} style={styles.tr}>
+                      <td style={styles.td}>
+                        <span style={{ fontWeight: 600 }}>{eleve.display_name}</span>
+                      </td>
+                      <td style={styles.td}>{eleve.classe}</td>
+                      <td style={styles.td}>
+                        <span style={styles.parcoursBadge}>{eleve.parcours || '—'}</span>
+                      </td>
+                      <td style={styles.td}>
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: 8,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          background: badge.bg,
+                          color: badge.color,
+                        }}>
+                          {badge.label}
+                        </span>
+                      </td>
+                      {CRITERIA.map(c => (
+                        <td key={c.id} style={{ ...styles.td, textAlign: 'center' as const, fontSize: 12 }}>
+                          {fs ? `${fs[scoreKey[c.id]!]}` : '—'}
+                        </td>
+                      ))}
+                      <td style={{ ...styles.td, textAlign: 'center' as const, fontWeight: 600, color: '#2b6cb0' }}>
+                        {fs ? `${fs.total_oral}` : '—'}
+                      </td>
+                      <td style={{ ...styles.td, textAlign: 'center' as const, fontWeight: 600, color: '#276749' }}>
+                        {fs ? `${fs.total_sujet}` : '—'}
+                      </td>
+                      <td style={{
+                        ...styles.td,
+                        textAlign: 'center' as const,
+                        fontWeight: 800,
+                        fontSize: 15,
+                        color: fs ? getScoreColor(fs.total) : '#94a3b8',
+                        background: fs ? getScoreBg(fs.total) : 'transparent',
+                        borderRadius: 6,
+                      }}>
+                        {fs ? `${fs.total}` : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {/* Points forts / axes si disponibles */}
+            {jury.eleves.some(e => {
+              const fs = jury.finalScores.get(e.id);
+              return fs && (fs.points_forts || fs.axes_amelioration);
+            }) && (
+              <details style={styles.details}>
+                <summary style={styles.summary}>Observations détaillées</summary>
+                {jury.eleves.map(eleve => {
+                  const fs = jury.finalScores.get(eleve.id);
+                  if (!fs || (!fs.points_forts && !fs.axes_amelioration)) return null;
+                  return (
+                    <div key={eleve.id} style={styles.observation}>
+                      <span style={{ fontWeight: 600 }}>{eleve.display_name}</span>
+                      {fs.points_forts && <span style={styles.obsPF}>✅ {fs.points_forts}</span>}
+                      {fs.axes_amelioration && <span style={styles.obsAA}>📌 {fs.axes_amelioration}</span>}
+                    </div>
+                  );
+                })}
+              </details>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+const styles: Record<string, React.CSSProperties> = {
+  juryBlock: {
+    background: '#fff',
+    borderRadius: 12,
+    border: '1px solid #e2e8f0',
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  juryHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '12px 20px',
+    background: '#f8fafc',
+    borderBottom: '1px solid #e2e8f0',
+  },
+  juryName: {
+    fontSize: 16,
+    fontWeight: 700,
+    color: '#1e293b',
+  },
+  jurySalle: {
+    fontSize: 13,
+    color: '#64748b',
+    marginLeft: 8,
+  },
+  juryMeta: {
+    display: 'flex',
+    gap: 12,
+    alignItems: 'center',
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse' as const,
+    fontSize: 13,
+  },
+  th: {
+    padding: '8px 10px',
+    textAlign: 'left' as const,
+    borderBottom: '2px solid #e2e8f0',
+    fontSize: 11,
+    fontWeight: 700,
+    color: '#64748b',
+    textTransform: 'uppercase' as const,
+    letterSpacing: 0.5,
+    whiteSpace: 'nowrap' as const,
+  },
+  thSmall: {
+    textAlign: 'center' as const,
+    padding: '8px 4px',
+    maxWidth: 50,
+  },
+  tr: {
+    borderBottom: '1px solid #f1f5f9',
+  },
+  td: {
+    padding: '8px 10px',
+    verticalAlign: 'middle' as const,
+  },
+  parcoursBadge: {
+    fontSize: 11,
+    padding: '2px 6px',
+    borderRadius: 4,
+    background: '#f1f5f9',
+    color: '#475569',
+  },
+  details: {
+    padding: '0 20px 12px',
+  },
+  summary: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: '#64748b',
+    cursor: 'pointer',
+    padding: '8px 0',
+  },
+  observation: {
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: 2,
+    padding: '6px 0',
+    borderBottom: '1px solid #f1f5f9',
+    fontSize: 12,
+  },
+  obsPF: {
+    color: '#276749',
+  },
+  obsAA: {
+    color: '#975a16',
+  },
+};

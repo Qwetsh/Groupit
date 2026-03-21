@@ -558,9 +558,10 @@ interface JuryPageProps {
   styles: ReturnType<typeof createStyles>;
   isFirstJury: boolean;
   isOralBlanc: boolean;
+  qrDataUrl?: string;
 }
 
-const JuryPage: React.FC<JuryPageProps> = ({ jury, data, options, styles, isFirstJury, isOralBlanc }) => {
+const JuryPage: React.FC<JuryPageProps> = ({ jury, data, options, styles, isFirstJury, isOralBlanc, qrDataUrl }) => {
   const titleLabel = isOralBlanc ? 'Oral blanc' : 'Oral DNB';
   const dateOralFormatted = options.dateOral
     ? new Date(options.dateOral).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
@@ -588,6 +589,18 @@ const JuryPage: React.FC<JuryPageProps> = ({ jury, data, options, styles, isFirs
         )}
 
         <EnseignantsBlock enseignants={jury.enseignants} suppleants={jury.suppleants} styles={styles} />
+
+        {qrDataUrl && (
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, padding: 8, backgroundColor: '#f8fafc', borderRadius: 4 }}>
+            <Image src={qrDataUrl} style={{ width: 80, height: 80 }} />
+            <View style={{ marginLeft: 10, flex: 1 }}>
+              <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#1e293b', marginBottom: 2 }}>Notation en ligne</Text>
+              <Text style={{ fontSize: 7, color: '#64748b', lineHeight: 1.3 }}>
+                Scannez ce QR code avec votre téléphone pour accéder à l'interface de notation. Saisissez ensuite votre numéro de jury pour commencer.
+              </Text>
+            </View>
+          </View>
+        )}
 
         {options.includeLetterText && (
           <LetterText juryName={jury.juryName} salle={jury.salle} isOralBlanc={isOralBlanc} styles={styles} />
@@ -905,11 +918,13 @@ const UnassignedPage: React.FC<UnassignedPageProps> = ({ data, options, styles }
 interface PdfJuryDocumentProps {
   data: ExportResultData;
   options?: Partial<PdfExportOptions>;
+  qrCodes?: Map<string, string>;  // juryName → data URL du QR code
 }
 
 export const PdfJuryDocument: React.FC<PdfJuryDocumentProps> = ({
   data,
-  options: partialOptions = {}
+  options: partialOptions = {},
+  qrCodes,
 }) => {
   const options: PdfExportOptions = { ...DEFAULT_PDF_OPTIONS, ...partialOptions };
   const styles = createStyles(options);
@@ -942,6 +957,7 @@ export const PdfJuryDocument: React.FC<PdfJuryDocumentProps> = ({
           styles={styles}
           isFirstJury={idx === 0}
           isOralBlanc={isOralBlanc}
+          qrDataUrl={qrCodes?.get(jury.juryName)}
         />
       ))}
 
