@@ -321,8 +321,39 @@ export async function parseCSVFile(file: File): Promise<ParsedCSVData> {
           content = decoder.decode(buffer);
         }
         
+        // Pré-traitement : certains exports encapsulent chaque ligne entre guillemets
+        // Ex: header normal, mais lignes = "val1;val2;val3"
+        // On détecte ce cas et on retire les guillemets englobants
+        const lines = content.split(/\r?\n/);
+        if (lines.length >= 2) {
+          const headerLine = lines[0];
+          const firstDataLine = lines.find((l, i) => i > 0 && l.trim() !== '');
+          if (firstDataLine) {
+            const headerSep = detectSeparator(headerLine);
+            const headerFieldCount = headerLine.split(headerSep).length;
+            // Si la ligne de données est entièrement entre guillemets et contient le séparateur
+            const trimmedData = firstDataLine.trim();
+            if (
+              headerFieldCount > 1 &&
+              trimmedData.startsWith('"') &&
+              trimmedData.endsWith('"') &&
+              trimmedData.slice(1, -1).split(headerSep).length === headerFieldCount
+            ) {
+              // Retirer les guillemets englobants de chaque ligne de données
+              content = lines.map((line, i) => {
+                if (i === 0) return line; // garder le header tel quel
+                const t = line.trim();
+                if (t.startsWith('"') && t.endsWith('"')) {
+                  return t.slice(1, -1);
+                }
+                return line;
+              }).join('\n');
+            }
+          }
+        }
+
         const separator = detectSeparator(content);
-        
+
         // Parse avec PapaParse
         const result = Papa.parse<Record<string, string>>(content, {
           header: true,
@@ -330,20 +361,20 @@ export async function parseCSVFile(file: File): Promise<ParsedCSVData> {
           skipEmptyLines: true,
           transformHeader: (header) => header.trim(),
         });
-        
+
         if (result.errors.length > 0) {
           console.warn('CSV parsing warnings:', result.errors);
         }
-        
+
         // Nettoyer les headers
         const headers = result.meta.fields || [];
         const cleanedHeaders = headers.filter(h => {
           const lower = h.toLowerCase().trim();
-          return !IGNORED_COLUMNS.some(ignored => 
+          return !IGNORED_COLUMNS.some(ignored =>
             lower === ignored || lower.startsWith('unnamed')
           );
         });
-        
+
         resolve({
           headers: cleanedHeaders,
           rows: result.data,
