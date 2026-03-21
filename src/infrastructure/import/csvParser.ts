@@ -281,8 +281,9 @@ export function extractClassFromFilename(filename: string): string | null {
     return directMatch[1].toUpperCase();
   }
   
-  // Pattern avec "eme": 3eme_A, 4ème_B
-  const emeMatch = filename.match(/([3-6])(?:e|è|eme|ème)[_\s-]?([A-Z])/i);
+  // Pattern avec "eme" + séparateur + lettre de classe: 3eme_A, 4ème-B, 3ème B
+  // Le séparateur est OBLIGATOIRE pour éviter de matcher "3emes" → "3M"
+  const emeMatch = filename.match(/([3-6])(?:e|è|eme|ème)[_\s-]+([A-Z])\b/i);
   if (emeMatch) {
     return `${emeMatch[1]}${emeMatch[2].toUpperCase()}`;
   }
@@ -294,6 +295,47 @@ export function extractClassFromFilename(filename: string): string | null {
   }
   
   return null;
+}
+
+// ============ QUOTE STRIPPING ============
+
+/**
+ * Retire les guillemets englobants des lignes de données CSV.
+ * Certains exports (ex: SIECLE) produisent des CSV où chaque ligne de données
+ * est entièrement encapsulée entre guillemets :
+ *   Nom;Prénom;Classe        ← header sans guillemets
+ *   "DUPONT;Jean;3A"         ← données entre guillemets
+ * Ce format empêche PapaParse de séparer les champs correctement.
+ */
+export function stripWrappingQuotes(content: string): string {
+  const lines = content.split(/\r?\n/);
+  if (lines.length < 2) return content;
+
+  // Compter les lignes de données (non vides, après le header) qui sont entre guillemets
+  let quotedCount = 0;
+  let dataCount = 0;
+  for (let i = 1; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+    if (trimmed === '') continue;
+    dataCount++;
+    if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+      quotedCount++;
+    }
+  }
+
+  // Si la majorité des lignes de données sont entre guillemets, les strip
+  if (dataCount > 0 && quotedCount >= dataCount * 0.8) {
+    return lines.map((line, i) => {
+      if (i === 0) return line; // garder le header tel quel
+      const trimmed = line.trim();
+      if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+        return trimmed.slice(1, -1);
+      }
+      return line;
+    }).join('\n');
+  }
+
+  return content;
 }
 
 // ============ CSV PARSING ============
@@ -321,36 +363,12 @@ export async function parseCSVFile(file: File): Promise<ParsedCSVData> {
           content = decoder.decode(buffer);
         }
         
-        // Pré-traitement : certains exports encapsulent chaque ligne entre guillemets
-        // Ex: header normal, mais lignes = "val1;val2;val3"
-        // On détecte ce cas et on retire les guillemets englobants
-        const lines = content.split(/\r?\n/);
-        if (lines.length >= 2) {
-          const headerLine = lines[0];
-          const firstDataLine = lines.find((l, i) => i > 0 && l.trim() !== '');
-          if (firstDataLine) {
-            const headerSep = detectSeparator(headerLine);
-            const headerFieldCount = headerLine.split(headerSep).length;
-            // Si la ligne de données est entièrement entre guillemets et contient le séparateur
-            const trimmedData = firstDataLine.trim();
-            if (
-              headerFieldCount > 1 &&
-              trimmedData.startsWith('"') &&
-              trimmedData.endsWith('"') &&
-              trimmedData.slice(1, -1).split(headerSep).length === headerFieldCount
-            ) {
-              // Retirer les guillemets englobants de chaque ligne de données
-              content = lines.map((line, i) => {
-                if (i === 0) return line; // garder le header tel quel
-                const t = line.trim();
-                if (t.startsWith('"') && t.endsWith('"')) {
-                  return t.slice(1, -1);
-                }
-                return line;
-              }).join('\n');
-            }
-          }
-        }
+        // Pré-traitement : retirer les guillemets englobants sur chaque ligne
+        // Certains exports CSV encapsulent chaque ligne de données entre guillemets :
+        //   Header: Nom;Prénom;Classe
+        //   Data:   "DUPONT;Jean;3A"
+        // PapaParse interprète alors toute la ligne comme un seul champ.
+        content = stripWrappingQuotes(content);
 
         const separator = detectSeparator(content);
 
