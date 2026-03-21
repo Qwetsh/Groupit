@@ -57,7 +57,9 @@ export async function downloadExportPdf(
     // Upload vers Supabase si un code session est fourni (en parallèle du PDF)
     const opts = { ...DEFAULT_PDF_OPTIONS, ...options };
     let uploadPromise: Promise<unknown> | undefined;
+    console.log('[exportPdf] sessionCode:', opts.sessionCode || '(vide)');
     if (opts.sessionCode) {
+      console.log('[exportPdf] Lancement upload Supabase...');
       uploadPromise = uploadSessionToSupabase(data, opts as PdfExportOptions & { sessionCode: string })
         .then(result => {
           if (!result.success) {
