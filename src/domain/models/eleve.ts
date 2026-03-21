@@ -53,7 +53,11 @@ export interface Eleve {
   autresChamps?: Record<string, string>;
 
   // === ORAL DNB SPECIFIQUE ===
-  // Matière(s) choisie(s) par l'élève pour son oral
+  // Parcours/thème choisi (EPI, Histoire des Sciences, Parcours Avenir, etc.)
+  parcoursOral?: string;
+  // Sujet libre de l'élève (titre du projet)
+  sujetOral?: string;
+  // Matière(s) associée(s) au sujet
   matieresOral?: string[];
 
   // Binôme : ID de l'élève partenaire (passage en duo, même jury/sujet/créneau)

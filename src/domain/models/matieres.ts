@@ -30,6 +30,19 @@ export const MATIERES_HEURES_3E: MatiereHeuresRef[] = [
   { matiere: 'Grec', heuresMin: 2, heuresMax: 3, heuresMoyenne: 2.5, categorie: 'linguistique' },
 ];
 
+// ============ PARCOURS ORAL DNB ============
+
+export const PARCOURS_ORAL_DNB = [
+  'EPI',
+  'Histoire des Sciences',
+  'Parcours Avenir',
+  'Parcours Citoyen',
+  'Parcours Santé',
+  'Parcours Artistique',
+] as const;
+
+export type ParcoursOralDNB = typeof PARCOURS_ORAL_DNB[number];
+
 /** Retourne les heures hebdomadaires moyennes d'une matière */
 export function getHeuresMatiere(matiere: string): number {
   const ref = MATIERES_HEURES_3E.find(m =>
