@@ -25,6 +25,18 @@ function pseudonymize(prenom: string, nom: string): string {
 }
 
 /**
+ * Génère un hash SHA-256 pour un élève (matching retour)
+ */
+async function hashEleve(nom: string, prenom: string, classe: string): Promise<string> {
+  const raw = `${nom.trim().toLowerCase()}|${prenom.trim().toLowerCase()}|${classe.trim().toLowerCase()}`;
+  const encoder = new TextEncoder();
+  const data = encoder.encode(raw);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
  * Upload les données d'une session vers Supabase pour la PWA jury et le dashboard.
  * Crée la session, les jurys et les élèves pseudonymisés.
  *
@@ -38,12 +50,16 @@ export async function uploadSessionToSupabase(
     // 1. Auth anonyme
     const { data: { session: authSession } } = await supabase.auth.getSession();
     if (!authSession) {
-      await supabase.auth.signInAnonymously();
+      const { error: authErr } = await supabase.auth.signInAnonymously();
+      if (authErr) {
+        return { success: false, error: `Auth échouée: ${authErr.message}` };
+      }
     }
 
-    const sessionCode = options.sessionCode.toUpperCase();
+    // Code session limité à 8 chars (VARCHAR(8) en DB)
+    const sessionCode = options.sessionCode.toUpperCase().slice(0, 8);
 
-    // 2. Vérifier si la session existe déjà (upsert basé sur le code)
+    // 2. Vérifier si la session existe déjà
     const { data: existingSession } = await supabase
       .from('exam_sessions')
       .select('id')
@@ -53,34 +69,31 @@ export async function uploadSessionToSupabase(
     let sessionId: string;
 
     if (existingSession) {
-      // Session existe → mettre à jour et supprimer les anciennes données
+      // Session existe → mettre à jour les métadonnées
       sessionId = existingSession.id;
 
-      await supabase.from('exam_sessions').update({
+      const { error: updErr } = await supabase.from('exam_sessions').update({
         scenario_name: data.scenarioName,
         date_oral: options.dateOral || null,
-        type_oral: options.typeOral || 'dnb',
       }).eq('id', sessionId);
 
-      // Supprimer les anciennes données (cascade via FK si configuré, sinon manuellement)
-      const { data: oldJurys } = await supabase
+      if (updErr) {
+        console.warn('[supabaseUpload] Update session:', updErr.message);
+      }
+
+      // Supprimer les anciens jurys (CASCADE supprimera session_eleves, evaluations, etc.)
+      const { error: delErr } = await supabase
         .from('session_jurys')
-        .select('id')
+        .delete()
         .eq('session_id', sessionId);
 
-      if (oldJurys && oldJurys.length > 0) {
-        const oldJuryIds = oldJurys.map(j => j.id);
-
-        // Supprimer élèves → évaluations + scores finaux seront cascade
-        await supabase.from('session_eleves').delete().in('jury_id', oldJuryIds);
-        await supabase.from('jury_members').delete().in('jury_id', oldJuryIds);
-        await supabase.from('session_jurys').delete().eq('session_id', sessionId);
+      if (delErr) {
+        console.warn('[supabaseUpload] Delete anciens jurys:', delErr.message);
       }
     } else {
       // Créer la session
-      // Expiration : 3 juillet de l'année en cours (ou prochaine si on est après)
       const now = new Date();
-      const expiryYear = now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear(); // juillet = mois 6
+      const expiryYear = now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear();
       const expiresAt = new Date(expiryYear, 6, 3).toISOString(); // 3 juillet
 
       const { data: newSession, error: sessErr } = await supabase
@@ -89,7 +102,6 @@ export async function uploadSessionToSupabase(
           code: sessionCode,
           scenario_name: data.scenarioName,
           date_oral: options.dateOral || null,
-          type_oral: options.typeOral || 'dnb',
           expires_at: expiresAt,
         })
         .select('id')
@@ -102,12 +114,10 @@ export async function uploadSessionToSupabase(
       sessionId = newSession.id;
     }
 
-    // 3. Créer les jurys
+    // 3. Créer les jurys et élèves
     for (let juryIdx = 0; juryIdx < data.jurys.length; juryIdx++) {
       const jury = data.jurys[juryIdx]!;
       const juryNumber = juryIdx + 1;
-
-      // Déterminer le mode (duo par défaut si 2+ enseignants)
       const mode = jury.enseignants.length >= 2 ? 'duo' : 'solo';
 
       const { data: newJury, error: juryErr } = await supabase
@@ -118,7 +128,6 @@ export async function uploadSessionToSupabase(
           jury_name: jury.juryName,
           salle: jury.salle || null,
           mode,
-          capacity: jury.capaciteMax,
         })
         .select('id')
         .single();
@@ -129,9 +138,10 @@ export async function uploadSessionToSupabase(
       }
 
       // 4. Créer les élèves pseudonymisés
-      await uploadJuryEleves(newJury.id, jury, data.jurys);
+      await uploadJuryEleves(newJury.id, jury);
     }
 
+    console.log(`[supabaseUpload] Session ${sessionCode} uploadée: ${data.jurys.length} jurys`);
     return { success: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erreur inconnue';
@@ -141,34 +151,25 @@ export async function uploadSessionToSupabase(
 }
 
 /**
- * Upload les élèves d'un jury (pseudonymisés)
+ * Upload les élèves d'un jury (pseudonymisés avec hash)
  */
 async function uploadJuryEleves(
   juryId: string,
   jury: ExportJuryData,
-  allJurys: ExportJuryData[]
 ): Promise<void> {
-  // Construire un map des binômes pour résoudre les binome_id
-  const eleveBinomeMap = new Map<string, string>();
-  for (const j of allJurys) {
-    for (const e of j.eleves) {
-      if (e.binomeNom) {
-        eleveBinomeMap.set(e.eleveId, e.binomeNom);
-      }
-    }
-  }
-
-  const rows = jury.eleves.map((eleve: ExportEleveData, idx: number) => ({
-    jury_id: juryId,
-    display_name: pseudonymize(eleve.prenom, eleve.nom),
-    classe: eleve.classe,
-    parcours: eleve.parcoursOral || null,
-    sujet: eleve.sujetOral || null,
-    ordre_passage: idx + 1,
-    heure_passage: eleve.heurePassage || null,
-    binome_id: null, // On ne peut pas résoudre le binome_id cross-jury facilement, sera null
-    status: 'pending',
-  }));
+  const rows = await Promise.all(
+    jury.eleves.map(async (eleve: ExportEleveData, idx: number) => ({
+      jury_id: juryId,
+      eleve_hash: await hashEleve(eleve.nom, eleve.prenom, eleve.classe),
+      display_name: pseudonymize(eleve.prenom, eleve.nom),
+      classe: eleve.classe,
+      parcours: eleve.parcoursOral || null,
+      sujet: eleve.sujetOral || null,
+      ordre_passage: idx + 1,
+      heure_passage: eleve.heurePassage || null,
+      status: 'pending',
+    }))
+  );
 
   if (rows.length > 0) {
     const { error } = await supabase.from('session_eleves').insert(rows);
