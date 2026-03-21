@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { supabase } from '@groupit/shared';
 
 interface JoinScreenProps {
-  onJoined: (juryId: string, slot: 'A' | 'B', mode: 'solo' | 'duo') => void;
+  onJoined: (juryId: string) => void;
 }
 
 export function JoinScreen({ onJoined }: JoinScreenProps) {
@@ -34,7 +34,7 @@ export function JoinScreen({ onJoined }: JoinScreenProps) {
       // 3. Trouver le jury
       const { data: jury, error: juryError } = await supabase
         .from('session_jurys')
-        .select('id, mode')
+        .select('id')
         .eq('session_id', session.id)
         .eq('jury_number', parseInt(juryNumber))
         .single();
@@ -43,26 +43,7 @@ export function JoinScreen({ onJoined }: JoinScreenProps) {
         throw new Error('Numéro de jury introuvable');
       }
 
-      // 4. Rejoindre le jury (prendre le slot libre)
-      // Essayer slot A d'abord, puis B
-      let slot: 'A' | 'B' = 'A';
-      const { error: joinErrorA } = await supabase
-        .from('jury_members')
-        .insert({ jury_id: jury.id, slot: 'A' });
-
-      if (joinErrorA) {
-        // Slot A pris, essayer B
-        const { error: joinErrorB } = await supabase
-          .from('jury_members')
-          .insert({ jury_id: jury.id, slot: 'B' });
-
-        if (joinErrorB) {
-          throw new Error('Ce jury est complet (2 membres déjà connectés)');
-        }
-        slot = 'B';
-      }
-
-      onJoined(jury.id, slot, jury.mode as 'solo' | 'duo');
+      onJoined(jury.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {

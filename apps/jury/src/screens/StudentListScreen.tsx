@@ -4,16 +4,13 @@ import type { SessionEleveRow } from '@groupit/shared';
 
 interface StudentListScreenProps {
   juryId: string;
-  slot: 'A' | 'B';
-  mode: 'solo' | 'duo';
   onSelectEleve: (eleve: SessionEleveRow) => void;
   onDisconnect: () => void;
 }
 
-export function StudentListScreen({ juryId, slot, mode, onSelectEleve, onDisconnect }: StudentListScreenProps) {
+export function StudentListScreen({ juryId, onSelectEleve, onDisconnect }: StudentListScreenProps) {
   const [eleves, setEleves] = useState<SessionEleveRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [partnerConnected, setPartnerConnected] = useState(false);
 
   // Charger les élèves
   useEffect(() => {
@@ -49,53 +46,13 @@ export function StudentListScreen({ juryId, slot, mode, onSelectEleve, onDisconn
     return () => { supabase.removeChannel(channel); };
   }, [juryId]);
 
-  // Surveiller si le 2e juré est connecté (mode duo)
-  useEffect(() => {
-    if (mode !== 'duo') return;
-
-    async function checkPartner() {
-      const { data } = await supabase
-        .from('jury_members')
-        .select('slot')
-        .eq('jury_id', juryId);
-
-      setPartnerConnected((data?.length ?? 0) >= 2);
-    }
-    checkPartner();
-
-    const channel = supabase
-      .channel(`members-${juryId}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'jury_members',
-        filter: `jury_id=eq.${juryId}`,
-      }, () => {
-        setPartnerConnected(true);
-      })
-      .on('postgres_changes', {
-        event: 'DELETE',
-        schema: 'public',
-        table: 'jury_members',
-        filter: `jury_id=eq.${juryId}`,
-      }, () => {
-        // Recheck partner count on delete
-        checkPartner();
-      })
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [juryId, mode]);
-
   const validated = eleves.filter(e => e.status === 'validated').length;
   const total = eleves.length;
 
   function getStatusStyle(status: string) {
     switch (status) {
       case 'validated': return { bg: '#c6f6d5', color: '#276749', label: '✓ Noté' };
-      case 'scored': return { bg: '#fefcbf', color: '#975a16', label: '⏳ Réconciliation' };
       case 'in_progress': return { bg: '#bee3f8', color: '#2b6cb0', label: '🎤 En cours' };
-      case 'lobby': return { bg: '#e9d8fd', color: '#6b46c1', label: '⏳ Attente' };
       default: return { bg: '#f1f5f9', color: '#64748b', label: 'À passer' };
     }
   }
@@ -109,19 +66,10 @@ export function StudentListScreen({ juryId, slot, mode, onSelectEleve, onDisconn
       <div style={styles.header}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button onClick={onDisconnect} style={styles.backBtn}>← Quitter</button>
-          <div style={styles.badge}>Juré {slot}</div>
         </div>
         <div style={styles.headerTitle}>Élèves du jury</div>
         <div style={styles.progress}>
           {validated}/{total} passé{validated > 1 ? 's' : ''}
-          {mode === 'duo' && (
-            <span style={{
-              marginLeft: 10,
-              color: partnerConnected ? '#9ae6b4' : '#feb2b2',
-            }}>
-              {partnerConnected ? '● Jury 2 connecté' : '○ En attente jury 2'}
-            </span>
-          )}
         </div>
         {/* Barre de progression */}
         <div style={styles.progressBar}>
@@ -227,13 +175,6 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 8,
     cursor: 'pointer',
     fontWeight: 600,
-  },
-  badge: {
-    background: 'rgba(255,255,255,0.2)',
-    padding: '4px 12px',
-    borderRadius: 20,
-    fontSize: 13,
-    fontWeight: 700,
   },
   headerTitle: {
     fontSize: 20,
