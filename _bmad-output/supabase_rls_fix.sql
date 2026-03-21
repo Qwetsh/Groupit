@@ -4,6 +4,10 @@
 -- Exécuter dans Supabase SQL Editor
 -- ============================================================
 
+-- DELETE sur exam_sessions (pour reset test depuis la PWA)
+CREATE POLICY "sessions_delete" ON exam_sessions
+  FOR DELETE USING (true);
+
 -- DELETE sur session_jurys (pour re-upload depuis Groupit)
 CREATE POLICY "jurys_delete" ON session_jurys
   FOR DELETE USING (true);

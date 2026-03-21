@@ -10,6 +10,8 @@ export function JoinScreen({ onJoined }: JoinScreenProps) {
   const [juryNumber, setJuryNumber] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [resetMsg, setResetMsg] = useState('');
+  const [resetting, setResetting] = useState(false);
 
   async function handleJoin() {
     setError('');
@@ -48,6 +50,39 @@ export function JoinScreen({ onJoined }: JoinScreenProps) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleResetSession() {
+    const code = sessionCode.trim().toUpperCase();
+    if (!code) { setResetMsg('Entrez un code session.'); return; }
+    if (!confirm(`Supprimer TOUTES les données de la session "${code}" ?`)) return;
+
+    setResetting(true);
+    setResetMsg('');
+    try {
+      await supabase.auth.signInAnonymously();
+
+      const { data: session } = await supabase
+        .from('exam_sessions')
+        .select('id')
+        .eq('code', code)
+        .single();
+
+      if (!session) { setResetMsg('Session introuvable.'); return; }
+
+      // CASCADE : supprimer la session supprime jurys → élèves → evaluations → final_scores
+      const { error: delErr } = await supabase
+        .from('exam_sessions')
+        .delete()
+        .eq('id', session.id);
+
+      if (delErr) throw delErr;
+      setResetMsg(`Session "${code}" supprimée.`);
+    } catch (err) {
+      setResetMsg(err instanceof Error ? err.message : 'Erreur suppression');
+    } finally {
+      setResetting(false);
     }
   }
 
@@ -98,6 +133,31 @@ export function JoinScreen({ onJoined }: JoinScreenProps) {
         >
           {loading ? 'Connexion...' : 'Rejoindre le jury →'}
         </button>
+      </div>
+
+      {/* Reset session (test) */}
+      <div style={{ ...styles.card, borderColor: '#feb2b2' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1, color: '#9b2c2c', marginBottom: 8 }}>
+          Zone de test
+        </div>
+        <button
+          onClick={handleResetSession}
+          disabled={!sessionCode.trim() || resetting}
+          style={{
+            ...styles.btn,
+            background: 'linear-gradient(135deg, #c53030 0%, #9b2c2c 100%)',
+            boxShadow: '0 2px 8px rgba(197,48,48,0.3)',
+            marginTop: 0,
+            opacity: (!sessionCode.trim() || resetting) ? 0.5 : 1,
+          }}
+        >
+          {resetting ? 'Suppression...' : `Supprimer la session "${sessionCode || '...'}"`}
+        </button>
+        {resetMsg && (
+          <div style={{ marginTop: 8, fontSize: 13, color: '#4a5568', fontWeight: 600 }}>
+            {resetMsg}
+          </div>
+        )}
       </div>
     </div>
   );
