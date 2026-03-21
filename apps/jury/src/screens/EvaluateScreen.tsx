@@ -8,119 +8,39 @@ import {
   allCriteriaScored,
 } from '@groupit/shared';
 import type { SessionEleveRow } from '@groupit/shared';
-import type { RealtimeChannel } from '@supabase/supabase-js';
 import { Timer } from '../components/Timer';
 import { CriterionRow } from '../components/CriterionRow';
 
 interface EvaluateScreenProps {
   eleve: SessionEleveRow;
-  slot: 'A' | 'B';
-  mode: 'solo' | 'duo';
   juryId: string;
-  onDone: (needsReconcile: boolean) => void;
+  onDone: () => void;
   onBack: () => void;
 }
 
-export function EvaluateScreen({ eleve, slot, mode, juryId: _juryId, onDone, onBack }: EvaluateScreenProps) {
-  void _juryId; // reservé pour usage futur
+export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: EvaluateScreenProps) {
+  void _juryId;
   const [scores, setScores] = useState<Record<string, number | undefined>>({});
   const [pointsForts, setPointsForts] = useState('');
   const [axesAmelioration, setAxesAmelioration] = useState('');
-  const [waiting, setWaiting] = useState(false);
-  const [lobbyWaiting, setLobbyWaiting] = useState(mode === 'duo');
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Ref pour le channel créé dans handleSubmit (cleanup au unmount)
-  const waitChannelRef = useRef<RealtimeChannel | null>(null);
-  // Ref pour savoir si le composant est monté
   const mountedRef = useRef(true);
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      // Cleanup du channel wait-submit si encore actif
-      if (waitChannelRef.current) {
-        supabase.removeChannel(waitChannelRef.current);
-        waitChannelRef.current = null;
-      }
-    };
+    return () => { mountedRef.current = false; };
   }, []);
+
+  // Mettre le status en in_progress
+  useEffect(() => {
+    supabase.from('session_eleves').update({ status: 'in_progress' }).eq('id', eleve.id);
+  }, [eleve.id]);
 
   const isCollectif = eleve.binome_id !== null;
   const timerDuration = isCollectif ? TIMER_COLLECTIF : TIMER_INDIVIDUEL;
   const totals = computeTotals(scores);
   const allScored = allCriteriaScored(scores);
-
-  // Mode duo : lobby — attendre que l'autre juré clique aussi sur cet élève
-  useEffect(() => {
-    if (mode !== 'duo') {
-      setLobbyWaiting(false);
-      // Mode solo : mettre le status en in_progress directement
-      supabase.from('session_eleves').update({ status: 'in_progress' }).eq('id', eleve.id);
-      return;
-    }
-
-    // Mettre le status en lobby pour signaler qu'on est prêt
-    supabase.from('session_eleves').update({ status: 'lobby' }).eq('id', eleve.id);
-
-    const otherSlot = slot === 'A' ? 'B' : 'A';
-
-    // Vérifier si les 2 sont prêts
-    const checkReady = async () => {
-      const { data } = await supabase
-        .from('evaluations')
-        .select('juror_slot')
-        .eq('eleve_id', eleve.id);
-
-      if (data?.some(e => e.juror_slot === otherSlot)) {
-        setLobbyWaiting(false);
-        await supabase.from('session_eleves').update({ status: 'in_progress' }).eq('id', eleve.id);
-      }
-    };
-
-    // Écouter les changements de status
-    const channel = supabase
-      .channel(`lobby-${eleve.id}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'session_eleves',
-        filter: `id=eq.${eleve.id}`,
-      }, (payload) => {
-        if (payload.new.status === 'in_progress') {
-          setLobbyWaiting(false);
-        }
-      })
-      .subscribe();
-
-    // Écouter l'arrivée de l'autre évaluation
-    const evalChannel = supabase
-      .channel(`eval-lobby-${eleve.id}`)
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'evaluations',
-        filter: `eleve_id=eq.${eleve.id}`,
-      }, () => {
-        checkReady();
-      })
-      .subscribe();
-
-    // Créer une évaluation vide pour signaler notre présence, puis vérifier
-    (async () => {
-      await supabase.from('evaluations').upsert({
-        eleve_id: eleve.id,
-        juror_slot: slot,
-      }, { onConflict: 'eleve_id,juror_slot' });
-      checkReady();
-    })();
-
-    return () => {
-      supabase.removeChannel(channel);
-      supabase.removeChannel(evalChannel);
-    };
-  }, [eleve.id, mode, slot]);
 
   const handleSubmit = useCallback(async () => {
     setSubmitError(null);
@@ -129,7 +49,7 @@ export function EvaluateScreen({ eleve, slot, mode, juryId: _juryId, onDone, onB
     // Sauvegarder l'évaluation
     const { error: evalErr } = await supabase.from('evaluations').upsert({
       eleve_id: eleve.id,
-      juror_slot: slot,
+      juror_slot: 'A',
       score_expression: scores.expression,
       score_diaporama: scores.diaporama,
       score_reactivite: scores.reactivite,
@@ -150,120 +70,33 @@ export function EvaluateScreen({ eleve, slot, mode, juryId: _juryId, onDone, onB
       return;
     }
 
-    if (mode === 'solo') {
-      // Mode solo : valider directement comme score final
-      const { error: fsErr } = await supabase.from('final_scores').upsert({
-        eleve_id: eleve.id,
-        score_expression: scores.expression!,
-        score_diaporama: scores.diaporama!,
-        score_reactivite: scores.reactivite!,
-        score_contenu: scores.contenu!,
-        score_structure: scores.structure!,
-        score_engagement: scores.engagement!,
-        total_oral: totalOral,
-        total_sujet: totalSujet,
-        total,
-        points_forts: pointsForts || null,
-        axes_amelioration: axesAmelioration || null,
-      }, { onConflict: 'eleve_id' });
+    // Valider directement comme score final
+    const { error: fsErr } = await supabase.from('final_scores').upsert({
+      eleve_id: eleve.id,
+      score_expression: scores.expression!,
+      score_diaporama: scores.diaporama!,
+      score_reactivite: scores.reactivite!,
+      score_contenu: scores.contenu!,
+      score_structure: scores.structure!,
+      score_engagement: scores.engagement!,
+      total_oral: totalOral,
+      total_sujet: totalSujet,
+      total,
+      points_forts: pointsForts || null,
+      axes_amelioration: axesAmelioration || null,
+    }, { onConflict: 'eleve_id' });
 
-      if (fsErr) {
-        setSubmitError('Erreur de sauvegarde du score final.');
-        console.error('[EvaluateScreen] upsert final_scores:', fsErr);
-        return;
-      }
-
-      const { error: statusErr } = await supabase.from('session_eleves').update({ status: 'validated' }).eq('id', eleve.id);
-      if (statusErr) console.error('[EvaluateScreen] update status:', statusErr);
-
-      if (mountedRef.current) onDone(false);
+    if (fsErr) {
+      setSubmitError('Erreur de sauvegarde du score final.');
+      console.error('[EvaluateScreen] upsert final_scores:', fsErr);
       return;
     }
 
-    // Mode duo : attendre l'autre juré
-    setWaiting(true);
-    await supabase.from('session_eleves').update({ status: 'scored' }).eq('id', eleve.id);
+    const { error: statusErr } = await supabase.from('session_eleves').update({ status: 'validated' }).eq('id', eleve.id);
+    if (statusErr) console.error('[EvaluateScreen] update status:', statusErr);
 
-    // D'abord souscrire au channel AVANT de vérifier (évite le deadlock TOCTOU)
-    const otherSlot = slot === 'A' ? 'B' : 'A';
-    const channel = supabase
-      .channel(`wait-submit-${eleve.id}-${slot}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'evaluations',
-        filter: `eleve_id=eq.${eleve.id}`,
-      }, (payload) => {
-        if (payload.new.juror_slot === otherSlot && payload.new.submitted_at) {
-          supabase.removeChannel(channel);
-          waitChannelRef.current = null;
-          if (mountedRef.current) onDone(true);
-        }
-      })
-      .subscribe();
-
-    // Stocker la ref pour cleanup
-    waitChannelRef.current = channel;
-
-    // Vérifier APRÈS l'abonnement si l'autre a déjà soumis (résout le deadlock)
-    const { data: otherEval } = await supabase
-      .from('evaluations')
-      .select('submitted_at')
-      .eq('eleve_id', eleve.id)
-      .eq('juror_slot', otherSlot)
-      .single();
-
-    if (otherEval?.submitted_at) {
-      // L'autre a déjà fini → cleanup et réconciliation
-      supabase.removeChannel(channel);
-      waitChannelRef.current = null;
-      if (mountedRef.current) onDone(true);
-    }
-  }, [scores, pointsForts, axesAmelioration, eleve.id, slot, mode, onDone]);
-
-  // Écran d'attente lobby
-  if (lobbyWaiting) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.header}>
-          <button onClick={onBack} style={styles.backBtn}>← Retour</button>
-          <div style={{ marginTop: 8, fontSize: 18, fontWeight: 700 }}>{eleve.display_name}</div>
-        </div>
-        <div style={styles.lobbyCard}>
-          <div style={styles.spinner} />
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#1a365d', marginTop: 16 }}>
-            En attente du second jury...
-          </div>
-          <div style={{ fontSize: 13, color: '#64748b', marginTop: 8 }}>
-            L'évaluation commencera quand les deux membres du jury auront sélectionné cet élève.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Écran d'attente soumission
-  if (waiting) {
-    return (
-      <div style={styles.container}>
-        <div style={styles.header}>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>{eleve.display_name}</div>
-          <div style={{ fontSize: 14, opacity: 0.85, marginTop: 4 }}>
-            Note : {totals.total}/20
-          </div>
-        </div>
-        <div style={styles.lobbyCard}>
-          <div style={styles.spinner} />
-          <div style={{ fontSize: 16, fontWeight: 700, color: '#1a365d', marginTop: 16 }}>
-            En attente de l'autre juré...
-          </div>
-          <div style={{ fontSize: 13, color: '#64748b', marginTop: 8 }}>
-            La réconciliation commencera quand les deux membres du jury auront terminé leur évaluation.
-          </div>
-        </div>
-      </div>
-    );
-  }
+    if (mountedRef.current) onDone();
+  }, [scores, pointsForts, axesAmelioration, eleve.id, onDone]);
 
   return (
     <div style={styles.container}>
@@ -472,22 +305,5 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     cursor: 'pointer',
     boxShadow: '0 2px 8px rgba(43,108,176,0.3)',
-  },
-  lobbyCard: {
-    background: '#ffffff',
-    borderRadius: 14,
-    padding: 40,
-    margin: '24px 16px',
-    textAlign: 'center' as const,
-    border: '1px solid #d2dce6',
-  },
-  spinner: {
-    width: 40,
-    height: 40,
-    border: '4px solid #e2e8f0',
-    borderTopColor: '#2b6cb0',
-    borderRadius: '50%',
-    animation: 'spin 0.8s linear infinite',
-    margin: '0 auto',
   },
 };

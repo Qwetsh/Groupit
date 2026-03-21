@@ -125,7 +125,7 @@ export async function uploadSessionToSupabase(
     for (let juryIdx = 0; juryIdx < data.jurys.length; juryIdx++) {
       const jury = data.jurys[juryIdx]!;
       const juryNumber = juryIdx + 1;
-      const mode = jury.enseignants.length >= 2 ? 'duo' : 'solo';
+      const mode = 'solo';
 
       const { data: newJury, error: juryErr } = await supabase
         .from('session_jurys')
