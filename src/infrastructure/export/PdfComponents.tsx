@@ -365,7 +365,8 @@ interface PageHeaderProps {
   styles: ReturnType<typeof createStyles>;
 }
 
-const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, date, options, styles }) => {
+const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, date: _date, options, styles }) => {
+  void _date;
   const showLeftLogo = options.showLogoAcademie;
   const showRightLogo = options.showLogoEducationNationale;
   const hasLogos = showLeftLogo || showRightLogo;
