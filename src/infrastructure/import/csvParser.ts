@@ -61,7 +61,10 @@ export const KNOWN_HEADERS_MAP: Record<string, keyof Eleve> = {
   // Régime
   'régime': 'regime',
   'regime': 'regime',
-  
+
+  // Classe (pour fichiers multi-classes)
+  'classe': 'classe',
+
   // Encouragement/Valorisation -> champ spécial
   'encouragement/valorisation': 'encouragementValorisation',
   'encouragement': 'encouragementValorisation',
@@ -75,6 +78,12 @@ export const IGNORED_COLUMNS = [
   'sortie',
   'unnamed',
   '',
+  'majeur',
+  'formation',
+  'groupes',
+  'autorisations de sortie',
+  "prénom d'usage",
+  "prenom d'usage",
 ];
 
 // ============ ENCODING DETECTION ============
@@ -379,14 +388,22 @@ export function generateAutoMapping(headers: string[]): ColumnMapping[] {
  */
 export function extractOptions(row: Record<string, string>, headers: string[]): string[] {
   const options: string[] = [];
-  
+
   headers.forEach(header => {
     const lower = header.toLowerCase();
+    // Colonnes individuelles : Option 1, Option 2, etc.
     if (lower.startsWith('option') && row[header] && row[header].trim() !== '') {
       options.push(row[header].trim());
     }
+    // Colonne combinée : "Toutes les options" (valeurs séparées par virgules)
+    if (lower === 'toutes les options' && row[header] && row[header].trim() !== '') {
+      row[header].split(',').forEach(opt => {
+        const trimmed = opt.trim();
+        if (trimmed) options.push(trimmed);
+      });
+    }
   });
-  
+
   return options;
 }
 
@@ -474,6 +491,9 @@ export function importElevesFromCSV(
             break;
           case 'regime':
             eleve.regime = trimmedValue;
+            break;
+          case 'classe':
+            eleve.classe = trimmedValue.toUpperCase();
             break;
           case 'encouragementValorisation':
             eleve.encouragementValorisation = trimmedValue;
