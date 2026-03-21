@@ -25,6 +25,7 @@ function getStatusBadge(status: string) {
     case 'validated': return { label: '✓', bg: '#c6f6d5', color: '#276749' };
     case 'scored': return { label: '⏳', bg: '#fefcbf', color: '#975a16' };
     case 'in_progress': return { label: '🎤', bg: '#bee3f8', color: '#2b6cb0' };
+    case 'absent': return { label: 'ABS', bg: '#fed7d7', color: '#9b2c2c' };
     case 'lobby': return { label: '…', bg: '#e9d8fd', color: '#6b46c1' };
     default: return { label: '—', bg: '#f1f5f9', color: '#94a3b8' };
   }

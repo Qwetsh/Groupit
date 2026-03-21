@@ -48,6 +48,7 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
   // true si l'élève a déjà été noté (on revient dessus pour modifier)
   const [isRevisit, setIsRevisit] = useState(false);
   const [savedElapsed, setSavedElapsed] = useState<number | undefined>(undefined);
+  const [markingAbsent, setMarkingAbsent] = useState(false);
 
   const mountedRef = useRef(true);
   const restoredRef = useRef(false);
@@ -134,6 +135,21 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
   const totals = computeTotals(scores);
   const allScored = allCriteriaScored(scores);
 
+  const handleAbsent = useCallback(async () => {
+    if (markingAbsent) return;
+    const isCurrentlyAbsent = eleve.status === 'absent';
+    const msg = isCurrentlyAbsent
+      ? 'Remettre cet élève comme "À passer" ?'
+      : 'Marquer cet élève comme absent ?';
+    if (!window.confirm(msg)) return;
+
+    setMarkingAbsent(true);
+    const newStatus = isCurrentlyAbsent ? 'pending' : 'absent';
+    await withRetry(() => supabase.from('session_eleves').update({ status: newStatus }).eq('id', eleve.id));
+    setMarkingAbsent(false);
+    if (mountedRef.current) onBack();
+  }, [eleve.id, eleve.status, markingAbsent, onBack]);
+
   const handleSubmit = useCallback(async () => {
     if (submitting) return;
 
@@ -210,6 +226,17 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
             ...styles.backBtn,
             opacity: submitting ? 0.4 : 1,
           }}>← Retour</button>
+          <button
+            onClick={handleAbsent}
+            disabled={submitting || markingAbsent}
+            style={{
+              ...styles.backBtn,
+              fontSize: 12,
+              opacity: (submitting || markingAbsent) ? 0.4 : 0.7,
+            }}
+          >
+            {eleve.status === 'absent' ? 'Remettre présent' : 'Absent'}
+          </button>
           <div style={{
             background: 'rgba(255,255,255,0.2)',
             padding: '4px 14px',
