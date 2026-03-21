@@ -161,6 +161,10 @@ export interface PdfExportOptions {
   // Date de l'oral (saisie à l'export, injectée dans les créneaux)
   dateOral?: string;
 
+  // QR Code pour la PWA jury (code session + URL)
+  sessionCode?: string;
+  juryPwaUrl?: string;
+
   // Mise en page
   orientation: 'portrait' | 'landscape';
   pageSize: 'A4' | 'LETTER';
