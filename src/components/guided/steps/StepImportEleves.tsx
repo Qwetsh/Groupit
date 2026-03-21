@@ -3,7 +3,7 @@
 // ============================================================
 
 import { useState, useCallback, useRef } from 'react';
-import { Upload, FileSpreadsheet, Check, Plus, Trash2, Users, ChevronRight } from 'lucide-react';
+import { Upload, FileSpreadsheet, Check, Plus, Trash2, Users, ChevronRight, RotateCcw } from 'lucide-react';
 import clsx from 'clsx';
 import { useUIStore } from '../../../stores/uiStore';
 import { useEleveStore } from '../../../stores/eleveStore';
@@ -34,6 +34,7 @@ interface StepImportElevesProps {
 const ELEVE_FIELDS: { key: keyof Eleve; label: string }[] = [
   { key: 'nom', label: 'Nom' },
   { key: 'prenom', label: 'Prénom' },
+  { key: 'classe', label: 'Classe' },
   { key: 'dateNaissance', label: 'Date de naissance' },
   { key: 'sexe', label: 'Sexe' },
   { key: 'email', label: 'Email' },
@@ -42,7 +43,7 @@ const ELEVE_FIELDS: { key: keyof Eleve; label: string }[] = [
 
 export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
   const { setGuidedImportedEleves } = useUIStore();
-  const { addEleves } = useEleveStore();
+  const { addEleves, deleteAllEleves } = useEleveStore();
   const eleves = useEleveStore(state => state.eleves);
 
   const [importedFiles, setImportedFiles] = useState<ImportedFile[]>([]);
@@ -133,15 +134,25 @@ export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
     const fileId = Date.now().toString();
 
     try {
+      const hasClasseInCSV = mappings.some(m => m.targetField === 'classe');
       const result = importElevesFromCSV(parsedData, mappings, classe);
 
       if (result.eleves.length > 0) {
         await addEleves(result.eleves as Omit<Eleve, 'id' | 'createdAt' | 'updatedAt'>[]);
 
+        // Déterminer le label de classe pour l'affichage
+        let classeLabel = classe || 'Non spécifiée';
+        if (hasClasseInCSV) {
+          const distinctClasses = [...new Set(result.eleves.map(e => e.classe).filter(Boolean))];
+          classeLabel = distinctClasses.length > 1
+            ? `${distinctClasses.length} classes (${distinctClasses.join(', ')})`
+            : distinctClasses[0] || 'Non spécifiée';
+        }
+
         setImportedFiles(prev => [...prev, {
           id: fileId,
           name: currentFile.name,
-          classe: classe || 'Non spécifiée',
+          classe: classeLabel,
           elevesCount: result.eleves.length,
           status: 'done',
         }]);
@@ -183,6 +194,14 @@ export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
   const handleRemoveFile = useCallback((id: string) => {
     setImportedFiles(prev => prev.filter(f => f.id !== id));
   }, []);
+
+  // Reset all student data
+  const handleReset = useCallback(async () => {
+    if (!window.confirm('Supprimer tous les élèves importés ? Cette action est irréversible.')) return;
+    await deleteAllEleves();
+    setImportedFiles([]);
+    setGuidedImportedEleves(0);
+  }, [deleteAllEleves, setGuidedImportedEleves]);
 
   // Continue to next step
   const handleContinue = useCallback(() => {
@@ -230,16 +249,26 @@ export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
           </div>
         </div>
 
-        <div className="classe-section">
-          <h3>Classe pour ces élèves</h3>
-          <input
-            type="text"
-            value={classe}
-            onChange={(e) => setClasse(e.target.value.toUpperCase())}
-            placeholder="Ex: 3A, 3B..."
-            className="classe-input"
-          />
-        </div>
+        {!mappings.some(m => m.targetField === 'classe') && (
+          <div className="classe-section">
+            <h3>Classe pour ces élèves</h3>
+            <input
+              type="text"
+              value={classe}
+              onChange={(e) => setClasse(e.target.value.toUpperCase())}
+              placeholder="Ex: 3A, 3B..."
+              className="classe-input"
+            />
+          </div>
+        )}
+        {mappings.some(m => m.targetField === 'classe') && (
+          <div className="classe-section">
+            <h3>Classe détectée dans le fichier</h3>
+            <p style={{ color: 'var(--color-success, #22c55e)', fontSize: '0.9rem' }}>
+              La colonne "Classe" sera utilisée pour affecter chaque élève à sa classe automatiquement.
+            </p>
+          </div>
+        )}
 
         <div className="mapping-actions">
           <button className="btn btn-secondary" onClick={handleCancelMapping}>
@@ -248,7 +277,7 @@ export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
           <button
             className="btn btn-primary"
             onClick={handleConfirmImport}
-            disabled={!mappings.some(m => m.targetField === 'nom') || processing}
+            disabled={!mappings.some(m => m.targetField === 'nom') || (!mappings.some(m => m.targetField === 'classe') && !classe.trim()) || processing}
           >
             {processing ? 'Import en cours...' : 'Importer ce fichier'}
           </button>
@@ -324,6 +353,17 @@ export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
         <Users size={24} />
         <span className="summary-count">{totalImported}</span>
         <span className="summary-label">élèves au total</span>
+        {totalImported > 0 && (
+          <button
+            className="btn btn-danger-outline btn-sm"
+            onClick={handleReset}
+            title="Supprimer tous les élèves"
+            style={{ marginLeft: 'auto' }}
+          >
+            <RotateCcw size={14} />
+            Réinitialiser
+          </button>
+        )}
       </div>
 
       {/* Actions */}

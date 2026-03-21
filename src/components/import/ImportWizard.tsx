@@ -26,6 +26,7 @@ type Step = 'upload' | 'mapping' | 'classe' | 'preview' | 'importing';
 const ELEVE_FIELDS: { key: keyof Eleve; label: string }[] = [
   { key: 'nom', label: 'Nom' },
   { key: 'prenom', label: 'Prénom' },
+  { key: 'classe', label: 'Classe' },
   { key: 'dateNaissance', label: 'Date de naissance' },
   { key: 'sexe', label: 'Sexe' },
   { key: 'email', label: 'Email' },
@@ -45,6 +46,9 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
   const [dragActive, setDragActive] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Détecter si la colonne "Classe" est mappée dans le CSV
+  const hasClasseColumn = mappings.some(m => m.targetField === 'classe');
 
   // Handle file selection
   const handleFile = useCallback(async (selectedFile: File) => {
@@ -351,10 +355,22 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
     }
   };
 
+  // Label du bouton selon le contexte
+  const getNextLabel = () => {
+    if (step === 'preview') return 'Importer';
+    if (step === 'mapping' && hasClasseColumn) return 'Vérifier';
+    return 'Suivant';
+  };
+
   const handleNext = () => {
     switch (step) {
       case 'mapping':
-        setStep('classe');
+        if (hasClasseColumn) {
+          // Pas besoin de demander la classe, elle est dans le CSV
+          processImport();
+        } else {
+          setStep('classe');
+        }
         break;
       case 'classe':
         processImport();
@@ -376,7 +392,11 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
         setStep('mapping');
         break;
       case 'preview':
-        setStep('classe');
+        if (hasClasseColumn) {
+          setStep('mapping');
+        } else {
+          setStep('classe');
+        }
         break;
     }
   };
@@ -397,10 +417,14 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
             steps={[
               { id: 'upload', label: 'Fichier', status: ['mapping', 'classe', 'preview', 'importing'].includes(step) ? 'success' : step === 'upload' ? 'loading' : 'idle' },
               { id: 'mapping', label: 'Colonnes', status: ['classe', 'preview', 'importing'].includes(step) ? 'success' : step === 'mapping' ? 'loading' : 'idle' },
-              { id: 'classe', label: 'Classe', status: ['preview', 'importing'].includes(step) ? 'success' : step === 'classe' ? 'loading' : 'idle' },
+              ...(!hasClasseColumn ? [{ id: 'classe', label: 'Classe', status: ['preview', 'importing'].includes(step) ? 'success' : step === 'classe' ? 'loading' : 'idle' } as ProgressStep] : []),
               { id: 'preview', label: 'Vérification', status: step === 'importing' ? 'success' : step === 'preview' ? 'loading' : 'idle' },
             ] as ProgressStep[]}
-            currentStepIndex={['upload', 'mapping', 'classe', 'preview', 'importing'].indexOf(step)}
+            currentStepIndex={
+              hasClasseColumn
+                ? ['upload', 'mapping', 'preview', 'importing'].indexOf(step)
+                : ['upload', 'mapping', 'classe', 'preview', 'importing'].indexOf(step)
+            }
           />
         </div>
         
@@ -422,7 +446,7 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
               onClick={handleNext}
               disabled={!canGoNext()}
             >
-              {step === 'preview' ? 'Importer' : 'Suivant'}
+              {getNextLabel()}
               <ChevronRight size={16} />
             </button>
           </div>
