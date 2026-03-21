@@ -6,13 +6,11 @@ import { useState, useCallback, useRef, useMemo } from 'react';
 import {
   Upload,
   Download,
-  FileSpreadsheet,
   Check,
   ChevronRight,
   ChevronDown,
   Search,
   BookOpen,
-  AlertTriangle,
   X,
   Shuffle,
 } from 'lucide-react';
