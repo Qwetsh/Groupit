@@ -35,20 +35,29 @@ jobs:
       - name: Build Groupit
         run: npm run build
 
-      # Build PWA Jury
+      # Build shared package
       - name: Install dependencies (shared)
         run: cd packages/shared && npm ci
 
+      # Build PWA Jury
       - name: Install dependencies (jury)
         run: cd apps/jury && npm ci
 
       - name: Build PWA Jury
         run: cd apps/jury && npm run build
 
-      # Combiner les deux builds : dist/ = Groupit, dist/groupit-jury/ = PWA
+      # Build Dashboard
+      - name: Install dependencies (dashboard)
+        run: cd apps/dashboard && npm ci
+
+      - name: Build Dashboard
+        run: cd apps/dashboard && npm run build
+
+      # Combiner les builds
       - name: Combine builds
         run: |
           cp -r apps/jury/dist ./dist/groupit-jury
+          cp -r apps/dashboard/dist ./dist/groupit-dashboard
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
