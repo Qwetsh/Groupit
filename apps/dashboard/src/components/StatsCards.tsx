@@ -1,5 +1,12 @@
 import type { GlobalStats } from '../hooks/useStats';
 
+function fmtDuration(seconds: number): string {
+  if (!seconds) return '—';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
 interface StatsCardsProps {
   stats: GlobalStats;
 }
@@ -8,7 +15,11 @@ export function StatsCards({ stats }: StatsCardsProps) {
   return (
     <div style={styles.grid}>
       <Card label="Élèves évalués" value={`${stats.totalEvalues}/${stats.totalEleves}`}
-        sub={`${stats.pourcentageEvalue}%`} color="#2b6cb0" />
+        sub={`${stats.pourcentageEvalue}% · ${stats.totalEnAttente} en attente`} color="#2b6cb0" />
+      {stats.totalAbsents > 0 && (
+        <Card label="Absents" value={`${stats.totalAbsents}`}
+          sub={`sur ${stats.totalEleves} élèves`} color="#c53030" />
+      )}
       <Card label="Moyenne générale" value={`${stats.moyenne}/20`}
         sub={`Médiane : ${stats.mediane}`} color={stats.moyenne >= 10 ? '#276749' : '#c53030'} />
       <Card label="Sous la moyenne" value={`${stats.nbSousMoyenne}`}
@@ -23,6 +34,10 @@ export function StatsCards({ stats }: StatsCardsProps) {
         sub={stats.totalEvalues > 0 ? `${Math.round((stats.nbBien / stats.totalEvalues) * 100)}%` : '—'} color="#2c7a7b" />
       <Card label="Très bien (16+)" value={`${stats.nbTresBien}`}
         sub={stats.totalEvalues > 0 ? `${Math.round((stats.nbTresBien / stats.totalEvalues) * 100)}%` : '—'} color="#276749" />
+      {stats.duree.count > 0 && (
+        <Card label="Durée moyenne" value={fmtDuration(stats.duree.moyenne)}
+          sub={`Min ${fmtDuration(stats.duree.min)} · Max ${fmtDuration(stats.duree.max)}${stats.duree.nbDepassement > 0 ? ` · ${stats.duree.nbDepassement} dépassement${stats.duree.nbDepassement > 1 ? 's' : ''}` : ''}`} color="#744210" />
+      )}
     </div>
   );
 }

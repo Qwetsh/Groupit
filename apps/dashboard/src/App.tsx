@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useSessionData } from './hooks/useSessionData';
 import { useStats } from './hooks/useStats';
 import { StatsCards } from './components/StatsCards';
-import { DistributionChart, CritereRadarChart, JuryBarChart, ParcoursBarChart } from './components/Charts';
+import { DistributionChart, CritereRadarChart, JuryBarChart, ParcoursBarChart, DureeDistributionChart, DureeNoteScatterChart } from './components/Charts';
 import { JuryTable } from './components/JuryTable';
 import { ExportButton } from './components/ExportButton';
 
@@ -11,7 +11,7 @@ export default function App() {
   const [activeCode, setActiveCode] = useState('');
 
   const { jurys, allFinalScores, scenarioName, dateOral, loading, error, refresh } = useSessionData(activeCode);
-  const { globalStats, juryStats, parcoursStats, critereStats, distribution } = useStats(jurys, allFinalScores);
+  const { globalStats, juryStats, parcoursStats, critereStats, distribution, dureeDistribution, dureeNoteData } = useStats(jurys, allFinalScores);
 
   const isConnected = activeCode && !error && !loading;
 
@@ -95,6 +95,8 @@ export default function App() {
           <CritereRadarChart data={critereStats} />
           <JuryBarChart data={juryStats} />
           <ParcoursBarChart data={parcoursStats} />
+          <DureeDistributionChart data={dureeDistribution} />
+          <DureeNoteScatterChart data={dureeNoteData} />
         </div>
 
         {/* Tableaux détaillés par jury */}

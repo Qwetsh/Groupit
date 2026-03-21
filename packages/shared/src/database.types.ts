@@ -114,6 +114,7 @@ export interface SessionEleveRow {
   ordre_passage: number | null;
   heure_passage: string | null;
   status: string;
+  duree_passage: number | null;
 }
 export interface SessionEleveInsert {
   id?: string;
@@ -127,6 +128,7 @@ export interface SessionEleveInsert {
   ordre_passage?: number | null;
   heure_passage?: string | null;
   status?: string;
+  duree_passage?: number | null;
 }
 
 // === evaluations ===

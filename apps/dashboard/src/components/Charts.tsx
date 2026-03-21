@@ -1,8 +1,9 @@
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
+  ScatterChart, Scatter, ZAxis, Cell,
 } from 'recharts';
-import type { DistributionBucket, CritereStats, JuryStats, ParcoursStats } from '../hooks/useStats';
+import type { DistributionBucket, CritereStats, JuryStats, ParcoursStats, DureeDistributionBucket, DureeNotePoint } from '../hooks/useStats';
 
 interface DistributionChartProps {
   data: DistributionBucket[];
@@ -119,6 +120,93 @@ export function ParcoursBarChart({ data }: ParcoursBarChartProps) {
           />
           <Bar dataKey="moyenne" fill="#7c3aed" radius={[4, 4, 0, 0]} />
         </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+interface DureeDistributionChartProps {
+  data: DureeDistributionBucket[];
+}
+
+export function DureeDistributionChart({ data }: DureeDistributionChartProps) {
+  if (data.length === 0) return null;
+  return (
+    <div style={styles.chartCard}>
+      <h3 style={styles.chartTitle}>Distribution des durées de passage</h3>
+      <ResponsiveContainer width="100%" height={250}>
+        <BarChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <XAxis dataKey="range" fontSize={11} />
+          <YAxis fontSize={12} allowDecimals={false} />
+          <Tooltip
+            contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0' }}
+            formatter={(value: number) => [`${value} élève(s)`, 'Effectif']}
+          />
+          <Bar dataKey="count" fill="#d97706" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function getScatterColor(note: number): string {
+  if (note >= 16) return '#276749';
+  if (note >= 14) return '#2c7a7b';
+  if (note >= 10) return '#2b6cb0';
+  return '#c53030';
+}
+
+interface DureeNoteScatterChartProps {
+  data: DureeNotePoint[];
+}
+
+export function DureeNoteScatterChart({ data }: DureeNoteScatterChartProps) {
+  if (data.length === 0) return null;
+  const chartData = data.map(d => ({
+    ...d,
+    dureeMinutes: Math.round(d.duree / 6) / 10, // arrondi 0.1 min
+  }));
+
+  return (
+    <div style={styles.chartCard}>
+      <h3 style={styles.chartTitle}>Durée de passage vs Note</h3>
+      <ResponsiveContainer width="100%" height={280}>
+        <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <XAxis
+            dataKey="dureeMinutes"
+            name="Durée"
+            unit=" min"
+            fontSize={12}
+            type="number"
+          />
+          <YAxis
+            dataKey="note"
+            name="Note"
+            unit="/20"
+            domain={[0, 20]}
+            fontSize={12}
+            type="number"
+          />
+          <ZAxis range={[50, 50]} />
+          <Tooltip
+            contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0' }}
+            formatter={(value: number, name: string) => {
+              if (name === 'Durée') return [`${value} min`, name];
+              return [`${value}/20`, name];
+            }}
+            labelFormatter={(_: unknown, payload: Array<{ payload?: DureeNotePoint }>) => {
+              const p = payload?.[0]?.payload;
+              return p ? p.displayName : '';
+            }}
+          />
+          <Scatter data={chartData}>
+            {chartData.map((entry, i) => (
+              <Cell key={i} fill={getScatterColor(entry.note)} />
+            ))}
+          </Scatter>
+        </ScatterChart>
       </ResponsiveContainer>
     </div>
   );

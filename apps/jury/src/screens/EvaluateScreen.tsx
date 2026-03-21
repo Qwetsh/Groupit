@@ -211,7 +211,16 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
       return;
     }
 
-    await withRetry(() => supabase.from('session_eleves').update({ status: 'validated' }).eq('id', eleve.id));
+    // Sauvegarder status + durée de passage
+    let dureePassage: number | null = null;
+    try {
+      const t = localStorage.getItem(TIMER_KEY(eleve.id));
+      if (t) dureePassage = parseInt(t, 10);
+    } catch { /* ignore */ }
+    await withRetry(() => supabase.from('session_eleves').update({
+      status: 'validated',
+      ...(dureePassage != null ? { duree_passage: dureePassage } : {}),
+    }).eq('id', eleve.id));
 
     try { localStorage.removeItem(STORAGE_KEY(eleve.id)); } catch { /* ignore */ }
 
