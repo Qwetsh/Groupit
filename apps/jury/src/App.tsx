@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { JoinScreen } from './screens/JoinScreen';
 import { StudentListScreen } from './screens/StudentListScreen';
 import { EvaluateScreen } from './screens/EvaluateScreen';
@@ -11,10 +11,74 @@ export type Screen =
   | { type: 'students'; juryId: string; sessionId: string }
   | { type: 'evaluate'; juryId: string; sessionId: string; eleve: SessionEleveRow };
 
+const SESSION_NAV_KEY = 'jury-nav';
+
+interface SavedNav {
+  juryId: string;
+  sessionId: string;
+  eleveId?: string;
+}
+
+function saveNav(screen: Screen) {
+  try {
+    if (screen.type === 'join') {
+      sessionStorage.removeItem(SESSION_NAV_KEY);
+    } else if (screen.type === 'students') {
+      sessionStorage.setItem(SESSION_NAV_KEY, JSON.stringify({
+        juryId: screen.juryId, sessionId: screen.sessionId,
+      }));
+    } else {
+      sessionStorage.setItem(SESSION_NAV_KEY, JSON.stringify({
+        juryId: screen.juryId, sessionId: screen.sessionId, eleveId: screen.eleve.id,
+      }));
+    }
+  } catch { /* ignore */ }
+}
+
+function loadNav(): SavedNav | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_NAV_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ type: 'join' });
+  const [restoring, setRestoring] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
   const presenceRef = useRef<RealtimeChannel | null>(null);
+
+  // Restaurer la navigation au chargement
+  useEffect(() => {
+    async function restore() {
+      const nav = loadNav();
+      if (!nav) { setRestoring(false); return; }
+
+      if (nav.eleveId) {
+        const { data: eleve } = await supabase
+          .from('session_eleves')
+          .select('*')
+          .eq('id', nav.eleveId)
+          .single();
+
+        if (eleve) {
+          setScreen({ type: 'evaluate', juryId: nav.juryId, sessionId: nav.sessionId, eleve });
+          setRestoring(false);
+          return;
+        }
+      }
+
+      setScreen({ type: 'students', juryId: nav.juryId, sessionId: nav.sessionId });
+      setRestoring(false);
+    }
+    restore();
+  }, []);
+
+  const navigate = useCallback((s: Screen) => {
+    setScreen(s);
+    saveNav(s);
+  }, []);
 
   // Auto-dismiss toast
   useEffect(() => {
@@ -56,20 +120,28 @@ export default function App() {
     };
   }, [activeSessionId, activeJuryId]);
 
+  if (restoring) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', color: '#64748b' }}>
+        Restauration...
+      </div>
+    );
+  }
+
   const content = (() => {
     switch (screen.type) {
       case 'join':
         return <JoinScreen onJoined={(juryId, sessionId) =>
-          setScreen({ type: 'students', juryId, sessionId })
+          navigate({ type: 'students', juryId, sessionId })
         } />;
 
       case 'students':
         return <StudentListScreen
           juryId={screen.juryId}
           onSelectEleve={(eleve) =>
-            setScreen({ type: 'evaluate', juryId: screen.juryId, sessionId: screen.sessionId, eleve })
+            navigate({ type: 'evaluate', juryId: screen.juryId, sessionId: screen.sessionId, eleve })
           }
-          onDisconnect={() => setScreen({ type: 'join' })}
+          onDisconnect={() => navigate({ type: 'join' })}
         />;
 
       case 'evaluate':
@@ -78,10 +150,10 @@ export default function App() {
           juryId={screen.juryId}
           onDone={() => {
             setToast('Note enregistrée ✓');
-            setScreen({ type: 'students', juryId: screen.juryId, sessionId: screen.sessionId });
+            navigate({ type: 'students', juryId: screen.juryId, sessionId: screen.sessionId });
           }}
           onBack={() =>
-            setScreen({ type: 'students', juryId: screen.juryId, sessionId: screen.sessionId })
+            navigate({ type: 'students', juryId: screen.juryId, sessionId: screen.sessionId })
           }
         />;
     }

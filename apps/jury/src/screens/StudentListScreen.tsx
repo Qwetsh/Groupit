@@ -1,6 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@groupit/shared';
-import type { SessionEleveRow } from '@groupit/shared';
+import type { SessionEleveRow, FinalScoreRow } from '@groupit/shared';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface StudentListScreenProps {
   juryId: string;
@@ -46,6 +49,9 @@ export function StudentListScreen({ juryId, onSelectEleve, onDisconnect }: Stude
     return () => { supabase.removeChannel(channel); };
   }, [juryId]);
 
+  const validated = eleves.filter(e => e.status === 'validated').length;
+  const total = eleves.length;
+
   const handleToggleAbsent = useCallback(async (eleve: SessionEleveRow) => {
     const isAbsent = eleve.status === 'absent';
     const msg = isAbsent
@@ -56,50 +62,228 @@ export function StudentListScreen({ juryId, onSelectEleve, onDisconnect }: Stude
     await supabase.from('session_eleves').update({ status: newStatus }).eq('id', eleve.id);
   }, []);
 
-  const handleExport = useCallback(async () => {
-    const { data: scores } = await supabase
+  const fetchScores = useCallback(async () => {
+    const { data } = await supabase
       .from('final_scores')
       .select('*')
       .in('eleve_id', eleves.map(e => e.id));
-
-    const scoreMap = new Map((scores || []).map(s => [s.eleve_id, s]));
-    const sep = ';';
-    const header = ['Élève', 'Classe', 'Parcours', 'Sujet', 'Note', 'Oral /8', 'Sujet /12', 'Points forts', "Axes d'amélioration", 'Statut'].join(sep);
-
-    const rows = eleves.map(e => {
-      const fs = scoreMap.get(e.id);
-      const esc = (v: string | null | undefined) => {
-        if (!v) return '';
-        const s = v.replace(/"/g, '""');
-        return s.includes(sep) || s.includes('"') || s.includes('\n') ? `"${s}"` : s;
-      };
-      return [
-        esc(e.display_name),
-        esc(e.classe),
-        esc(e.parcours),
-        esc(e.sujet),
-        fs ? String(fs.total) : '',
-        fs ? String(fs.total_oral) : '',
-        fs ? String(fs.total_sujet) : '',
-        esc(fs?.points_forts),
-        esc(fs?.axes_amelioration),
-        e.status === 'validated' ? 'Noté' : e.status === 'absent' ? 'Absent' : 'En attente',
-      ].join(sep);
-    });
-
-    const bom = '\uFEFF';
-    const csv = bom + [header, ...rows].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `notes-jury.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    return new Map((data || []).map(s => [s.eleve_id, s as FinalScoreRow]));
   }, [eleves]);
 
-  const validated = eleves.filter(e => e.status === 'validated').length;
-  const total = eleves.length;
+  const statusLabel = (s: string) =>
+    s === 'validated' ? 'Noté' : s === 'absent' ? 'Absent' : 'En attente';
+
+  const buildRows = (scoreMap: Map<string, FinalScoreRow>) =>
+    eleves.map(e => {
+      const fs = scoreMap.get(e.id);
+      return {
+        'Élève': e.display_name,
+        'Classe': e.classe || '',
+        'Parcours': e.parcours || '',
+        'Sujet': e.sujet || '',
+        'Note /20': fs ? fs.total : '',
+        'Oral /8': fs ? fs.total_oral : '',
+        'Sujet /12': fs ? fs.total_sujet : '',
+        'Points forts': fs?.points_forts || '',
+        "Axes d'amélioration": fs?.axes_amelioration || '',
+        'Statut': statusLabel(e.status),
+      };
+    });
+
+  const handleExportExcel = useCallback(async () => {
+    const scoreMap = await fetchScores();
+    const rows = buildRows(scoreMap);
+    const ws = XLSX.utils.json_to_sheet(rows);
+
+    // Largeurs de colonnes
+    ws['!cols'] = [
+      { wch: 22 }, { wch: 10 }, { wch: 14 }, { wch: 20 },
+      { wch: 8 }, { wch: 8 }, { wch: 9 },
+      { wch: 30 }, { wch: 30 }, { wch: 10 },
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Notes');
+    XLSX.writeFile(wb, 'notes-jury.xlsx');
+  }, [fetchScores, eleves]);
+
+  const handleExportPDF = useCallback(async () => {
+    const scoreMap = await fetchScores();
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const pageW = doc.internal.pageSize.getWidth();
+
+    // === Calcul des stats du jury ===
+    const scores = eleves
+      .map(e => scoreMap.get(e.id))
+      .filter((fs): fs is FinalScoreRow => fs != null);
+    const totals = scores.map(s => s.total);
+    const nbAbsents = eleves.filter(e => e.status === 'absent').length;
+    const nbEvalues = scores.length;
+    const nbEnAttente = total - nbEvalues - nbAbsents;
+
+    const moyenne = totals.length > 0 ? totals.reduce((a, b) => a + b, 0) / totals.length : 0;
+    const sorted = [...totals].sort((a, b) => a - b);
+    const mediane = sorted.length > 0
+      ? sorted.length % 2 !== 0 ? sorted[Math.floor(sorted.length / 2)]! : (sorted[sorted.length / 2 - 1]! + sorted[sorted.length / 2]!) / 2
+      : 0;
+    const ecartType = totals.length > 0
+      ? Math.sqrt(totals.reduce((s, v) => s + (v - moyenne) ** 2, 0) / totals.length)
+      : 0;
+    const noteMin = totals.length > 0 ? Math.min(...totals) : 0;
+    const noteMax = totals.length > 0 ? Math.max(...totals) : 0;
+    const nbSousMoyenne = totals.filter(t => t < 10).length;
+    const nbBien = totals.filter(t => t >= 14 && t < 16).length;
+    const nbTresBien = totals.filter(t => t >= 16).length;
+    const moyOral = scores.length > 0 ? scores.reduce((s, f) => s + f.total_oral, 0) / scores.length : 0;
+    const moySujet = scores.length > 0 ? scores.reduce((s, f) => s + f.total_sujet, 0) / scores.length : 0;
+
+    const durations = eleves.map(e => e.duree_passage).filter((d): d is number => d != null && d > 0);
+    const dureeMoy = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0;
+    const fmtDur = (sec: number) => { const m = Math.floor(sec / 60); const s = sec % 60; return `${m}:${String(s).padStart(2, '0')}`; };
+
+    // Distribution
+    const distBuckets = [
+      { range: '0-4', min: 0, max: 4, count: 0 },
+      { range: '5-7', min: 5, max: 7, count: 0 },
+      { range: '8-9', min: 8, max: 9, count: 0 },
+      { range: '10-11', min: 10, max: 11, count: 0 },
+      { range: '12-13', min: 12, max: 13, count: 0 },
+      { range: '14-15', min: 14, max: 15, count: 0 },
+      { range: '16-17', min: 16, max: 17, count: 0 },
+      { range: '18-20', min: 18, max: 20, count: 0 },
+    ];
+    for (const t of totals) {
+      const b = distBuckets.find(b => t >= b.min && t <= b.max);
+      if (b) b.count++;
+    }
+
+    // === PAGE 1 : Rapport statistique ===
+    const blue = [26, 54, 93] as const;
+
+    // Titre
+    doc.setFillColor(...blue);
+    doc.rect(0, 0, pageW, 20, 'F');
+    doc.setFontSize(16);
+    doc.setTextColor(255);
+    doc.text('Rapport du jury', 14, 13);
+    doc.setFontSize(9);
+    doc.text(new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }), pageW - 14, 13, { align: 'right' });
+
+    let y = 30;
+    doc.setTextColor(30);
+    doc.setFontSize(11);
+    doc.text('Statistiques générales', 14, y);
+    y += 8;
+
+    // Carte de stats en grille
+    const statsCards = [
+      { label: 'Élèves évalués', value: `${nbEvalues}/${total}`, sub: `${nbEnAttente} en attente` },
+      { label: 'Moyenne générale', value: `${Math.round(moyenne * 100) / 100}/20`, sub: `Médiane : ${Math.round(mediane * 100) / 100}` },
+      { label: 'Écart-type', value: `${Math.round(ecartType * 100) / 100}`, sub: `Min ${noteMin} — Max ${noteMax}` },
+      { label: 'Sous la moyenne', value: `${nbSousMoyenne}`, sub: nbEvalues > 0 ? `${Math.round((nbSousMoyenne / nbEvalues) * 100)}%` : '—' },
+      { label: 'Bien (14-15)', value: `${nbBien}`, sub: nbEvalues > 0 ? `${Math.round((nbBien / nbEvalues) * 100)}%` : '—' },
+      { label: 'Très bien (16+)', value: `${nbTresBien}`, sub: nbEvalues > 0 ? `${Math.round((nbTresBien / nbEvalues) * 100)}%` : '—' },
+      { label: 'Moyenne Oral', value: `${Math.round(moyOral * 100) / 100}/8`, sub: 'Présentation' },
+      { label: 'Moyenne Sujet', value: `${Math.round(moySujet * 100) / 100}/12`, sub: 'Maîtrise' },
+    ];
+    if (nbAbsents > 0) statsCards.splice(1, 0, { label: 'Absents', value: `${nbAbsents}`, sub: `sur ${total}` });
+    if (durations.length > 0) statsCards.push({
+      label: 'Durée moyenne', value: fmtDur(dureeMoy),
+      sub: `Min ${fmtDur(Math.min(...durations))} — Max ${fmtDur(Math.max(...durations))}`,
+    });
+
+    const cardW = 58;
+    const cardH = 18;
+    const cols = 4;
+    const gap = 6;
+    const startX = 14;
+
+    for (let i = 0; i < statsCards.length; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const cx = startX + col * (cardW + gap);
+      const cy = y + row * (cardH + gap);
+
+      doc.setDrawColor(200);
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(cx, cy, cardW, cardH, 2, 2, 'FD');
+
+      doc.setFontSize(7);
+      doc.setTextColor(100);
+      doc.text(statsCards[i]!.label.toUpperCase(), cx + 3, cy + 5);
+
+      doc.setFontSize(12);
+      doc.setTextColor(30);
+      doc.text(statsCards[i]!.value, cx + 3, cy + 12);
+
+      doc.setFontSize(7);
+      doc.setTextColor(130);
+      doc.text(statsCards[i]!.sub, cx + 3, cy + 16);
+    }
+
+    const statsRows = Math.ceil(statsCards.length / cols);
+    y += statsRows * (cardH + gap) + 6;
+
+    // Distribution des notes (tableau compact)
+    doc.setFontSize(11);
+    doc.setTextColor(30);
+    doc.text('Distribution des notes', 14, y);
+    y += 3;
+
+    autoTable(doc, {
+      startY: y,
+      head: [distBuckets.map(b => b.range)],
+      body: [distBuckets.map(b => String(b.count))],
+      styles: { fontSize: 9, cellPadding: 3, halign: 'center' },
+      headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold' },
+      tableWidth: pageW - 28,
+      margin: { left: 14 },
+    });
+
+    // === PAGE 2 : Tableau détaillé ===
+    doc.addPage();
+
+    doc.setFillColor(...blue);
+    doc.rect(0, 0, pageW, 20, 'F');
+    doc.setFontSize(16);
+    doc.setTextColor(255);
+    doc.text('Détail des notes', 14, 13);
+
+    const head = [['#', 'Élève', 'Classe', 'Parcours', 'Note', 'Oral', 'Sujet', 'Points forts', 'Axes amélioration', 'Statut']];
+    const tableBody = eleves.map((e, i) => {
+      const fs = scoreMap.get(e.id);
+      return [
+        String(i + 1),
+        e.display_name,
+        e.classe || '',
+        e.parcours || '',
+        fs ? `${fs.total}/20` : '—',
+        fs ? `${fs.total_oral}/8` : '—',
+        fs ? `${fs.total_sujet}/12` : '—',
+        fs?.points_forts || '',
+        fs?.axes_amelioration || '',
+        statusLabel(e.status),
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 26,
+      head,
+      body: tableBody,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [...blue], textColor: 255, fontStyle: 'bold' },
+      columnStyles: {
+        0: { cellWidth: 8, halign: 'center' },
+        4: { cellWidth: 14, halign: 'center', fontStyle: 'bold' },
+        5: { cellWidth: 12, halign: 'center' },
+        6: { cellWidth: 12, halign: 'center' },
+        9: { cellWidth: 16, halign: 'center' },
+      },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+    });
+
+    doc.save('notes-jury.pdf');
+  }, [fetchScores, eleves, validated, total]);
 
   function getStatusStyle(status: string) {
     switch (status) {
@@ -122,9 +306,10 @@ export function StudentListScreen({ juryId, onSelectEleve, onDisconnect }: Stude
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 8 }}>
           <div style={styles.headerTitle}>Élèves du jury</div>
-          {validated > 0 && (
-            <button onClick={handleExport} style={styles.exportBtn}>⬇ CSV</button>
-          )}
+          {validated > 0 && (<>
+            <button onClick={handleExportExcel} style={styles.exportBtn}>⬇ Excel</button>
+            <button onClick={handleExportPDF} style={styles.exportBtn}>⬇ PDF</button>
+          </>)}
         </div>
         <div style={styles.progress}>
           {validated}/{total} passé{validated > 1 ? 's' : ''}
