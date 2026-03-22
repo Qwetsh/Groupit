@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard,
+  Home,
   Users,
   GraduationCap,
   Settings,
   ChevronLeft,
   ChevronRight,
-  FolderInput,
   HelpCircle,
-  Shuffle,
   Keyboard,
-  ClipboardCheck
+  ClipboardCheck,
+  Briefcase
 } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 import { Tooltip } from '../ui/Tooltip';
@@ -31,8 +30,7 @@ interface SidebarProps {
 
 // Section 1: Actions principales
 const actionItems: NavItem[] = [
-  { path: '/', label: 'Tableau de bord', icon: <LayoutDashboard size={20} /> },
-  { path: '/board', label: 'Répartir', icon: <Shuffle size={20} />, highlight: true },
+  { path: '/', label: 'Accueil', icon: <Home size={20} /> },
 ];
 
 // URL du dashboard principal (même base que l'app, sous-dossier)
@@ -42,7 +40,6 @@ const DASHBOARD_URL = `${window.location.origin}${import.meta.env.BASE_URL}group
 const dataItems: NavItem[] = [
   { path: '/eleves', label: 'Élèves', icon: <Users size={20} /> },
   { path: '/enseignants', label: 'Enseignants', icon: <GraduationCap size={20} /> },
-  { path: '/donnees', label: 'Import / Export', icon: <FolderInput size={20} /> },
 ];
 
 // Section 3: Aide et paramètres
@@ -64,6 +61,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, mobileOpen =
       <NavLink
         to={item.path}
         className={({ isActive }) => `nav-link ${isActive ? 'active' : ''} ${highlight ? 'highlight' : ''}`}
+        end={item.path === '/'}
       >
         <span className="nav-icon">{item.icon}</span>
         {!isCollapsed && <span className="nav-label">{item.label}</span>}
@@ -73,6 +71,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, mobileOpen =
     if (isCollapsed) {
       return (
         <Tooltip content={item.label} position="right" delay={200}>
+          {link}
+        </Tooltip>
+      );
+    }
+    return link;
+  };
+
+  const ExternalLink = ({ icon, label, href, tooltip }: { icon: React.ReactNode; label: string; href: string; tooltip?: string }) => {
+    const link = (
+      <a href={href} target="_blank" rel="noopener noreferrer" className="nav-link">
+        <span className="nav-icon">{icon}</span>
+        {!isCollapsed && <span className="nav-label">{label}</span>}
+      </a>
+    );
+
+    if (isCollapsed) {
+      return (
+        <Tooltip content={tooltip || label} position="right" delay={200}>
           {link}
         </Tooltip>
       );
@@ -115,18 +131,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, mobileOpen =
             </li>
           ))}
           <li>
-            {isCollapsed ? (
-              <Tooltip content="Suivi oral DNB" position="right" delay={200}>
-                <a href={DASHBOARD_URL} target="_blank" rel="noopener noreferrer" className="nav-link">
-                  <span className="nav-icon"><ClipboardCheck size={20} /></span>
-                </a>
-              </Tooltip>
-            ) : (
-              <a href={DASHBOARD_URL} target="_blank" rel="noopener noreferrer" className="nav-link">
-                <span className="nav-icon"><ClipboardCheck size={20} /></span>
-                <span className="nav-label">Suivi oral DNB</span>
-              </a>
-            )}
+            <ExternalLink
+              icon={<ClipboardCheck size={20} />}
+              label="Suivi oral DNB"
+              href={DASHBOARD_URL}
+              tooltip="Suivi oral DNB"
+            />
+          </li>
+          <li>
+            <NavItemLink item={{ path: '/suivi-stages', label: 'Suivi stages', icon: <Briefcase size={20} /> }} />
           </li>
         </ul>
 

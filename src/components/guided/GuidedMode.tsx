@@ -108,7 +108,7 @@ export function GuidedMode() {
           </div>
 
           <button className="guided-exit-btn" onClick={handleExit}>
-            Passer en Expert
+            Retour a l'accueil
             <X size={16} />
           </button>
         </div>
