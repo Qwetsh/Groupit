@@ -8,10 +8,11 @@ import autoTable from 'jspdf-autotable';
 interface StudentListScreenProps {
   juryId: string;
   onSelectEleve: (eleve: SessionEleveRow) => void;
+  onSelectBinome: (eleves: [SessionEleveRow, SessionEleveRow]) => void;
   onDisconnect: () => void;
 }
 
-export function StudentListScreen({ juryId, onSelectEleve, onDisconnect }: StudentListScreenProps) {
+export function StudentListScreen({ juryId, onSelectEleve, onSelectBinome, onDisconnect }: StudentListScreenProps) {
   const [eleves, setEleves] = useState<SessionEleveRow[]>([]);
   const [scoreMap, setScoreMap] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -348,60 +349,123 @@ export function StudentListScreen({ juryId, onSelectEleve, onDisconnect }: Stude
       </div>
 
       <div style={styles.list}>
-        {eleves.map((eleve, idx) => {
-          const st = getStatusStyle(eleve.status, eleve.id);
-          const isAbsent = eleve.status === 'absent';
-          const isClickable = eleve.status === 'pending' || eleve.status === 'validated';
+        {(() => {
+          // Regrouper les binômes : on skip un élève si son binôme a déjà été rendu
+          const rendered = new Set<string>();
 
-          return (
-            <div
-              key={eleve.id}
-              style={{
-                ...styles.card,
-                opacity: (isClickable || isAbsent) ? 1 : 0.7,
-                borderLeft: `4px solid ${st.color}`,
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          return eleves.map((eleve, idx) => {
+            if (rendered.has(eleve.id)) return null;
+            rendered.add(eleve.id);
+
+            // Vérifier si c'est un binôme
+            const partner = eleve.binome_id ? eleves.find(e => e.id === eleve.binome_id) : null;
+            if (partner) rendered.add(partner.id);
+
+            if (partner) {
+              // --- Rendu binôme ---
+              const pair: [SessionEleveRow, SessionEleveRow] = [eleve, partner];
+              const stA = getStatusStyle(eleve.status, eleve.id);
+              const stB = getStatusStyle(partner.status, partner.id);
+              const isClickable = pair.some(e => e.status === 'pending' || e.status === 'validated');
+
+              return (
                 <div
-                  onClick={() => isClickable && onSelectEleve(eleve)}
-                  style={{ flex: 1, cursor: isClickable ? 'pointer' : 'default' }}
+                  key={eleve.id}
+                  onClick={() => isClickable && onSelectBinome(pair)}
+                  style={{
+                    ...styles.card,
+                    borderLeft: '4px solid #6b46c1',
+                    cursor: isClickable ? 'pointer' : 'default',
+                    opacity: isClickable ? 1 : 0.7,
+                  }}
                 >
-                  <div style={styles.eleveNum}>#{idx + 1}</div>
-                  <div style={styles.eleveName}>{eleve.display_name}</div>
-                  <div style={styles.eleveInfo}>
-                    {eleve.classe}
-                    {eleve.parcours && ` · ${eleve.parcours}`}
-                    {eleve.heure_passage && ` · ${eleve.heure_passage}`}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                    <span style={styles.binomeBadge}>BINÔME</span>
+                    <span style={{ fontSize: 11, color: '#94a3b8' }}>#{idx + 1}</span>
                   </div>
+                  {pair.map(e => {
+                    const st = e === eleve ? stA : stB;
+                    return (
+                      <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
+                        <div>
+                          <div style={{ fontSize: 15, fontWeight: 700, color: '#1a202c' }}>{e.display_name}</div>
+                          <div style={{ fontSize: 11, color: '#64748b' }}>
+                            {e.classe}{e.parcours && ` · ${e.parcours}`}
+                          </div>
+                        </div>
+                        {e.status === 'absent' ? (
+                          <button onClick={(ev) => { ev.stopPropagation(); handleToggleAbsent(e); }} style={styles.absBadge}>{st.label}</button>
+                        ) : (
+                          <div style={{ padding: '3px 8px', borderRadius: 6, background: st.bg, color: st.color, fontSize: 11, fontWeight: 700 }}>{st.label}</div>
+                        )}
+                      </div>
+                    );
+                  })}
                   {eleve.sujet && (
-                    <div style={styles.eleveSujet}>{eleve.sujet}</div>
+                    <div style={{ ...styles.eleveSujet, marginTop: 4 }}>{eleve.sujet}</div>
+                  )}
+                  {eleve.heure_passage && (
+                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{eleve.heure_passage}</div>
                   )}
                 </div>
-                {isAbsent ? (
-                  <button
-                    onClick={() => handleToggleAbsent(eleve)}
-                    style={styles.absBadge}
+              );
+            }
+
+            // --- Rendu solo ---
+            const st = getStatusStyle(eleve.status, eleve.id);
+            const isAbsent = eleve.status === 'absent';
+            const isClickable = eleve.status === 'pending' || eleve.status === 'validated';
+
+            return (
+              <div
+                key={eleve.id}
+                style={{
+                  ...styles.card,
+                  opacity: (isClickable || isAbsent) ? 1 : 0.7,
+                  borderLeft: `4px solid ${st.color}`,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div
+                    onClick={() => isClickable && onSelectEleve(eleve)}
+                    style={{ flex: 1, cursor: isClickable ? 'pointer' : 'default' }}
                   >
-                    {st.label}
-                  </button>
-                ) : (
-                  <div style={{
-                    padding: '4px 10px',
-                    borderRadius: 8,
-                    background: st.bg,
-                    color: st.color,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    whiteSpace: 'nowrap',
-                  }}>
-                    {st.label}
+                    <div style={styles.eleveNum}>#{idx + 1}</div>
+                    <div style={styles.eleveName}>{eleve.display_name}</div>
+                    <div style={styles.eleveInfo}>
+                      {eleve.classe}
+                      {eleve.parcours && ` · ${eleve.parcours}`}
+                      {eleve.heure_passage && ` · ${eleve.heure_passage}`}
+                    </div>
+                    {eleve.sujet && (
+                      <div style={styles.eleveSujet}>{eleve.sujet}</div>
+                    )}
                   </div>
-                )}
+                  {isAbsent ? (
+                    <button
+                      onClick={() => handleToggleAbsent(eleve)}
+                      style={styles.absBadge}
+                    >
+                      {st.label}
+                    </button>
+                  ) : (
+                    <div style={{
+                      padding: '4px 10px',
+                      borderRadius: 8,
+                      background: st.bg,
+                      color: st.color,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {st.label}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          });
+        })()}
       </div>
 
       {validated === total && total > 0 && (
@@ -520,6 +584,15 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#4a5568',
     fontStyle: 'italic',
     marginTop: 4,
+  },
+  binomeBadge: {
+    fontSize: 10,
+    fontWeight: 800,
+    color: '#6b46c1',
+    background: '#e9d8fd',
+    padding: '2px 8px',
+    borderRadius: 6,
+    letterSpacing: 0.5,
   },
   absBadge: {
     padding: '4px 10px',

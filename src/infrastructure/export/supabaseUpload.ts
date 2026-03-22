@@ -162,11 +162,13 @@ export async function uploadSessionToSupabase(
       sessionId = newSession.id;
     }
 
-    // 3. Créer les jurys et élèves
+    // 3. Créer les jurys et élèves (passe 1 : sans binome_id)
+    const globalIdMap = new Map<string, string>(); // eleveId local → UUID Supabase
+
     for (let juryIdx = 0; juryIdx < data.jurys.length; juryIdx++) {
       const jury = data.jurys[juryIdx]!;
       const juryNumber = juryIdx + 1;
-      const mode = 'solo';
+      const hasBinomes = jury.eleves.some(e => e.binomeEleveId);
 
       const { data: newJury, error: juryErr } = await supabase
         .from('session_jurys')
@@ -175,7 +177,7 @@ export async function uploadSessionToSupabase(
           jury_number: juryNumber,
           jury_name: jury.juryName,
           salle: jury.salle || null,
-          mode,
+          mode: hasBinomes ? 'collectif' : 'solo',
         })
         .select('id')
         .single();
@@ -185,8 +187,33 @@ export async function uploadSessionToSupabase(
         continue;
       }
 
-      // 4. Créer les élèves pseudonymisés
-      await uploadJuryEleves(newJury.id, jury);
+      // 4. Créer les élèves pseudonymisés (sans binome_id)
+      const juryMap = await uploadJuryEleves(newJury.id, jury);
+      for (const [localId, supaId] of juryMap) {
+        globalIdMap.set(localId, supaId);
+      }
+    }
+
+    // 5. Passe 2 : mettre à jour les binome_id maintenant que tous les IDs existent
+    const binomeUpdates: { supaId: string; binomeSupaId: string }[] = [];
+    for (const jury of data.jurys) {
+      for (const eleve of jury.eleves) {
+        if (eleve.binomeEleveId) {
+          const supaId = globalIdMap.get(eleve.eleveId);
+          const binomeSupaId = globalIdMap.get(eleve.binomeEleveId);
+          if (supaId && binomeSupaId) {
+            binomeUpdates.push({ supaId, binomeSupaId });
+          }
+        }
+      }
+    }
+
+    for (const { supaId, binomeSupaId } of binomeUpdates) {
+      await supabase.from('session_eleves').update({ binome_id: binomeSupaId }).eq('id', supaId);
+    }
+
+    if (binomeUpdates.length > 0) {
+      console.log(`[supabaseUpload] ${binomeUpdates.length} liens binômes créés`);
     }
 
     console.log(`[supabaseUpload] Session ${sessionCode} uploadée: ${data.jurys.length} jurys`);
@@ -199,12 +226,17 @@ export async function uploadSessionToSupabase(
 }
 
 /**
- * Upload les élèves d'un jury (pseudonymisés avec hash)
+ * Upload les élèves d'un jury (pseudonymisés avec hash).
+ * Retourne un map eleveId local → session_eleves.id (UUID Supabase)
+ * pour résoudre les binômes en 2ème passe.
  */
 async function uploadJuryEleves(
   juryId: string,
   jury: ExportJuryData,
-): Promise<void> {
+): Promise<Map<string, string>> {
+  const localToSupabase = new Map<string, string>();
+  if (jury.eleves.length === 0) return localToSupabase;
+
   const rows = await Promise.all(
     jury.eleves.map(async (eleve: ExportEleveData, idx: number) => ({
       jury_id: juryId,
@@ -219,10 +251,24 @@ async function uploadJuryEleves(
     }))
   );
 
-  if (rows.length > 0) {
-    const { error } = await supabase.from('session_eleves').insert(rows);
-    if (error) {
-      console.error(`[supabaseUpload] Erreur élèves jury ${jury.juryName}:`, error);
+  const { data: inserted, error } = await supabase
+    .from('session_eleves')
+    .insert(rows)
+    .select('id');
+
+  if (error || !inserted) {
+    console.error(`[supabaseUpload] Erreur élèves jury ${jury.juryName}:`, error);
+    return localToSupabase;
+  }
+
+  // Mapper eleveId local → UUID Supabase (même ordre d'insertion)
+  for (let i = 0; i < jury.eleves.length; i++) {
+    const localId = jury.eleves[i]!.eleveId;
+    const supaId = inserted[i]?.id;
+    if (localId && supaId) {
+      localToSupabase.set(localId, supaId);
     }
   }
+
+  return localToSupabase;
 }

@@ -81,6 +81,7 @@ function mapEleveAffecte(
     parcoursOral: eleve.parcoursOral,
     sujetOral: eleve.sujetOral,
     binomeNom,
+    binomeEleveId: eleve.binomeId,
 
     // Champs futurs depuis metadata si disponibles
     datePassage: metadata?.dateCreneau,

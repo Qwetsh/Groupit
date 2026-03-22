@@ -23,6 +23,7 @@ export interface ExportEleveData {
 
   // Binôme
   binomeNom?: string; // "Prénom Nom" du partenaire si binôme
+  binomeEleveId?: string; // ID local de l'élève partenaire
 
   // Champs futurs (placeholders)
   datePassage?: string;
