@@ -176,17 +176,13 @@ export const DashboardPage: React.FC = () => {
           </span>
         </div>
 
-        <div className="mode-card disabled" title="Disponible dans une prochaine version">
+        <button className="mode-card active" onClick={() => navigate('/libre')}>
           <div className="mode-icon libre">
             <MousePointerClick size={32} />
           </div>
           <h3>Mode Libre</h3>
           <p>Glisser-deposer manuel et configuration libre des groupes.</p>
-          <span className="mode-badge">
-            <Lock size={12} />
-            Bientot
-          </span>
-        </div>
+        </button>
       </div>
 
       {/* Data summary + quick actions */}
