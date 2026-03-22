@@ -1,15 +1,12 @@
 import React from 'react';
-import { Settings, SlidersHorizontal, Eye, Database, Trash2, Compass } from 'lucide-react';
+import { Settings, SlidersHorizontal, Database, Trash2, Compass } from 'lucide-react';
 import { useUIStore } from '../stores/uiStore';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useConfirm } from '../hooks/useConfirm';
 import './InfoPage.css';
 
 export const ParametresPage: React.FC = () => {
-  const expertMode = useUIStore(state => state.expertMode);
-  const setExpertMode = useUIStore(state => state.setExpertMode);
   const resetGuidedMode = useUIStore(state => state.resetGuidedMode);
-  const showWelcomeScreen = useUIStore(state => state.showWelcomeScreen);
 
   // Confirm modal
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirm();
@@ -34,11 +31,11 @@ export const ParametresPage: React.FC = () => {
       <h1>Paramètres</h1>
       <p className="lead">Configurez l'application et les préférences d'affectation.</p>
 
-      {/* Mode Guidé */}
+      {/* Lancer un assistant */}
       <div className="info-card settings-card">
         <div className="card-title">
           <Compass size={18} />
-          <span>Mode guidé</span>
+          <span>Lancer un assistant</span>
         </div>
         <p className="info-note">
           Relancez l'assistant pas-à-pas pour configurer une nouvelle affectation.
@@ -46,35 +43,9 @@ export const ParametresPage: React.FC = () => {
         <div className="button-group">
           <button className="btn-primary" onClick={resetGuidedMode}>
             <Compass size={16} />
-            Lancer le mode guidé
-          </button>
-          <button className="btn-secondary" onClick={showWelcomeScreen}>
-            Revoir l'écran de bienvenue
+            Lancer l'assistant
           </button>
         </div>
-      </div>
-
-      {/* Mode Expert */}
-      <div className="info-card settings-card">
-        <div className="card-title">
-          <Eye size={18} />
-          <span>Mode expert</span>
-        </div>
-        <p className="info-note">
-          Active l'affichage des critères système (forcés) dans l'éditeur de configuration.
-          Ces critères sont appliqués automatiquement mais normalement masqués.
-        </p>
-        <label className="toggle-switch">
-          <input
-            type="checkbox"
-            checked={expertMode}
-            onChange={(e) => setExpertMode(e.target.checked)}
-          />
-          <span className="toggle-slider"></span>
-          <span className="toggle-label">
-            {expertMode ? 'Activé' : 'Désactivé'}
-          </span>
-        </label>
       </div>
 
       <div className="info-card">

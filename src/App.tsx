@@ -4,17 +4,16 @@ import { MainLayout } from './components/layout';
 import { Board } from './components/board';
 import { ImportWizard } from './components/import';
 import { EnseignantModal, ScenarioModal, ScenarioWizard } from './components/modals';
-import { GuidedMode, WelcomeScreen } from './components/guided';
+import { GuidedMode } from './components/guided';
 import { ToastContainer } from './components/ui/Toast';
 import {
   DashboardPage,
   ElevesPage,
   EnseignantsPage,
-  ScenariosPage,
-  DonneesPage,
   ParametresPage,
   AidePage,
 } from './pages';
+import { SuiviStagePage } from './pages/SuiviStagePage';
 import { useEleveStore } from './stores/eleveStore';
 import { useEnseignantStore } from './stores/enseignantStore';
 import { useScenarioStore } from './stores/scenarioStore';
@@ -83,11 +82,6 @@ function App() {
     );
   }
 
-  // Show welcome screen if first visit
-  if (!guidedMode.hasSeenWelcome) {
-    return <WelcomeScreen />;
-  }
-
   // Show guided mode if active
   if (guidedMode.isActive) {
     return (
@@ -106,8 +100,7 @@ function App() {
           <Route path="board" element={<Board />} />
           <Route path="eleves" element={<ElevesPage />} />
           <Route path="enseignants" element={<EnseignantsPage />} />
-          <Route path="scenarios" element={<ScenariosPage />} />
-          <Route path="donnees" element={<DonneesPage />} />
+          <Route path="suivi-stages" element={<SuiviStagePage />} />
           <Route path="parametres" element={<ParametresPage />} />
           <Route path="aide" element={<AidePage />} />
         </Route>

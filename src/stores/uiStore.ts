@@ -9,7 +9,7 @@ type Tab = 'matching' | 'groupes';
 type Modal = 'import' | 'importMatiereOral' | 'editEleve' | 'editEnseignant' | 'editAffectation' | 'editGroupe' | 'editScenario' | 'newScenario' | 'confirmDelete' | null;
 
 // Guided mode types
-export type GuidedScenarioType = 'suivi_stage' | 'oral_dnb' | null;
+export type GuidedScenarioType = 'suivi_stage' | 'oral_dnb' | 'personnalise' | 'libre' | null;
 export type GuidedStep = 'welcome' | 'scenario' | 'eleves' | 'themes' | 'binomes' | 'enseignants' | 'configuration' | 'salles' | 'recap' | 'results';
 
 export interface GuidedModeState {
@@ -39,7 +39,7 @@ const DEFAULT_DASHBOARD_PREFS: DashboardPreferences = {
 
 const DEFAULT_GUIDED_MODE: GuidedModeState = {
   isActive: false,
-  hasSeenWelcome: false,
+  hasSeenWelcome: true,
   currentStep: 'welcome',
   scenarioType: null,
   importedElevesCount: 0,
@@ -311,8 +311,8 @@ if (typeof window !== 'undefined') {
     }
   }
 
-  // Charger l'état du mode guidé
-  const hasSeenWelcome = localStorage.getItem('groupit_hasSeenWelcome') === 'true';
+  // Charger l'état du mode guidé (hasSeenWelcome is always true — welcome screen removed)
+  const hasSeenWelcome = true;
   const guidedModeActive = localStorage.getItem('groupit_guidedModeActive') === 'true';
   const storedStep = localStorage.getItem('groupit_guidedStep') as GuidedStep | null;
   const storedScenarioType = localStorage.getItem('groupit_guidedScenarioType') as GuidedScenarioType | null;
