@@ -10,7 +10,8 @@ import {
   FolderInput,
   HelpCircle,
   Shuffle,
-  Keyboard
+  Keyboard,
+  ClipboardCheck
 } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 import { Tooltip } from '../ui/Tooltip';
@@ -33,6 +34,9 @@ const actionItems: NavItem[] = [
   { path: '/', label: 'Tableau de bord', icon: <LayoutDashboard size={20} /> },
   { path: '/board', label: 'Répartir', icon: <Shuffle size={20} />, highlight: true },
 ];
+
+// URL du dashboard principal (même base que l'app, sous-dossier)
+const DASHBOARD_URL = `${window.location.origin}${import.meta.env.BASE_URL}groupit-dashboard/`;
 
 // Section 2: Gestion des données
 const dataItems: NavItem[] = [
@@ -110,6 +114,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, mobileOpen =
               <NavItemLink item={item} highlight={item.highlight} />
             </li>
           ))}
+          <li>
+            {isCollapsed ? (
+              <Tooltip content="Suivi oral DNB" position="right" delay={200}>
+                <a href={DASHBOARD_URL} target="_blank" rel="noopener noreferrer" className="nav-link">
+                  <span className="nav-icon"><ClipboardCheck size={20} /></span>
+                </a>
+              </Tooltip>
+            ) : (
+              <a href={DASHBOARD_URL} target="_blank" rel="noopener noreferrer" className="nav-link">
+                <span className="nav-icon"><ClipboardCheck size={20} /></span>
+                <span className="nav-label">Suivi oral DNB</span>
+              </a>
+            )}
+          </li>
         </ul>
 
         <div className="nav-divider" />
