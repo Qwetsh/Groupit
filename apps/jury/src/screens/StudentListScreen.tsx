@@ -13,9 +13,10 @@ interface StudentListScreenProps {
 
 export function StudentListScreen({ juryId, onSelectEleve, onDisconnect }: StudentListScreenProps) {
   const [eleves, setEleves] = useState<SessionEleveRow[]>([]);
+  const [scoreMap, setScoreMap] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
 
-  // Charger les élèves
+  // Charger les élèves + scores
   useEffect(() => {
     async function load() {
       const { data } = await supabase
@@ -24,7 +25,17 @@ export function StudentListScreen({ juryId, onSelectEleve, onDisconnect }: Stude
         .eq('jury_id', juryId)
         .order('ordre_passage', { ascending: true });
 
-      if (data) setEleves(data);
+      if (data) {
+        setEleves(data);
+        const ids = data.map(e => e.id);
+        if (ids.length > 0) {
+          const { data: scores } = await supabase
+            .from('final_scores')
+            .select('eleve_id, total')
+            .in('eleve_id', ids);
+          if (scores) setScoreMap(new Map(scores.map(s => [s.eleve_id, s.total])));
+        }
+      }
       setLoading(false);
     }
     load();
@@ -43,6 +54,16 @@ export function StudentListScreen({ juryId, onSelectEleve, onDisconnect }: Stude
         setEleves(prev => prev.map(e =>
           e.id === payload.new.id ? { ...e, ...payload.new } as SessionEleveRow : e
         ));
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'final_scores',
+      }, (payload) => {
+        const row = payload.new as { eleve_id?: string; total?: number };
+        if (row.eleve_id && row.total != null) {
+          setScoreMap(prev => new Map(prev).set(row.eleve_id!, row.total!));
+        }
       })
       .subscribe();
 
@@ -285,9 +306,12 @@ export function StudentListScreen({ juryId, onSelectEleve, onDisconnect }: Stude
     doc.save('notes-jury.pdf');
   }, [fetchScores, eleves, validated, total]);
 
-  function getStatusStyle(status: string) {
+  function getStatusStyle(status: string, eleveId: string) {
     switch (status) {
-      case 'validated': return { bg: '#c6f6d5', color: '#276749', label: '✓ Noté' };
+      case 'validated': {
+        const note = scoreMap.get(eleveId);
+        return { bg: '#c6f6d5', color: '#276749', label: note != null ? `${note}/20` : '✓' };
+      }
       case 'in_progress': return { bg: '#bee3f8', color: '#2b6cb0', label: '🎤 En cours' };
       case 'absent': return { bg: '#fed7d7', color: '#9b2c2c', label: 'Abs' };
       default: return { bg: '#f1f5f9', color: '#64748b', label: 'À passer' };
@@ -325,7 +349,7 @@ export function StudentListScreen({ juryId, onSelectEleve, onDisconnect }: Stude
 
       <div style={styles.list}>
         {eleves.map((eleve, idx) => {
-          const st = getStatusStyle(eleve.status);
+          const st = getStatusStyle(eleve.status, eleve.id);
           const isAbsent = eleve.status === 'absent';
           const isClickable = eleve.status === 'pending' || eleve.status === 'validated';
 
