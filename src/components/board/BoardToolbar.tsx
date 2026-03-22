@@ -1,6 +1,5 @@
 import React from 'react';
-import { Wand2, RefreshCw, RotateCcw, Save, Loader2, Download, Upload } from 'lucide-react';
-import { HelpTooltip, HELP_TEXTS } from '../ui/Tooltip';
+import { Download, Upload } from 'lucide-react';
 import type { BoardToolbarProps } from './types';
 
 /**
@@ -11,14 +10,7 @@ export const BoardToolbar: React.FC<BoardToolbarProps> = ({
   isJuryMode,
   isStageScenario,
   isRunning,
-  isValidating,
   scenarioInfo,
-  affectationsCount,
-  runButtonDisabled,
-  runButtonTitle,
-  onRunMatching,
-  onResetAffectations,
-  onValidateClick,
   onExportSession,
   onImportSession,
 }) => {
@@ -53,56 +45,6 @@ export const BoardToolbar: React.FC<BoardToolbarProps> = ({
             </button>
           </div>
         )}
-        <button
-          className="btn-icon"
-          title="Réinitialiser les affectations"
-          onClick={onResetAffectations}
-          disabled={!activeScenario || isRunning}
-        >
-          <RotateCcw size={18} />
-        </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <button
-            className="btn-action"
-            onClick={onRunMatching}
-            disabled={runButtonDisabled}
-            title={runButtonTitle}
-          >
-            {isRunning ? (
-              <>
-                <RefreshCw size={18} className="spinning" />
-                En cours...
-              </>
-            ) : (
-              <>
-                <Wand2 size={18} />
-                Lancer la répartition
-              </>
-            )}
-          </button>
-          <HelpTooltip content={HELP_TEXTS.board.autoMatch} />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          <button
-            className="btn-action validate"
-            onClick={onValidateClick}
-            disabled={!activeScenario || isRunning || isValidating || affectationsCount === 0}
-            title={affectationsCount === 0 ? 'Lancez d\'abord la répartition' : 'Valider et archiver les affectations'}
-          >
-            {isValidating ? (
-              <>
-                <Loader2 size={18} className="spinning" />
-                Validation...
-              </>
-            ) : (
-              <>
-                <Save size={18} />
-                Valider
-              </>
-            )}
-          </button>
-          <HelpTooltip content={HELP_TEXTS.board.validate} />
-        </div>
       </div>
     </div>
   );
