@@ -72,12 +72,17 @@ export function JoinScreen({ onJoined }: JoinScreenProps) {
       if (!session) { setResetMsg('Session introuvable.'); return; }
 
       // CASCADE : supprimer la session supprime jurys → élèves → evaluations → final_scores
-      const { error: delErr } = await supabase
+      const { error: delErr, data: deleted } = await supabase
         .from('exam_sessions')
         .delete()
-        .eq('id', session.id);
+        .eq('id', session.id)
+        .select('id');
 
       if (delErr) throw delErr;
+      if (!deleted || deleted.length === 0) {
+        setResetMsg('Suppression bloquée par les permissions Supabase (RLS). Ajoutez une policy DELETE sur exam_sessions.');
+        return;
+      }
       setResetMsg(`Session "${code}" supprimée.`);
     } catch (err) {
       setResetMsg(err instanceof Error ? err.message : 'Erreur suppression');
