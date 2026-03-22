@@ -287,6 +287,8 @@ interface GroupCardProps {
   nbReservesDefaut: number;
   eleveLinkGroups: string[][];
   isDraggingEnseignant: boolean;
+  /** Classe de l'élève en cours de drag (null si pas un élève) */
+  draggedEleveClasse: string | null;
   onUpdate: (id: string, patch: Partial<Pick<LibreGroupe, 'nom' | 'salle' | 'tailleJuryOverride' | 'nbReservesOverride'>>) => void;
   onRemove: (id: string) => void;
   onRemoveEleve: (eleveId: string, groupeId: string) => void;
@@ -304,6 +306,7 @@ const GroupCard: React.FC<GroupCardProps> = ({
   nbReservesDefaut,
   eleveLinkGroups,
   isDraggingEnseignant,
+  draggedEleveClasse,
   onUpdate,
   onRemove,
   onRemoveEleve,
@@ -350,6 +353,13 @@ const GroupCard: React.FC<GroupCardProps> = ({
     return map;
   }, []);
 
+  // Highlight: enseignant in this group has the dragged élève in their class
+  const hasMatchingEns = useMemo(() => {
+    if (!draggedEleveClasse) return false;
+    const allGroupEns = [...groupeEnseignants, ...groupeSuppleants];
+    return allGroupEns.some(ens => ens.classesEnCharge.includes(draggedEleveClasse));
+  }, [draggedEleveClasse, groupeEnseignants, groupeSuppleants]);
+
   // Determine if drop would go to reserve
   const titulaireFull = groupeEnseignants.length >= tailleJury;
   const reserveAvailable = nbReserves > 0 && groupeSuppleants.length < nbReserves;
@@ -359,7 +369,7 @@ const GroupCard: React.FC<GroupCardProps> = ({
   return (
     <div
       ref={setNodeRef}
-      className={`libre-group-card ${hasEleves ? 'has-eleves' : ''} ${isOver ? 'dropping' : ''} ${willDropToReserve ? 'dropping-reserve' : ''} ${dropBlocked ? 'dropping-blocked' : ''}`}
+      className={`libre-group-card ${hasEleves ? 'has-eleves' : ''} ${isOver ? 'dropping' : ''} ${willDropToReserve ? 'dropping-reserve' : ''} ${dropBlocked ? 'dropping-blocked' : ''} ${hasMatchingEns ? 'ens-match' : ''}`}
     >
       {/* Drop indicator */}
       {willDropToReserve && (
@@ -557,6 +567,15 @@ export const LibreModePage: React.FC = () => {
   // DnD state
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  // Compute the classe of the currently dragged élève (for group highlight)
+  const draggedEleveClasse = useMemo(() => {
+    if (!activeId) return null;
+    const match = activeId.match(/(?:pool-eleve|grp-eleve:[^:]+):(.+)/);
+    if (!match) return null;
+    const eleve = allEleves.find(e => e.id === match[1]);
+    return eleve?.classe ?? null;
+  }, [activeId, allEleves]);
 
   // Context menu
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -912,6 +931,7 @@ export const LibreModePage: React.FC = () => {
                   nbReservesDefaut={config.nbReservesDefaut}
                   eleveLinkGroups={eleveLinkGroups}
                   isDraggingEnseignant={!!activeId && (activeId.startsWith('pool-ens:') || activeId.startsWith('grp-ens:'))}
+                  draggedEleveClasse={draggedEleveClasse}
                   onUpdate={updateGroupe}
                   onRemove={removeGroupe}
                   onRemoveEleve={removeEleveFromGroupe}
