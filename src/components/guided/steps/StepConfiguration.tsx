@@ -203,6 +203,12 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
   const [filterNiveaux, setFilterNiveaux] = useState<Set<string>>(new Set());
   const [filterMatieres, setFilterMatieres] = useState<Set<string>>(new Set());
 
+  // Stage-specific state
+  const [distanceMaxKm, setDistanceMaxKm] = useState(20);
+  const [dureeMaxMin, setDureeMaxMin] = useState(45);
+  const [prioriserPP, setPrioriserPP] = useState(true);
+  const [capaciteTuteurDefaut, setCapaciteTuteurDefaut] = useState(10);
+
   // DnD sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -360,56 +366,94 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
 
   // Create scenario and generate jurys
   const handleCreateAndGenerate = useCallback(async () => {
-    if (!scenarioName.trim() || !hasEnoughEnseignants) return;
+    if (!scenarioName.trim()) return;
+    if (isOralDnb && !hasEnoughEnseignants) return;
 
     setCreating(true);
 
     try {
-      // Create scenario
-      const newScenario: Omit<Scenario, 'id' | 'createdAt' | 'updatedAt'> = {
-        nom: scenarioName,
-        type: isOralDnb ? 'oral_dnb' : 'suivi_stage',
-        mode: isOralDnb ? 'groupes' : 'matching',
-        parametres: {
-          criteres: [],
-          capaciteConfig: {
-            capaciteBaseDefaut: elevesParJury,
-            coefficients: { '6e': 0, '5e': 0, '4e': 0, '3e': 1 },
+      if (isOralDnb) {
+        // === ORAL DNB: create scenario + generate jurys ===
+        const newScenario: Omit<Scenario, 'id' | 'createdAt' | 'updatedAt'> = {
+          nom: scenarioName,
+          type: 'oral_dnb',
+          mode: 'groupes',
+          parametres: {
+            criteres: [],
+            capaciteConfig: {
+              capaciteBaseDefaut: elevesParJury,
+              coefficients: { '6e': 0, '5e': 0, '4e': 0, '3e': 1 },
+            },
+            filtresEleves: {
+              niveaux: ['3e'],
+            },
+            filtresEnseignants: {
+              enseignantIds: Array.from(selectedEnseignantIds),
+            },
+            equilibrageActif: true,
+            oralDnb: {
+              matieresAutorisees: [],
+              utiliserJurys: true,
+              poidsMatiere: 50,
+              criteresSecondaires: ['equilibrage'],
+              capaciteJuryDefaut: elevesParJury,
+              demiJourneesOral: demiJourneesOral.length > 0 ? demiJourneesOral : ['jeudi_matin'],
+            },
           },
-          filtresEleves: {
-            niveaux: ['3e'],
-          },
-          filtresEnseignants: {
-            enseignantIds: Array.from(selectedEnseignantIds),
-          },
-          equilibrageActif: true,
-          oralDnb: {
-            matieresAutorisees: [],
-            utiliserJurys: true,
-            poidsMatiere: 50,
-            criteresSecondaires: ['equilibrage'],
-            capaciteJuryDefaut: elevesParJury,
-            demiJourneesOral: demiJourneesOral.length > 0 ? demiJourneesOral : ['jeudi_matin'],
-          },
-        },
-      };
+        };
 
-      const createdScenario = await addScenario(newScenario);
-      setCreatedScenarioId(createdScenario.id!);
-      setGuidedCreatedScenarioId(createdScenario.id!);
-      setActiveScenario(createdScenario.id!);
+        const createdScenario = await addScenario(newScenario);
+        setCreatedScenarioId(createdScenario.id!);
+        setGuidedCreatedScenarioId(createdScenario.id!);
+        setActiveScenario(createdScenario.id!);
 
-      // Generate jurys
-      const selectedEnsList = enseignants.filter(e => selectedEnseignantIds.has(e.id!));
-      await generateJurysAuto(createdScenario, selectedEnsList, {
-        nbJurys: nbJurysNeeded,
-        capaciteParJury: elevesParJury,
-        enseignantsParJury,
-        suppleantsParJury: suppleants,
-        equilibrerMatieres: true,
-      });
+        // Generate jurys
+        const selectedEnsList = enseignants.filter(e => selectedEnseignantIds.has(e.id!));
+        await generateJurysAuto(createdScenario, selectedEnsList, {
+          nbJurys: nbJurysNeeded,
+          capaciteParJury: elevesParJury,
+          enseignantsParJury,
+          suppleantsParJury: suppleants,
+          equilibrerMatieres: true,
+        });
 
-      setShowJuryEditor(true);
+        setShowJuryEditor(true);
+      } else {
+        // === SUIVI STAGE: create scenario, NO jury generation, go to next step ===
+        const newScenario: Omit<Scenario, 'id' | 'createdAt' | 'updatedAt'> = {
+          nom: scenarioName,
+          type: 'suivi_stage',
+          mode: 'matching',
+          parametres: {
+            criteres: [],
+            capaciteConfig: {
+              capaciteBaseDefaut: capaciteTuteurDefaut,
+              coefficients: { '6e': 0, '5e': 0, '4e': 0, '3e': 1 },
+            },
+            filtresEleves: {
+              niveaux: ['3e'],
+            },
+            filtresEnseignants: {
+              enseignantIds: Array.from(selectedEnseignantIds),
+            },
+            equilibrageActif: true,
+            suiviStage: {
+              distanceMaxKm,
+              dureeMaxMin,
+              prioriserPP,
+              capaciteTuteurDefaut,
+            },
+          },
+        };
+
+        const createdScenario = await addScenario(newScenario);
+        setCreatedScenarioId(createdScenario.id!);
+        setGuidedCreatedScenarioId(createdScenario.id!);
+        setActiveScenario(createdScenario.id!);
+
+        // No jury editor for stages — go directly to next step
+        onNext();
+      }
     } catch (error) {
       console.error('Error creating scenario:', error);
     } finally {
@@ -418,7 +462,8 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
   }, [
     scenarioName, hasEnoughEnseignants, isOralDnb, elevesParJury, selectedEnseignantIds,
     addScenario, setGuidedCreatedScenarioId, setActiveScenario, enseignants,
-    generateJurysAuto, nbJurysNeeded, enseignantsParJury
+    generateJurysAuto, nbJurysNeeded, enseignantsParJury, suppleants, demiJourneesOral,
+    distanceMaxKm, dureeMaxMin, prioriserPP, capaciteTuteurDefaut, onNext
   ]);
 
   // Regenerate jurys
@@ -811,9 +856,181 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
               </span>
             </div>
           )}
+
+          {/* Stage-specific configuration */}
+          {!isOralDnb && (
+            <>
+              <div className="form-group">
+                <label>Eleves concernes <span className="label-count">{nbEleves} eleves de 3eme</span></label>
+              </div>
+
+              <div className="form-row-3col">
+                <div className="form-group">
+                  <label>Distance max (km)</label>
+                  <p className="form-hint">Trajet domicile-stage max.</p>
+                  <div className="number-input-group">
+                    <button className="number-btn" onClick={() => setDistanceMaxKm(Math.max(5, distanceMaxKm - 5))}>-</button>
+                    <input
+                      type="number"
+                      min={5}
+                      max={100}
+                      value={distanceMaxKm}
+                      onChange={(e) => setDistanceMaxKm(parseInt(e.target.value) || 20)}
+                      className="form-input number-input"
+                    />
+                    <button className="number-btn" onClick={() => setDistanceMaxKm(Math.min(100, distanceMaxKm + 5))}>+</button>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Duree max (min)</label>
+                  <p className="form-hint">Trajet domicile-stage max.</p>
+                  <div className="number-input-group">
+                    <button className="number-btn" onClick={() => setDureeMaxMin(Math.max(10, dureeMaxMin - 5))}>-</button>
+                    <input
+                      type="number"
+                      min={10}
+                      max={120}
+                      value={dureeMaxMin}
+                      onChange={(e) => setDureeMaxMin(parseInt(e.target.value) || 45)}
+                      className="form-input number-input"
+                    />
+                    <button className="number-btn" onClick={() => setDureeMaxMin(Math.min(120, dureeMaxMin + 5))}>+</button>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Stages par enseignant</label>
+                  <p className="form-hint">Capacite par defaut.</p>
+                  <div className="number-input-group">
+                    <button className="number-btn" onClick={() => setCapaciteTuteurDefaut(Math.max(1, capaciteTuteurDefaut - 1))}>-</button>
+                    <input
+                      type="number"
+                      min={1}
+                      max={30}
+                      value={capaciteTuteurDefaut}
+                      onChange={(e) => setCapaciteTuteurDefaut(parseInt(e.target.value) || 10)}
+                      className="form-input number-input"
+                    />
+                    <button className="number-btn" onClick={() => setCapaciteTuteurDefaut(Math.min(30, capaciteTuteurDefaut + 1))}>+</button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={prioriserPP}
+                    onChange={(e) => setPrioriserPP(e.target.checked)}
+                  />
+                  Prioriser les professeurs principaux
+                </label>
+                <p className="form-hint">Les PP seront affectes en priorite aux stages de leurs eleves.</p>
+              </div>
+            </>
+          )}
         </div>
 
-        {/* Colonne droite : sélection enseignants */}
+        {/* Colonne droite : sélection enseignants (stage mode) */}
+        {!isOralDnb && (
+          <div className="config-col-right">
+            <div className="form-group">
+              <label>
+                <GraduationCap size={18} />
+                Enseignants tuteurs
+              </label>
+
+              <div className="ens-filters-bar">
+                <div className="ens-filter-group">
+                  <span className="ens-filter-label">
+                    <Filter size={14} />
+                    Niveaux
+                  </span>
+                  <div className="ens-filter-chips">
+                    {distinctNiveaux.map(n => (
+                      <button
+                        key={n}
+                        className={clsx('filter-chip', filterNiveaux.has(n) && 'active')}
+                        onClick={() => toggleFilterNiveau(n)}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="ens-filter-group">
+                  <span className="ens-filter-label">Matieres</span>
+                  <div className="ens-filter-chips">
+                    {distinctMatieres.map(m => (
+                      <button
+                        key={m}
+                        className={clsx('filter-chip', filterMatieres.has(m) && 'active')}
+                        onClick={() => toggleFilterMatiere(m)}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="ens-filter-actions">
+                  {hasActiveFilters && (
+                    <>
+                      <button className="btn btn-text" onClick={selectFilteredEnseignants}>
+                        + {filteredEnseignants.length} affiches
+                      </button>
+                      <button className="btn btn-text" onClick={clearFilters}>
+                        Effacer filtres
+                      </button>
+                    </>
+                  )}
+                  <button className="btn btn-text" onClick={selectAllEnseignants}>
+                    Tous
+                  </button>
+                  <button className="btn btn-text" onClick={deselectAllEnseignants}>
+                    Aucun
+                  </button>
+                </div>
+              </div>
+
+              <div className="calculation-preview">
+                <div className="calc-item">
+                  <span className="calc-label">Enseignants selectionnes</span>
+                  <span className="calc-value">{nbSelectedEnseignants}</span>
+                </div>
+              </div>
+
+              <div className="enseignant-grid compact">
+                {filteredEnseignants.map(ens => (
+                  <button
+                    key={ens.id}
+                    className={clsx(
+                      'enseignant-chip compact',
+                      selectedEnseignantIds.has(ens.id!) && 'selected',
+                    )}
+                    onClick={() => toggleEnseignant(ens.id!)}
+                  >
+                    {selectedEnseignantIds.has(ens.id!) && <Check size={12} />}
+                    <span className="ens-name">{ens.nom} {ens.prenom}</span>
+                    <span className="ens-matiere">{ens.matierePrincipale || '-'}</span>
+                  </button>
+                ))}
+                {filteredEnseignants.length === 0 && enseignants.length > 0 && (
+                  <p className="no-data-warning">Aucun enseignant ne correspond aux filtres.</p>
+                )}
+              </div>
+              {enseignants.length === 0 && (
+                <p className="no-data-warning">
+                  Aucun enseignant dans la base. Retournez a l'etape precedente pour en importer.
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Colonne droite : sélection enseignants (oral DNB) */}
         {isOralDnb && (
           <div className="config-col-right">
             <div className="form-group">
@@ -920,7 +1137,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
         <button
           className="btn btn-primary btn-large"
           onClick={handleCreateAndGenerate}
-          disabled={!scenarioName.trim() || (isOralDnb && !hasEnoughEnseignants) || creating}
+          disabled={!scenarioName.trim() || (isOralDnb && !hasEnoughEnseignants) || (!isOralDnb && nbSelectedEnseignants === 0) || creating}
         >
           {creating ? 'Creation...' : isOralDnb ? 'Creer les jurys' : 'Creer la configuration'}
           <ChevronRight size={20} />
