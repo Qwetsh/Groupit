@@ -17,7 +17,6 @@ import { useAffectationStore } from '../../stores/affectationStore';
 import { useScenarioStore } from '../../stores/scenarioStore';
 import { useJuryStore } from '../../stores/juryStore';
 import { useStageStore } from '../../stores/stageStore';
-import { useScenarioArchiveStore } from '../../stores/scenarioArchiveStore';
 import { calculateDistance, recalcTimeSlotsForJurys } from '../../algorithms';
 import type { Eleve, Enseignant, Affectation, Jury, MatchingResultDNB, Stage } from '../../domain/models';
 import { calculateCapacitesStage, getHeuresMatiere } from '../../domain/models';
@@ -115,11 +114,11 @@ export const Board: React.FC = () => {
   // State
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeData, setActiveData] = useState<DragData | null>(null);
-  const [isRunning, setIsRunning] = useState(false);
+  const [isRunning] = useState(false);
   const [matchingError, setMatchingError] = useState<string | null>(null);
   const [matchingStats, setMatchingStats] = useState<MatchingStats | null>(null);
-  const [dnbResults, setDnbResults] = useState<Map<string, MatchingResultDNB>>(new Map());
-  const [nonAffectesInfo, setNonAffectesInfo] = useState<Map<string, NonAffectationInfo>>(new Map());
+  const [dnbResults] = useState<Map<string, MatchingResultDNB>>(new Map());
+  const [nonAffectesInfo] = useState<Map<string, NonAffectationInfo>>(new Map());
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [enseignantContextMenu, setEnseignantContextMenu] = useState<EnseignantContextMenuState | null>(null);
   const [distanceEnseignantId, setDistanceEnseignantId] = useState<string | null>(null);
@@ -130,7 +129,7 @@ export const Board: React.FC = () => {
   const [showImportModal, setShowImportModal] = useState(false);
 
   // Confirm modal hook
-  const { confirmState, confirmReset, handleConfirm: handleConfirmReset, handleCancel: handleCancelReset } = useConfirmReset();
+  const { confirmState, handleConfirm: handleConfirmReset, handleCancel: handleCancelReset } = useConfirmReset();
 
   // Load global stages when entering a stage scenario
   useEffect(() => {
@@ -278,9 +277,6 @@ export const Board: React.FC = () => {
   const scenarioInfo = isStageScenario
     ? `${geocodedStagesCount}/${scenarioStages.length} stages • ${geocodedEnseignantsCount} enseignants`
     : `${scenarioEleves.length} élèves • ${isJuryMode ? `${scenarioJurys.length} jurys` : `${scenarioEnseignants.length} enseignants`}`;
-
-  const jurysWithoutEnseignants = isJuryMode ? scenarioJurys.filter(j => !j.enseignantIds || j.enseignantIds.length === 0) : [];
-  const hasJurysWithoutEnseignants = jurysWithoutEnseignants.length > 0;
 
   // Stages for selected teacher map
   const selectedTeacherStages = useMemo(() => {
