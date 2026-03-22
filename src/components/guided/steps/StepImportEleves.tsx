@@ -57,7 +57,7 @@ export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const totalImported = importedFiles.reduce((sum, f) => sum + (f.status === 'done' ? f.elevesCount : 0), 0) + eleves.length;
+  const totalImported = eleves.length;
 
   // Handle file selection
   const handleFile = useCallback(async (file: File) => {
