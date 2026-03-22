@@ -10,20 +10,23 @@ import { StepImportEleves } from './steps/StepImportEleves';
 import { StepThemesEleves } from './steps/StepThemesEleves';
 import { StepBinomes } from './steps/StepBinomes';
 import { StepImportEnseignants } from './steps/StepImportEnseignants';
+import { StepImportStages } from './steps/StepImportStages';
 import { StepConfiguration } from './steps/StepConfiguration';
 import { StepSalles } from './steps/StepSalles';
 import { StepRecap } from './steps/StepRecap';
 import { StepResults } from './steps/StepResults';
 import './GuidedMode.css';
 
-// Steps for the wizard (base + oral_dnb adds 'themes' + 'salles')
+// Steps for each wizard path
 const STEPS_BASE: GuidedStep[] = ['scenario', 'eleves', 'enseignants', 'configuration', 'recap', 'results'];
 const STEPS_ORAL_DNB: GuidedStep[] = ['scenario', 'eleves', 'themes', 'binomes', 'enseignants', 'configuration', 'salles', 'recap', 'results'];
+const STEPS_STAGE: GuidedStep[] = ['scenario', 'eleves', 'stages', 'enseignants', 'configuration', 'recap', 'results'];
 
 const STEP_LABELS: Record<GuidedStep, string> = {
   welcome: 'Bienvenue',
   scenario: 'Type',
   eleves: 'Eleves',
+  stages: 'Stages',
   themes: 'Themes',
   binomes: 'Binômes',
   enseignants: 'Enseignants',
@@ -37,10 +40,11 @@ export function GuidedMode() {
   const { guidedMode, setGuidedStep, exitGuidedMode } = useUIStore();
   const { currentStep } = guidedMode;
 
-  const activeSteps = useMemo(() =>
-    guidedMode.scenarioType === 'oral_dnb' ? STEPS_ORAL_DNB : STEPS_BASE,
-    [guidedMode.scenarioType]
-  );
+  const activeSteps = useMemo(() => {
+    if (guidedMode.scenarioType === 'oral_dnb') return STEPS_ORAL_DNB;
+    if (guidedMode.scenarioType === 'suivi_stage') return STEPS_STAGE;
+    return STEPS_BASE;
+  }, [guidedMode.scenarioType]);
 
   const currentStepIndex = activeSteps.indexOf(currentStep);
 
@@ -66,6 +70,8 @@ export function GuidedMode() {
         return <StepScenarioChoice onNext={handleNext} />;
       case 'eleves':
         return <StepImportEleves onNext={handleNext} onBack={handleBack} />;
+      case 'stages':
+        return <StepImportStages onNext={handleNext} onBack={handleBack} />;
       case 'themes':
         return <StepThemesEleves onNext={handleNext} onBack={handleBack} />;
       case 'binomes':

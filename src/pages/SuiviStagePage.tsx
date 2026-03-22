@@ -5,14 +5,12 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useStageStore, useEnseignantStore, useEleveStore } from '../stores';
 import type { Stage, Enseignant, GeoPrecision } from '../domain/models';
-import type { 
-  TeacherStagePair, 
+import type {
+  TeacherStagePair,
   StageMatchingResult,
-  GeoProgressState,
   StageGeoInfo,
   EnseignantGeoInfo,
 } from '../infrastructure/geo/types';
-import { computeRoutePairs } from '../infrastructure/geo/stageGeoWorkflow';
 import { geocodeAddressWithFallback } from '../infrastructure/geo/stageGeoWorkflow';
 import {
   solveStageMatching,
@@ -26,7 +24,7 @@ import {
 } from '../data/testDataGenerator';
 import './SuiviStagePage.css';
 
-type TabId = 'addresses' | 'routes' | 'matching';
+type TabId = 'addresses' | 'matching';
 
 // Geo status pour l'affichage (étendu avec précision)
 type DisplayGeoStatus = 'pending' | 'ok' | 'error' | 'manual' | 'ok_full' | 'ok_city' | 'ok_townhall';
@@ -381,137 +379,6 @@ function AddressesTab({
 }
 
 // Helper pour vérifier la disponibilité géo
-function checkGeoReadinessLocal(stages: Stage[], enseignants: Enseignant[]) {
-  const stagesReady = stages.filter(s => s.geoStatus === 'ok' || s.geoStatus === 'manual').length;
-  const enseignantsReady = enseignants.filter(e => e.geoStatus === 'ok' || e.geoStatus === 'manual').length;
-  
-  return {
-    ready: stagesReady === stages.length && enseignantsReady === enseignants.length && stages.length > 0,
-    stagesReady,
-    stagesTotal: stages.length,
-    enseignantsReady,
-    enseignantsTotal: enseignants.length,
-    missingStages: stages.length - stagesReady,
-    missingTeachers: enseignants.length - enseignantsReady,
-  };
-}
-
-// ----- Tab: Routes -----
-function RoutesTab({
-  stages,
-  enseignants,
-  pairs,
-  onComputeRoutes,
-  isComputing,
-  progress,
-}: {
-  stages: Stage[];
-  enseignants: Enseignant[];
-  pairs: TeacherStagePair[];
-  onComputeRoutes: () => void;
-  isComputing: boolean;
-  progress: UIProgressState;
-}) {
-  const readiness = checkGeoReadinessLocal(stages, enseignants);
-  
-  // Group pairs by teacher
-  const pairsByTeacher = useMemo(() => {
-    const map = new Map<string, TeacherStagePair[]>();
-    pairs.forEach(pair => {
-      const list = map.get(pair.enseignantId) || [];
-      list.push(pair);
-      map.set(pair.enseignantId, list);
-    });
-    return map;
-  }, [pairs]);
-
-  const getTeacherName = (id: string) => {
-    const ens = enseignants.find(e => e.id === id);
-    return ens ? `${ens.prenom} ${ens.nom}` : id;
-  };
-
-  const getStageName = (id: string) => {
-    const stage = stages.find(s => s.id === id);
-    return stage ? `${stage.eleveId} - ${stage.nomEntreprise || 'Stage'}` : id;
-  };
-
-  return (
-    <div className="stage-tab-content">
-      {/* Action Bar */}
-      <div className="action-bar">
-        <button 
-          className="primary-action" 
-          onClick={onComputeRoutes}
-          disabled={isComputing || !readiness.ready}
-        >
-          {isComputing ? '⏳' : '🛣️'} Calculer les trajets
-        </button>
-        
-        {isComputing && progress.total > 0 && (
-          <ProgressBar 
-            current={progress.completed} 
-            total={progress.total} 
-            label="Calcul des routes" 
-          />
-        )}
-
-        {!readiness.ready && (
-          <span style={{ color: 'var(--error)', fontSize: '0.875rem' }}>
-            ⚠️ {readiness.missingStages} stage(s) et {readiness.missingTeachers} enseignant(s) non géocodés
-          </span>
-        )}
-        
-        <div style={{ marginLeft: 'auto', fontSize: '0.875rem' }}>
-          <span>Trajets calculés: <strong>{pairs.length}</strong></span>
-        </div>
-      </div>
-
-      {/* Routes by Teacher */}
-      {pairs.length === 0 ? (
-        <div className="empty-state">
-          <div className="icon">🛣️</div>
-          <h3>Aucun trajet calculé</h3>
-          <p>
-            {readiness.ready 
-              ? "Cliquez sur 'Calculer les trajets' pour commencer."
-              : "Géocodez d'abord toutes les adresses dans l'onglet Adresses."
-            }
-          </p>
-        </div>
-      ) : (
-        <div className="matching-results">
-          {Array.from(pairsByTeacher.entries()).map(([teacherId, teacherPairs]) => (
-            <div key={teacherId} className="teacher-assignment-card">
-              <div className="card-header">
-                <span className="teacher-name">{getTeacherName(teacherId)}</span>
-                <span className="stage-count">{teacherPairs.length} trajets possibles</span>
-              </div>
-              <div className="card-body">
-                {teacherPairs
-                  .sort((a, b) => a.durationMin - b.durationMin)
-                  .slice(0, 10)
-                  .map(pair => (
-                    <div key={`${pair.enseignantId}-${pair.stageId}`} className="route-preview">
-                      <div className="from-to">
-                        <span>→ {getStageName(pair.stageId)}</span>
-                      </div>
-                      <span className="duration">{Math.round(pair.durationMin)} min</span>
-                      <span className="distance">{pair.distanceKm.toFixed(1)} km</span>
-                    </div>
-                  ))}
-                {teacherPairs.length > 10 && (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
-                    + {teacherPairs.length - 10} autres trajets
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ----- Tab: Matching Results -----
 function MatchingTab({
@@ -738,10 +605,9 @@ export function SuiviStagePage() {
   const loadEleves = useEleveStore(state => state.loadEleves);
   
   // State
-  const [pairs, setPairs] = useState<TeacherStagePair[]>([]);
+  const [pairs] = useState<TeacherStagePair[]>([]);
   const [matchingResult, setMatchingResult] = useState<StageMatchingResult | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
-  const [isComputingRoutes, setIsComputingRoutes] = useState(false);
   const [isMatching, setIsMatching] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [progress, setProgress] = useState<UIProgressState>({
@@ -872,43 +738,6 @@ export function SuiviStagePage() {
   }, [stages, enseignants, updateStageGeoExtended, setStageGeoError, updateEnseignant, loadStages, loadEnseignants]);
 
   // ----- Routes Computation Handler -----
-  const handleComputeRoutes = useCallback(async () => {
-    setIsComputingRoutes(true);
-    setProgress({ total: 0, completed: 0, errors: 0, phase: 'Préparation...', currentAddress: null });
-    
-    try {
-      const stageInfos: StageGeoInfo[] = stages
-        .filter(s => s.adresse && (s.geoStatus === 'ok' || s.geoStatus === 'manual'))
-        .map(s => toStageGeoInfo(s as Stage & { adresse: string; geoStatus: string }));
-
-      const teacherInfos: EnseignantGeoInfo[] = enseignants
-        .filter(e => e.geoStatus === 'ok' || e.geoStatus === 'manual')
-        .map(e => toEnseignantGeoInfo(e));
-
-      const batchResult = await computeRoutePairs(
-        stageInfos,
-        teacherInfos,
-        {
-          maxCandidatsParStage: 10,
-          onProgress: (state: GeoProgressState) => setProgress({
-            total: state.total,
-            completed: state.current,
-            errors: state.errors.length,
-            phase: state.phase,
-            currentAddress: state.currentItem || null,
-          }),
-        }
-      );
-      
-      setPairs(batchResult.pairs);
-      setProgress(p => ({ ...p, phase: 'Terminé' }));
-    } catch (err) {
-      console.error('Route computation error:', err);
-    } finally {
-      setIsComputingRoutes(false);
-    }
-  }, [stages, enseignants]);
-
   // ----- Matching Handler -----
   const handleRunMatching = useCallback(() => {
     setIsMatching(true);
@@ -1003,7 +832,6 @@ export function SuiviStagePage() {
 
   // Tab counts
   const geocodedCount = stages.filter(s => s.geoStatus === 'ok' || s.geoStatus === 'manual').length;
-  const routesCount = pairs.length;
   const assignedCount = matchingResult?.stats.totalAffectes ?? 0;
 
   return (
@@ -1019,14 +847,7 @@ export function SuiviStagePage() {
           📍 Adresses & Géocodage
           <span className="count-badge">{geocodedCount}/{stages.length}</span>
         </button>
-        <button 
-          className={`stage-tab ${activeTab === 'routes' ? 'active' : ''}`}
-          onClick={() => setActiveTab('routes')}
-        >
-          🛣️ Trajets
-          <span className="count-badge">{routesCount}</span>
-        </button>
-        <button 
+        <button
           className={`stage-tab ${activeTab === 'matching' ? 'active' : ''}`}
           onClick={() => setActiveTab('matching')}
         >
@@ -1046,17 +867,6 @@ export function SuiviStagePage() {
           onGenerateFakeStages={handleGenerateFakeStages}
           onDeleteFakeStages={handleDeleteFakeStages}
           isGenerating={isGenerating}
-        />
-      )}
-      
-      {activeTab === 'routes' && (
-        <RoutesTab
-          stages={stages}
-          enseignants={enseignants}
-          pairs={pairs}
-          onComputeRoutes={handleComputeRoutes}
-          isComputing={isComputingRoutes}
-          progress={progress}
         />
       )}
       
