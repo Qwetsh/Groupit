@@ -539,7 +539,7 @@ export async function computeRoutePairs(
 ): Promise<RouteBatchResult> {
   const maxCandidats = options?.maxCandidatsParStage ?? 10;
   const maxDistanceKm = options?.maxDistanceKm ?? 100;
-  const delayMs = options?.delayMs ?? 100;
+  const concurrency = 5; // Requêtes parallèles simultanées
   
   // Filtrer les entités avec coordonnées valides
   const validStages = stages.filter(s => s.geo && (s.geoStatus === 'ok' || s.geoStatus === 'manual'));
@@ -599,65 +599,71 @@ export async function computeRoutePairs(
   
   const provider = getRouteProvider();
   
-  for (let i = 0; i < pairsToCompute.length; i++) {
+  // Traiter par batches parallèles pour accélérer le calcul
+  let completed = 0;
+
+  for (let i = 0; i < pairsToCompute.length; i += concurrency) {
     if (options?.abortSignal?.aborted) {
       state.phase = 'idle';
       break;
     }
-    
-    const pair = pairsToCompute[i];
-    state.current = i + 1;
-    state.currentItem = `${pair.enseignantId} -> ${pair.stageId}`;
+
+    const batch = pairsToCompute.slice(i, i + concurrency);
+
+    const batchResults = await Promise.all(batch.map(async (pair) => {
+      // Vérifier le cache
+      const cached = await getRouteCache(pair.from, pair.to, provider.name);
+      if (cached) {
+        return { pair, cached: true as const, metrics: cached };
+      }
+
+      // Calculer le trajet (le provider gère son propre rate limit)
+      const metrics = await getRouteMetrics(pair.from, pair.to);
+      return { pair, cached: false as const, metrics };
+    }));
+
+    for (const br of batchResults) {
+      completed++;
+
+      if (br.cached) {
+        result.cached++;
+        result.success++;
+        result.pairs.push({
+          enseignantId: br.pair.enseignantId,
+          stageId: br.pair.stageId,
+          distanceKm: br.metrics!.distanceKm,
+          durationMin: br.metrics!.durationMin,
+          isValid: true,
+        });
+      } else if (br.metrics) {
+        result.success++;
+        result.pairs.push({
+          enseignantId: br.pair.enseignantId,
+          stageId: br.pair.stageId,
+          distanceKm: br.metrics.distanceKm,
+          durationMin: br.metrics.durationMin,
+          isValid: true,
+        });
+      } else {
+        result.errors++;
+        state.errors.push({
+          item: `${br.pair.enseignantId} -> ${br.pair.stageId}`,
+          message: 'Échec calcul trajet'
+        });
+        const directDist = haversineDistance(br.pair.from.lat, br.pair.from.lon, br.pair.to.lat, br.pair.to.lon);
+        result.pairs.push({
+          enseignantId: br.pair.enseignantId,
+          stageId: br.pair.stageId,
+          distanceKm: directDist * 1.3,
+          durationMin: (directDist * 1.3 / 50) * 60,
+          isValid: true,
+        });
+      }
+    }
+
+    state.current = completed;
+    state.currentItem = `batch ${Math.floor(i / concurrency) + 1}`;
     options?.onProgress?.(state);
-    
-    // Vérifier le cache
-    const cached = await getRouteCache(pair.from, pair.to, provider.name);
-    if (cached) {
-      result.cached++;
-      result.success++;
-      result.pairs.push({
-        enseignantId: pair.enseignantId,
-        stageId: pair.stageId,
-        distanceKm: cached.distanceKm,
-        durationMin: cached.durationMin,
-        isValid: true,
-      });
-      continue;
-    }
-    
-    // Calculer le trajet
-    const metrics = await getRouteMetrics(pair.from, pair.to);
-    
-    if (metrics) {
-      result.success++;
-      result.pairs.push({
-        enseignantId: pair.enseignantId,
-        stageId: pair.stageId,
-        distanceKm: metrics.distanceKm,
-        durationMin: metrics.durationMin,
-        isValid: true,
-      });
-    } else {
-      result.errors++;
-      state.errors.push({ 
-        item: `${pair.enseignantId} -> ${pair.stageId}`, 
-        message: 'Échec calcul trajet' 
-      });
-      // On ajoute quand même la paire avec des valeurs par défaut (Haversine)
-      const directDist = haversineDistance(pair.from.lat, pair.from.lon, pair.to.lat, pair.to.lon);
-      result.pairs.push({
-        enseignantId: pair.enseignantId,
-        stageId: pair.stageId,
-        distanceKm: directDist * 1.3, // Estimation
-        durationMin: (directDist * 1.3 / 50) * 60, // ~50 km/h
-        isValid: true,
-      });
-    }
-    
-    // Délai entre requêtes
-    if (i < pairsToCompute.length - 1) {
-      await new Promise(r => setTimeout(r, delayMs));
-    }
   }
   
   state.phase = 'done';
