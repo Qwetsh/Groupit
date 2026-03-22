@@ -6,10 +6,9 @@ import { createClient } from '@supabase/supabase-js';
 import type { ExportResultData, ExportJuryData, ExportEleveData, PdfExportOptions } from './types';
 
 // Variables d'environnement Vite — OBLIGATOIRES (pas de fallback hardcodé)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const meta = typeof import.meta !== 'undefined' ? (import.meta as any) : undefined;
-const SUPABASE_URL: string = meta?.env?.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY: string = meta?.env?.VITE_SUPABASE_ANON_KEY;
+// Accès direct pour que Vite puisse les remplacer statiquement au build
+const SUPABASE_URL: string = import.meta.env.VITE_SUPABASE_URL ?? '';
+const SUPABASE_ANON_KEY: string = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   throw new Error(
