@@ -333,6 +333,44 @@
   box-shadow: 0 0 12px rgba(139, 92, 246, 0.3);
 }
 
+/* Drop indicators */
+.libre-group-card.dropping-reserve {
+  border-color: #f59e0b;
+  border-width: 2px;
+  border-style: dashed;
+  background: #fffbeb;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+}
+
+.libre-group-card.dropping-blocked {
+  border-color: #ef4444;
+  border-width: 2px;
+  border-style: dashed;
+  background: #fef2f2;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.2);
+}
+
+.libre-drop-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.libre-drop-indicator.reserve {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.libre-drop-indicator.blocked {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
 .libre-group-header {
   padding: 10px 12px;
   background: linear-gradient(135deg, #f5f3ff, #ede9fe);
@@ -451,6 +489,7 @@
   font-size: 11px;
   font-weight: 500;
   color: #4c1d95;
+  cursor: grab;
 }
 
 .libre-group-ens-chip .remove-ens {
@@ -498,6 +537,11 @@
 
 .libre-group-eleve-chip:hover {
   background: #e2e8f0;
+}
+
+.libre-group-eleve-chip:active,
+.libre-group-ens-chip:active {
+  cursor: grabbing;
 }
 
 .libre-group-eleve-chip .remove-eleve {
