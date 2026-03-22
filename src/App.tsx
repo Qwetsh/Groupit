@@ -12,6 +12,7 @@ import {
   EnseignantsPage,
   ParametresPage,
   AidePage,
+  LibreModePage,
 } from './pages';
 import { SuiviStagePage } from './pages/SuiviStagePage';
 import { useEleveStore } from './stores/eleveStore';
@@ -104,6 +105,7 @@ function App() {
           <Route path="parametres" element={<ParametresPage />} />
           <Route path="aide" element={<AidePage />} />
         </Route>
+        <Route path="libre" element={<LibreModePage />} />
       </Routes>
 
       {activeModal === 'import' && (
