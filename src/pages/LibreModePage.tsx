@@ -286,6 +286,7 @@ interface GroupCardProps {
   tailleJuryDefaut: number;
   nbReservesDefaut: number;
   eleveLinkGroups: string[][];
+  isDraggingEnseignant: boolean;
   onUpdate: (id: string, patch: Partial<Pick<LibreGroupe, 'nom' | 'salle' | 'tailleJuryOverride' | 'nbReservesOverride'>>) => void;
   onRemove: (id: string) => void;
   onRemoveEleve: (eleveId: string, groupeId: string) => void;
@@ -302,6 +303,7 @@ const GroupCard: React.FC<GroupCardProps> = ({
   tailleJuryDefaut,
   nbReservesDefaut,
   eleveLinkGroups,
+  isDraggingEnseignant,
   onUpdate,
   onRemove,
   onRemoveEleve,
@@ -348,11 +350,28 @@ const GroupCard: React.FC<GroupCardProps> = ({
     return map;
   }, []);
 
+  // Determine if drop would go to reserve
+  const titulaireFull = groupeEnseignants.length >= tailleJury;
+  const reserveAvailable = nbReserves > 0 && groupeSuppleants.length < nbReserves;
+  const willDropToReserve = isOver && isDraggingEnseignant && titulaireFull && reserveAvailable;
+  const dropBlocked = isOver && isDraggingEnseignant && titulaireFull && !reserveAvailable;
+
   return (
     <div
       ref={setNodeRef}
-      className={`libre-group-card ${hasEleves ? 'has-eleves' : ''} ${isOver ? 'dropping' : ''}`}
+      className={`libre-group-card ${hasEleves ? 'has-eleves' : ''} ${isOver ? 'dropping' : ''} ${willDropToReserve ? 'dropping-reserve' : ''} ${dropBlocked ? 'dropping-blocked' : ''}`}
     >
+      {/* Drop indicator */}
+      {willDropToReserve && (
+        <div className="libre-drop-indicator reserve">
+          <ShieldCheck size={12} /> Ajout en reserve
+        </div>
+      )}
+      {dropBlocked && (
+        <div className="libre-drop-indicator blocked">
+          Groupe complet
+        </div>
+      )}
       {/* Header */}
       <div className="libre-group-header">
         <div className="libre-group-header-top">
@@ -892,6 +911,7 @@ export const LibreModePage: React.FC = () => {
                   tailleJuryDefaut={config.tailleJuryDefaut}
                   nbReservesDefaut={config.nbReservesDefaut}
                   eleveLinkGroups={eleveLinkGroups}
+                  isDraggingEnseignant={!!activeId && (activeId.startsWith('pool-ens:') || activeId.startsWith('grp-ens:'))}
                   onUpdate={updateGroupe}
                   onRemove={removeGroupe}
                   onRemoveEleve={removeEleveFromGroupe}
