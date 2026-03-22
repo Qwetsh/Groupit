@@ -223,9 +223,14 @@ export function StepRecap({ onBack }: StepRecapProps) {
         }));
 
         // Compute route pairs
-        setProgressMessage('Calcul des itineraires...');
+        setProgressMessage('Calcul des itineraires (preparation)...');
         const routeResult = await computeRoutePairs(stageGeoInfos, ensGeoInfos, {
           maxDistanceKm: scenario.parametres.suiviStage?.distanceMaxKm || 20,
+          onProgress: (geoState) => {
+            if (geoState.total > 0) {
+              setProgressMessage(`Calcul des itineraires (${geoState.current}/${geoState.total})...`);
+            }
+          },
         });
 
         // === Phase 3: Run the solver ===
