@@ -34,6 +34,9 @@ jobs:
 
       - name: Build Groupit
         run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       # Build shared package
       - name: Install dependencies (shared)
@@ -45,6 +48,9 @@ jobs:
 
       - name: Build PWA Jury
         run: cd apps/jury && npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       # Build Dashboard
       - name: Install dependencies (dashboard)
@@ -52,6 +58,9 @@ jobs:
 
       - name: Build Dashboard
         run: cd apps/dashboard && npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       # Combiner les builds
       - name: Combine builds
