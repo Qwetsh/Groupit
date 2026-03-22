@@ -342,6 +342,17 @@
   box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
 }
 
+/* Highlight: group has an enseignant who teaches the dragged élève's class */
+.libre-group-card.ens-match {
+  border-color: #22c55e;
+  border-width: 2px;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.25);
+}
+
+.libre-group-card.ens-match .libre-group-header {
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+}
+
 .libre-group-card.dropping-blocked {
   border-color: #ef4444;
   border-width: 2px;
