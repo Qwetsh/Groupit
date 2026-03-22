@@ -11,19 +11,26 @@ export interface LibreGroupe {
   nom: string;
   eleveIds: string[];
   enseignantIds: string[];
+  /** Enseignants suppléants / réserve */
+  suppleantsIds: string[];
   salle: string | null;
   /** Taille jury override (null = utilise le défaut global) */
   tailleJuryOverride: number | null;
+  /** Nb réserves override (null = utilise le défaut global) */
+  nbReservesOverride: number | null;
 }
 
 export interface LibreConfig {
   tailleJuryDefaut: number;
+  nbReservesDefaut: number;
   showDistance: boolean;
 }
 
 export interface LibreState {
   groupes: LibreGroupe[];
   config: LibreConfig;
+  /** Groupes de liaison élèves — chaque sous-tableau = élèves liés ensemble */
+  eleveLinkGroups: string[][];
 }
 
 export interface LibreExport {
@@ -36,12 +43,14 @@ const STORAGE_KEY = 'groupit_libreMode';
 
 const DEFAULT_CONFIG: LibreConfig = {
   tailleJuryDefaut: 2,
+  nbReservesDefaut: 0,
   showDistance: false,
 };
 
 const DEFAULT_STATE: LibreState = {
   groupes: [],
   config: DEFAULT_CONFIG,
+  eleveLinkGroups: [],
 };
 
 let groupeCounter = 0;
@@ -63,6 +72,15 @@ function loadFromStorage(): LibreState {
           if (n > groupeCounter) groupeCounter = n;
         }
       }
+      // Ensure eleveLinkGroups exists (migration from v1 data)
+      if (!parsed.eleveLinkGroups) parsed.eleveLinkGroups = [];
+      // Ensure suppleantsIds exists on all groups
+      for (const g of parsed.groupes) {
+        if (!g.suppleantsIds) g.suppleantsIds = [];
+        if (g.nbReservesOverride === undefined) g.nbReservesOverride = null;
+      }
+      // Ensure nbReservesDefaut exists
+      if (parsed.config.nbReservesDefaut === undefined) parsed.config.nbReservesDefaut = 0;
       return parsed;
     }
   } catch {
@@ -93,6 +111,10 @@ export function useLibreMode() {
     setState(s => ({ ...s, config: { ...s.config, tailleJuryDefaut: n } }));
   }, []);
 
+  const setNbReservesDefaut = useCallback((n: number) => {
+    setState(s => ({ ...s, config: { ...s.config, nbReservesDefaut: n } }));
+  }, []);
+
   const setShowDistance = useCallback((show: boolean) => {
     setState(s => ({ ...s, config: { ...s.config, showDistance: show } }));
   }, []);
@@ -107,8 +129,10 @@ export function useLibreMode() {
       nom: nom ?? `Groupe ${num}`,
       eleveIds: [],
       enseignantIds: [],
+      suppleantsIds: [],
       salle: null,
       tailleJuryOverride: null,
+      nbReservesOverride: null,
     };
     setState(s => ({ ...s, groupes: [...s.groupes, groupe] }));
     return id;
@@ -121,38 +145,54 @@ export function useLibreMode() {
     }));
   }, []);
 
-  const updateGroupe = useCallback((groupeId: string, patch: Partial<Pick<LibreGroupe, 'nom' | 'salle' | 'tailleJuryOverride'>>) => {
+  const updateGroupe = useCallback((groupeId: string, patch: Partial<Pick<LibreGroupe, 'nom' | 'salle' | 'tailleJuryOverride' | 'nbReservesOverride'>>) => {
     setState(s => ({
       ...s,
       groupes: s.groupes.map(g => g.id === groupeId ? { ...g, ...patch } : g),
     }));
   }, []);
 
-  // --- Affectation élèves ---
+  // --- Helper: get all linked eleveIds for a given eleveId ---
+
+  const getLinkedEleveIds = useCallback((eleveId: string): string[] => {
+    const group = stateRef.current.eleveLinkGroups.find(g => g.includes(eleveId));
+    return group ? group.filter(id => id !== eleveId) : [];
+  }, []);
+
+  // --- Affectation élèves (moves linked élèves together) ---
 
   const addEleveToGroupe = useCallback((eleveId: string, groupeId: string) => {
     setState(s => {
-      // Retirer de tout autre groupe d'abord
-      const groupes = s.groupes.map(g => ({
+      // Find all linked élèves to move together
+      const linkGroup = s.eleveLinkGroups.find(g => g.includes(eleveId));
+      const allIds = linkGroup ? linkGroup : [eleveId];
+
+      // Remove from all groups first
+      let groupes = s.groupes.map(g => ({
         ...g,
-        eleveIds: g.eleveIds.filter(id => id !== eleveId),
+        eleveIds: g.eleveIds.filter(id => !allIds.includes(id)),
       }));
-      return {
-        ...s,
-        groupes: groupes.map(g =>
-          g.id === groupeId ? { ...g, eleveIds: [...g.eleveIds, eleveId] } : g
-        ),
-      };
+      // Add to target group
+      groupes = groupes.map(g =>
+        g.id === groupeId ? { ...g, eleveIds: [...g.eleveIds, ...allIds] } : g
+      );
+      return { ...s, groupes };
     });
   }, []);
 
   const removeEleveFromGroupe = useCallback((eleveId: string, groupeId: string) => {
-    setState(s => ({
-      ...s,
-      groupes: s.groupes.map(g =>
-        g.id === groupeId ? { ...g, eleveIds: g.eleveIds.filter(id => id !== eleveId) } : g
-      ),
-    }));
+    setState(s => {
+      // Remove linked élèves together
+      const linkGroup = s.eleveLinkGroups.find(g => g.includes(eleveId));
+      const allIds = linkGroup ? linkGroup : [eleveId];
+
+      return {
+        ...s,
+        groupes: s.groupes.map(g =>
+          g.id === groupeId ? { ...g, eleveIds: g.eleveIds.filter(id => !allIds.includes(id)) } : g
+        ),
+      };
+    });
   }, []);
 
   // --- Affectation enseignants ---
@@ -164,10 +204,10 @@ export function useLibreMode() {
       const maxSize = groupe.tailleJuryOverride ?? s.config.tailleJuryDefaut;
       if (groupe.enseignantIds.length >= maxSize) return s;
 
-      // Retirer de tout autre groupe d'abord
       const groupes = s.groupes.map(g => ({
         ...g,
         enseignantIds: g.enseignantIds.filter(id => id !== enseignantId),
+        suppleantsIds: g.suppleantsIds.filter(id => id !== enseignantId),
       }));
       return {
         ...s,
@@ -185,6 +225,80 @@ export function useLibreMode() {
         g.id === groupeId ? { ...g, enseignantIds: g.enseignantIds.filter(id => id !== enseignantId) } : g
       ),
     }));
+  }, []);
+
+  // --- Suppléants ---
+
+  const addSuppleantToGroupe = useCallback((enseignantId: string, groupeId: string) => {
+    setState(s => {
+      const groupe = s.groupes.find(g => g.id === groupeId);
+      if (!groupe) return s;
+      const maxReserves = groupe.nbReservesOverride ?? s.config.nbReservesDefaut;
+      if (maxReserves <= 0) return s;
+      if (groupe.suppleantsIds.length >= maxReserves) return s;
+
+      const groupes = s.groupes.map(g => ({
+        ...g,
+        enseignantIds: g.enseignantIds.filter(id => id !== enseignantId),
+        suppleantsIds: g.suppleantsIds.filter(id => id !== enseignantId),
+      }));
+      return {
+        ...s,
+        groupes: groupes.map(g =>
+          g.id === groupeId ? { ...g, suppleantsIds: [...g.suppleantsIds, enseignantId] } : g
+        ),
+      };
+    });
+  }, []);
+
+  const removeSuppleantFromGroupe = useCallback((enseignantId: string, groupeId: string) => {
+    setState(s => ({
+      ...s,
+      groupes: s.groupes.map(g =>
+        g.id === groupeId ? { ...g, suppleantsIds: g.suppleantsIds.filter(id => id !== enseignantId) } : g
+      ),
+    }));
+  }, []);
+
+  // --- Élève link groups ---
+
+  const linkEleves = useCallback((eleveIdA: string, eleveIdB: string) => {
+    setState(s => {
+      const groups = [...s.eleveLinkGroups];
+      const groupA = groups.findIndex(g => g.includes(eleveIdA));
+      const groupB = groups.findIndex(g => g.includes(eleveIdB));
+
+      if (groupA >= 0 && groupB >= 0 && groupA === groupB) return s; // Already linked
+
+      if (groupA >= 0 && groupB >= 0) {
+        // Merge two groups
+        const merged = [...groups[groupA], ...groups[groupB]];
+        return {
+          ...s,
+          eleveLinkGroups: groups.filter((_, i) => i !== groupA && i !== groupB).concat([merged]),
+        };
+      } else if (groupA >= 0) {
+        groups[groupA] = [...groups[groupA], eleveIdB];
+        return { ...s, eleveLinkGroups: groups };
+      } else if (groupB >= 0) {
+        groups[groupB] = [...groups[groupB], eleveIdA];
+        return { ...s, eleveLinkGroups: groups };
+      } else {
+        return { ...s, eleveLinkGroups: [...groups, [eleveIdA, eleveIdB]] };
+      }
+    });
+  }, []);
+
+  const unlinkEleve = useCallback((eleveId: string) => {
+    setState(s => {
+      const groups = s.eleveLinkGroups.map(g => g.filter(id => id !== eleveId)).filter(g => g.length >= 2);
+      return { ...s, eleveLinkGroups: groups };
+    });
+  }, []);
+
+  const getEleveLinkGroup = useCallback((eleveId: string): string[] | null => {
+    const group = stateRef.current.eleveLinkGroups.find(g => g.includes(eleveId));
+    return group ?? null;
   }, []);
 
   // --- Export / Import JSON ---
@@ -209,20 +323,22 @@ export function useLibreMode() {
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
-  // --- Computed: sets of assigned IDs ---
+  // --- Computed ---
 
   const assignedEleveIds = new Set(state.groupes.flatMap(g => g.eleveIds));
-  const assignedEnseignantIds = new Set(state.groupes.flatMap(g => g.enseignantIds));
+  const assignedEnseignantIds = new Set(state.groupes.flatMap(g => [...g.enseignantIds, ...g.suppleantsIds]));
 
   return {
     state,
     config: state.config,
     groupes: state.groupes,
+    eleveLinkGroups: state.eleveLinkGroups,
     assignedEleveIds,
     assignedEnseignantIds,
 
     // Config
     setTailleJuryDefaut,
+    setNbReservesDefaut,
     setShowDistance,
 
     // Groupes
@@ -233,10 +349,20 @@ export function useLibreMode() {
     // Élèves
     addEleveToGroupe,
     removeEleveFromGroupe,
+    getLinkedEleveIds,
 
     // Enseignants
     addEnseignantToGroupe,
     removeEnseignantFromGroupe,
+
+    // Suppléants
+    addSuppleantToGroupe,
+    removeSuppleantFromGroupe,
+
+    // Liaisons élèves
+    linkEleves,
+    unlinkEleve,
+    getEleveLinkGroup,
 
     // JSON
     exportJSON,
