@@ -12,6 +12,7 @@ import { mapArchiveToExportData, downloadExportPdf, downloadExportCsv } from '..
 import { ImportSessionModal } from '../components/board/ImportSessionModal';
 import { importAffectationSession, type SessionExportData, type ImportReport } from '../services/affectationSessionService';
 import type { ScenarioArchive } from '../domain/models';
+import { useJuryStore } from '../stores/juryStore';
 import {
   CheckCircle,
   Mic,
@@ -23,6 +24,8 @@ import {
   Lock,
   FolderOpen,
   ClipboardList,
+  Play,
+  RotateCcw,
 } from 'lucide-react';
 import './DashboardPage.css';
 
@@ -125,6 +128,35 @@ export const DashboardPage: React.FC = () => {
     return report;
   }, [eleves, enseignants, stages, navigate]);
 
+  // Detect in-progress scenarios
+  const affectations = useAffectationStore(state => state.affectations);
+  const jurys = useJuryStore(state => state.jurys);
+  const setCurrentScenario = useScenarioStore(state => state.setCurrentScenario);
+
+  const inProgressOralDnb = useMemo(() => {
+    const oralScenarios = scenarios.filter(s => s.type === 'oral_dnb');
+    for (const s of oralScenarios) {
+      const hasJurys = jurys.some(j => j.scenarioId === s.id);
+      const hasAffectations = affectations.some(a => a.scenarioId === s.id);
+      if (hasJurys || hasAffectations) return s;
+    }
+    return null;
+  }, [scenarios, jurys, affectations]);
+
+  const inProgressStage = useMemo(() => {
+    const stageScenarios = scenarios.filter(s => s.type === 'suivi_stage');
+    for (const s of stageScenarios) {
+      const hasAffectations = affectations.some(a => a.scenarioId === s.id);
+      if (hasAffectations) return s;
+    }
+    return null;
+  }, [scenarios, affectations]);
+
+  const handleResumeScenario = useCallback((scenarioId: string) => {
+    setCurrentScenario(scenarioId);
+    navigate('/board');
+  }, [setCurrentScenario, navigate]);
+
   // Sort archives
   const sortedArchives = useMemo(() =>
     [...archives].sort((a, b) =>
@@ -148,21 +180,59 @@ export const DashboardPage: React.FC = () => {
 
       {/* Mode selection grid */}
       <div className="mode-grid">
-        <button className="mode-card active" onClick={() => handleLaunchMode('oral_dnb')}>
-          <div className="mode-icon oral">
-            <Mic size={32} />
-          </div>
-          <h3>Oral DNB</h3>
-          <p>Constituez les jurys et repartissez les eleves pour l'oral du brevet.</p>
-        </button>
+        <div className="mode-card-wrapper">
+          <button
+            className={`mode-card active ${inProgressOralDnb ? 'has-session' : ''}`}
+            onClick={() => inProgressOralDnb ? handleResumeScenario(inProgressOralDnb.id!) : handleLaunchMode('oral_dnb')}
+          >
+            <div className="mode-icon oral">
+              <Mic size={32} />
+            </div>
+            <h3>{inProgressOralDnb ? 'Reprendre l\'affectation' : 'Oral DNB'}</h3>
+            <p>
+              {inProgressOralDnb
+                ? `${inProgressOralDnb.nom} — ${jurys.filter(j => j.scenarioId === inProgressOralDnb.id).length} jury(s), ${affectations.filter(a => a.scenarioId === inProgressOralDnb.id).length} affectation(s)`
+                : 'Constituez les jurys et repartissez les eleves pour l\'oral du brevet.'
+              }
+            </p>
+            {inProgressOralDnb && (
+              <span className="mode-resume-badge"><Play size={12} /> En cours</span>
+            )}
+          </button>
+          {inProgressOralDnb && (
+            <button className="mode-new-link" onClick={() => handleLaunchMode('oral_dnb')}>
+              <RotateCcw size={11} />
+              Nouvelle constitution
+            </button>
+          )}
+        </div>
 
-        <button className="mode-card active" onClick={() => handleLaunchMode('suivi_stage')}>
-          <div className="mode-icon stage">
-            <Briefcase size={32} />
-          </div>
-          <h3>Stages 3eme</h3>
-          <p>Affectez les enseignants tuteurs aux stages de vos eleves.</p>
-        </button>
+        <div className="mode-card-wrapper">
+          <button
+            className={`mode-card active ${inProgressStage ? 'has-session' : ''}`}
+            onClick={() => inProgressStage ? handleResumeScenario(inProgressStage.id!) : handleLaunchMode('suivi_stage')}
+          >
+            <div className="mode-icon stage">
+              <Briefcase size={32} />
+            </div>
+            <h3>{inProgressStage ? 'Reprendre l\'affectation' : 'Stages 3eme'}</h3>
+            <p>
+              {inProgressStage
+                ? `${inProgressStage.nom} — ${affectations.filter(a => a.scenarioId === inProgressStage.id).length} affectation(s)`
+                : 'Affectez les enseignants tuteurs aux stages de vos eleves.'
+              }
+            </p>
+            {inProgressStage && (
+              <span className="mode-resume-badge"><Play size={12} /> En cours</span>
+            )}
+          </button>
+          {inProgressStage && (
+            <button className="mode-new-link" onClick={() => handleLaunchMode('suivi_stage')}>
+              <RotateCcw size={11} />
+              Nouvelle constitution
+            </button>
+          )}
+        </div>
 
         <div className="mode-card disabled" title="Disponible dans une prochaine version">
           <div className="mode-icon custom">
