@@ -29,7 +29,7 @@ const DEFAULT_ROUTE_CONFIG: RouteConfig = {
   osrm: {
     baseUrl: 'https://router.project-osrm.org',
     profile: 'car',
-    rateLimit: 100, // OSRM public est assez permissif
+    rateLimit: 30, // OSRM public tolère ~30 req/s
   },
   openroute: {
     baseUrl: 'https://api.openrouteservice.org',
