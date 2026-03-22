@@ -21,7 +21,7 @@ export const ValidationModal: React.FC<ValidationModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="validation-modal-overlay" onClick={onClose}>
+    <div className="validation-modal-overlay" onClick={isValidating ? undefined : onClose}>
       <div className="validation-modal validation-modal-enhanced" onClick={e => e.stopPropagation()}>
         <h2>Valider les affectations</h2>
         <p className="modal-description">

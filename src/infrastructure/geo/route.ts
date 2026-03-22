@@ -42,11 +42,22 @@ const DEFAULT_ROUTE_CONFIG: RouteConfig = {
 /**
  * Récupère la configuration routing
  */
+const ALLOWED_ROUTE_CONFIG_KEYS = new Set(['routeProvider', 'osrm', 'openroute']);
+
 export function getRouteConfig(): RouteConfig {
   try {
     const stored = localStorage.getItem('groupit_route_config');
     if (stored) {
-      return { ...DEFAULT_ROUTE_CONFIG, ...JSON.parse(stored) };
+      const parsed = JSON.parse(stored);
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        return DEFAULT_ROUTE_CONFIG;
+      }
+      // Filtrer les clés inconnues pour éviter l'injection de propriétés
+      const safe: Record<string, unknown> = {};
+      for (const key of Object.keys(parsed)) {
+        if (ALLOWED_ROUTE_CONFIG_KEYS.has(key)) safe[key] = parsed[key];
+      }
+      return { ...DEFAULT_ROUTE_CONFIG, ...safe } as RouteConfig;
     }
   } catch {
     // Ignore parse errors

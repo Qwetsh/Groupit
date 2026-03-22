@@ -18,8 +18,6 @@ export const StepBinomes: React.FC<StepBinomesProps> = ({ onNext, onBack }) => {
 
   const [search, setSearch] = useState('');
   const [selectedEleveId, setSelectedEleveId] = useState<string | null>(null);
-  const [expandedClasses, setExpandedClasses] = useState<Set<string>>(new Set());
-
   // Élèves de 3e uniquement (oral DNB)
   const eleves3e = useMemo(() =>
     eleves.filter(e => e.classe.startsWith('3')).sort((a, b) =>
@@ -39,12 +37,10 @@ export const StepBinomes: React.FC<StepBinomesProps> = ({ onNext, onBack }) => {
     return groups;
   }, [eleves3e]);
 
-  // Initialiser les classes dépliées
-  useMemo(() => {
-    if (expandedClasses.size === 0 && classeGroups.size > 0) {
-      setExpandedClasses(new Set(classeGroups.keys()));
-    }
-  }, [classeGroups.size]);
+  // Initialiser avec toutes les classes dépliées
+  const [expandedClasses, setExpandedClasses] = useState<Set<string>>(() =>
+    new Set(eleves.filter(e => e.classe.startsWith('3')).map(e => e.classe))
+  );
 
   // Binômes existants
   const binomes = useMemo(() => {

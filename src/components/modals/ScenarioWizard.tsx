@@ -313,8 +313,18 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
   // Labels des étapes
   const stepLabels = ['Type', 'Nom', 'Enseignants', 'Critères', 'Confirmer'];
 
+  const handleOverlayClick = () => {
+    if (step > 1) {
+      if (window.confirm('Vous avez commencé la configuration. Voulez-vous vraiment quitter sans enregistrer ?')) {
+        onClose();
+      }
+    } else {
+      onClose();
+    }
+  };
+
   return (
-    <div className="wizard-overlay" onClick={onClose}>
+    <div className="wizard-overlay" onClick={handleOverlayClick}>
       <div className="wizard-container wizard-5-steps" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="wizard-header">

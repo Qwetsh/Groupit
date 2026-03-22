@@ -82,14 +82,17 @@ export function solveGreedy(
   
   // Évaluer toutes les paires une fois
   const allPairs = evaluateAllPairs(eleves, enseignants, context, metadataMap);
-  
+
   // Créer une copie mutable des charges
   const charges = new Map(context.chargesActuelles);
   const capacites = context.capacites;
-  
-  // Pré-calculer le nombre d'options valides par élève (éviter O(n²) dans le sort)
+
+  // Pré-grouper les paires par eleveId pour éviter O(n²) de filtrage
+  const pairsByEleve = new Map<string, MatchingResult[]>();
   const validCountByEleve = new Map<string, number>();
   for (const p of allPairs) {
+    if (!pairsByEleve.has(p.eleveId)) pairsByEleve.set(p.eleveId, []);
+    pairsByEleve.get(p.eleveId)!.push(p);
     if (p.isValid) {
       validCountByEleve.set(p.eleveId, (validCountByEleve.get(p.eleveId) || 0) + 1);
     }
@@ -107,14 +110,9 @@ export function solveGreedy(
     if (iterations >= cfg.maxIterations) break;
     iterations++;
     
-    // Trouver le meilleur enseignant disponible
-    const candidates = allPairs
-      .filter(p => p.eleveId === eleve.id && p.isValid)
-      .filter(p => {
-        const charge = charges.get(p.enseignantId) || 0;
-        const cap = capacites.get(p.enseignantId) || 0;
-        return charge < cap;
-      })
+    // Trouver le meilleur enseignant disponible (lookup O(1) par élève)
+    const candidates = (pairsByEleve.get(eleve.id) || [])
+      .filter(p => p.isValid && (charges.get(p.enseignantId) || 0) < (capacites.get(p.enseignantId) || 0))
       .sort((a, b) => b.score - a.score);
     
     if (candidates.length > 0) {
@@ -191,6 +189,10 @@ export function improveWithLocalSearch(
   // Créer le contexte de scoring
   const context = createScoringContext(scenario, enseignants, eleveToEnseignant);
   
+  // Pré-indexer les entités pour éviter O(n) .find() dans la boucle O(n²)
+  const eleveMap = new Map(eleves.map(e => [e.id, e]));
+  const enseignantMap = new Map(enseignants.map(e => [e.id, e]));
+
   while (improved && iterations < cfg.localSearchIterations) {
     // Vérifier la limite de temps pour éviter les freezes UI
     if (performance.now() - startTime > cfg.localSearchTimeoutMs) {
@@ -202,7 +204,7 @@ export function improveWithLocalSearch(
 
     improved = false;
     iterations++;
-    
+
     // Essayer tous les échanges possibles
     for (let i = 0; i < currentAffectations.length && !improved; i++) {
       for (let j = i + 1; j < currentAffectations.length && !improved; j++) {
@@ -210,10 +212,10 @@ export function improveWithLocalSearch(
         const aff2 = currentAffectations[j];
 
         // Vérifier si l'échange est valide et améliore le score
-        const eleve1 = eleves.find(e => e.id === aff1.eleveId);
-        const eleve2 = eleves.find(e => e.id === aff2.eleveId);
-        const ens1 = enseignants.find(e => e.id === aff1.enseignantId);
-        const ens2 = enseignants.find(e => e.id === aff2.enseignantId);
+        const eleve1 = eleveMap.get(aff1.eleveId);
+        const eleve2 = eleveMap.get(aff2.eleveId);
+        const ens1 = enseignantMap.get(aff1.enseignantId);
+        const ens2 = enseignantMap.get(aff2.enseignantId);
 
         // Skip si une entité n'existe plus (supprimée pendant le matching)
         if (!eleve1 || !eleve2 || !ens1 || !ens2) {

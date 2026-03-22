@@ -93,16 +93,16 @@ function isEleveEnCoursForJury(eleveClasse: string | undefined, juryEnseignants:
 /**
  * Calcule les matières couvertes par un jury
  */
-function getJuryMatieres(jury: Jury, enseignants: Enseignant[]): string[] {
+function getJuryMatieres(jury: Jury, enseignantMap: Map<string, Enseignant>): string[] {
   const matieres = new Set<string>();
-  
+
   jury.enseignantIds.forEach(ensId => {
-    const ens = enseignants.find(e => e.id === ensId);
+    const ens = enseignantMap.get(ensId);
     if (ens?.matierePrincipale) {
       matieres.add(ens.matierePrincipale);
     }
   });
-  
+
   return Array.from(matieres);
 }
 
@@ -124,10 +124,14 @@ function initializeJuryContexts(
   enseignants: Enseignant[]
 ): Map<string, JuryContext> {
   const contexts = new Map<string, JuryContext>();
-  
+  // Pré-indexer les enseignants pour éviter N+1 .find()
+  const enseignantMap = new Map(enseignants.map(e => [e.id!, e]));
+
   jurys.forEach(jury => {
-    const juryEnseignants = enseignants.filter(e => jury.enseignantIds.includes(e.id!));
-    const matieres = getJuryMatieres(jury, enseignants);
+    const juryEnseignants = jury.enseignantIds
+      .map(id => enseignantMap.get(id))
+      .filter((e): e is Enseignant => !!e);
+    const matieres = getJuryMatieres(jury, enseignantMap);
     
     contexts.set(jury.id!, {
       jury,
@@ -653,8 +657,11 @@ export function improveOralDnbWithSwaps(
     // Chercher des échanges bénéfiques
     // Priorité: transformer un "sans match" en "avec match"
     
+    // Pré-indexer les élèves pour éviter N+1 .find()
+    const eleveMap = new Map(eleves.map(e => [e.id!, e]));
+
     for (const affSansMatch of currentResult.affectations.filter(a => !a.matiereMatch)) {
-      const eleve = eleves.find(e => e.id === affSansMatch.eleveId);
+      const eleve = eleveMap.get(affSansMatch.eleveId);
       if (!eleve?.matieresOral?.length) continue;
       
       // Chercher un jury qui a la matière de l'élève
@@ -679,8 +686,8 @@ export function improveOralDnbWithSwaps(
           const idx2 = currentResult.affectations.findIndex(a => a.eleveId === eleveAEchanger.eleveId);
           
           // Recalculer les scores
-          const eleve1 = eleves.find(e => e.id === affSansMatch.eleveId);
-          const eleve2 = eleves.find(e => e.id === eleveAEchanger.eleveId);
+          const eleve1 = eleveMap.get(affSansMatch.eleveId);
+          const eleve2 = eleveMap.get(eleveAEchanger.eleveId);
           if (!eleve1 || !eleve2) continue;
 
           const newCtx1 = juryContexts.get(juryId);

@@ -14,7 +14,7 @@ interface StepResultsProps {
 }
 
 export function StepResults({ onFinish }: StepResultsProps) {
-  const { guidedMode, exitGuidedMode } = useUIStore();
+  const { exitGuidedMode } = useUIStore();
   const navigate = useNavigate();
 
   // Redirect to board immediately
@@ -24,18 +24,13 @@ export function StepResults({ onFinish }: StepResultsProps) {
       // Exit guided mode and navigate to board
       exitGuidedMode();
 
-      // Navigate to board with scenario context
-      if (guidedMode.scenarioType === 'oral_dnb') {
-        navigate('/board');
-      } else {
-        navigate('/board');
-      }
+      navigate('/board');
 
       onFinish();
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [exitGuidedMode, navigate, onFinish, guidedMode.scenarioType]);
+  }, [exitGuidedMode, navigate, onFinish]);
 
   return (
     <div className="guided-step step-results loading-redirect">

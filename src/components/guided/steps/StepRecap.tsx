@@ -2,7 +2,7 @@
 // GUIDED STEP - RECAP (Lancement répartition avec animation)
 // ============================================================
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { Users, GraduationCap, Settings, Play, Loader2, CheckCircle, PartyPopper, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '../../../stores/uiStore';
@@ -43,16 +43,19 @@ export function StepRecap({ onBack }: StepRecapProps) {
   // Filter eleves by 3eme
   const eleves3e = eleves.filter(e => e.classe?.startsWith('3'));
 
-  // Check if already has affectations
-  const existingAffectations = scenario ? getAffectationsByScenario(scenario.id!) : [];
+  // Check if already has affectations (memoized to avoid infinite loop)
+  const existingAffectationCount = useMemo(
+    () => scenario ? getAffectationsByScenario(scenario.id!).length : 0,
+    [scenario, getAffectationsByScenario]
+  );
 
   // Auto-check if we already have affectations
   useEffect(() => {
-    if (existingAffectations.length > 0) {
+    if (existingAffectationCount > 0) {
       setState('success');
-      setAffectationCount(existingAffectations.length);
+      setAffectationCount(existingAffectationCount);
     }
-  }, [existingAffectations.length]);
+  }, [existingAffectationCount]);
 
   const handleLaunchRepartition = useCallback(async () => {
     if (!scenario) return;
