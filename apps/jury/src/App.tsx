@@ -69,8 +69,10 @@ export default function App() {
           .select('*')
           .in('id', nav.eleveIds);
         if (data && data.length === 2) {
-          const sorted = nav.eleveIds.map(id => data.find(e => e.id === id)!) as [SessionEleveRow, SessionEleveRow];
-          setScreen({ type: 'evaluate-binome', juryId: nav.juryId, sessionId: nav.sessionId, eleves: sorted });
+          const sorted = nav.eleveIds.map(id => data.find(e => e.id === id));
+          if (sorted.some(e => !e)) { setRestoring(false); return; }
+          const validSorted = sorted as [SessionEleveRow, SessionEleveRow];
+          setScreen({ type: 'evaluate-binome', juryId: nav.juryId, sessionId: nav.sessionId, eleves: validSorted });
           setRestoring(false);
           return;
         }

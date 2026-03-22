@@ -50,11 +50,22 @@ const DEFAULT_GEO_CONFIG: GeoConfig = {
 /**
  * Récupère la configuration (avec possibilité de surcharge localStorage)
  */
+const ALLOWED_GEO_CONFIG_KEYS = new Set(['geocodeProvider', 'nominatim', 'photon', 'ban']);
+
 export function getGeoConfig(): GeoConfig {
   try {
     const stored = localStorage.getItem('groupit_geo_config');
     if (stored) {
-      return { ...DEFAULT_GEO_CONFIG, ...JSON.parse(stored) };
+      const parsed = JSON.parse(stored);
+      if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+        return DEFAULT_GEO_CONFIG;
+      }
+      // Filtrer les clés inconnues pour éviter l'injection de propriétés
+      const safe: Record<string, unknown> = {};
+      for (const key of Object.keys(parsed)) {
+        if (ALLOWED_GEO_CONFIG_KEYS.has(key)) safe[key] = parsed[key];
+      }
+      return { ...DEFAULT_GEO_CONFIG, ...safe } as GeoConfig;
     }
   } catch {
     // Ignore parse errors

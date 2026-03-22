@@ -66,7 +66,12 @@ function App() {
   }, [loadEleves, loadEnseignants, loadScenarios, loadGroupes, loadAffectations, loadJurys, loadArchives]);
 
   const handleImport = async (eleves: Partial<Eleve>[]) => {
-    await addEleves(eleves as Omit<Eleve, 'id' | 'createdAt' | 'updatedAt'>[]);
+    // Filtrer les entrées invalides (champs requis manquants)
+    const valid = eleves.filter(e => e.nom && e.prenom && e.classe);
+    if (valid.length < eleves.length) {
+      console.warn(`[Import] ${eleves.length - valid.length} élève(s) ignoré(s) (nom, prénom ou classe manquant)`);
+    }
+    await addEleves(valid as Omit<Eleve, 'id' | 'createdAt' | 'updatedAt'>[]);
   };
 
   if (isLoading) {

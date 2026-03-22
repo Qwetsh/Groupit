@@ -45,7 +45,7 @@ interface StageState {
 }
 
 function generateId(): string {
-  return `stage_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `stage_${crypto.randomUUID()}`;
 }
 
 export const useStageStore = create<StageState>((set) => ({
@@ -86,45 +86,65 @@ export const useStageStore = create<StageState>((set) => ({
   },
   
   addStage: async (stageData) => {
-    const now = new Date();
-    const stage: Stage = {
-      ...stageData,
-      id: generateId(),
-      createdAt: now,
-      updatedAt: now,
-    };
-    
-    await db.stages.add(stage);
-    set(state => ({ stages: [...state.stages, stage] }));
-    return stage;
+    try {
+      const now = new Date();
+      const stage: Stage = {
+        ...stageData,
+        id: generateId(),
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await db.stages.add(stage);
+      set(state => ({ stages: [...state.stages, stage] }));
+      return stage;
+    } catch (error) {
+      set({ error: extractErrorMessage(error) });
+      throw error;
+    }
   },
-  
+
   updateStage: async (id, updates) => {
-    const now = new Date();
-    await db.stages.update(id, { ...updates, updatedAt: now });
-    set(state => ({
-      stages: state.stages.map(s => 
-        s.id === id ? { ...s, ...updates, updatedAt: now } : s
-      ),
-    }));
+    try {
+      const now = new Date();
+      await db.stages.update(id, { ...updates, updatedAt: now });
+      set(state => ({
+        stages: state.stages.map(s =>
+          s.id === id ? { ...s, ...updates, updatedAt: now } : s
+        ),
+      }));
+    } catch (error) {
+      set({ error: extractErrorMessage(error) });
+      throw error;
+    }
   },
   
   deleteStage: async (id) => {
-    await db.stages.delete(id);
-    set(state => ({ stages: state.stages.filter(s => s.id !== id) }));
+    try {
+      await db.stages.delete(id);
+      set(state => ({ stages: state.stages.filter(s => s.id !== id) }));
+    } catch (error) {
+      set({ error: extractErrorMessage(error) });
+      throw error;
+    }
   },
-  
+
   bulkAddStages: async (stagesData) => {
-    const now = new Date();
-    const stages: Stage[] = stagesData.map(data => ({
-      ...data,
-      id: generateId(),
-      createdAt: now,
-      updatedAt: now,
-    }));
-    
-    await db.stages.bulkAdd(stages);
-    set(state => ({ stages: [...state.stages, ...stages] }));
+    try {
+      const now = new Date();
+      const stages: Stage[] = stagesData.map(data => ({
+        ...data,
+        id: generateId(),
+        createdAt: now,
+        updatedAt: now,
+      }));
+
+      await db.stages.bulkAdd(stages);
+      set(state => ({ stages: [...state.stages, ...stages] }));
+    } catch (error) {
+      set({ error: extractErrorMessage(error) });
+      throw error;
+    }
   },
   
   clearStagesByScenario: async (scenarioId) => {

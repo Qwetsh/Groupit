@@ -12,7 +12,7 @@ interface ScenarioState {
   currentScenarioId: string | null;
   loading: boolean;
   error: string | null;
-  
+
   // Actions
   loadScenarios: () => Promise<void>;
   ensureDefaults: () => Promise<void>;
@@ -23,11 +23,11 @@ interface ScenarioState {
   updateCritere: (scenarioId: string, critereId: string, updates: Partial<CritereConfig>) => Promise<void>;
   duplicateScenario: (id: string, newNom: string) => Promise<Scenario | undefined>;
   deleteScenario: (id: string) => Promise<void>;
-  
+
   // Sélection
   setCurrentScenario: (id: string | null) => void;
-  setActiveScenario: (id: string) => Promise<void>;
-  
+  setActiveScenario: (id: string) => void;
+
   // Getters
   getCurrentScenario: () => Scenario | undefined;
   getActiveScenario: () => Scenario | undefined;
@@ -39,13 +39,13 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
   currentScenarioId: null,
   loading: false,
   error: null,
-  
+
   loadScenarios: async () => {
     set({ loading: true, error: null });
     try {
       const scenarios = await scenarioRepository.getAll();
       set({ scenarios, loading: false });
-      
+
       // Sélectionner le premier scénario par défaut s'il y en a
       if (scenarios.length > 0 && !get().currentScenarioId) {
         set({ currentScenarioId: scenarios[0].id });
@@ -54,7 +54,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       set({ error: extractErrorMessage(error), loading: false });
     }
   },
-  
+
   ensureDefaults: async () => {
     try {
       await scenarioRepository.ensureDefaults();
@@ -63,7 +63,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       set({ error: extractErrorMessage(error) });
     }
   },
-  
+
   addScenario: async (scenario) => {
     try {
       const newScenario = await scenarioRepository.create(scenario);
@@ -74,7 +74,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       throw error;
     }
   },
-  
+
   createDefaultScenario: async (nom, type, mode = 'matching') => {
     try {
       const newScenario = await scenarioRepository.createDefault(nom, type, mode);
@@ -85,12 +85,12 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       throw error;
     }
   },
-  
+
   updateScenario: async (id, updates) => {
     try {
       await scenarioRepository.update(id, updates);
       set(state => ({
-        scenarios: state.scenarios.map(s => 
+        scenarios: state.scenarios.map(s =>
           s.id === id ? { ...s, ...updates, updatedAt: new Date() } : s
         ),
       }));
@@ -99,7 +99,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       throw error;
     }
   },
-  
+
   updateParametres: async (id, parametres) => {
     try {
       const scenario = get().getScenarioById(id);
@@ -107,7 +107,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
         const updatedParametres = { ...scenario.parametres, ...parametres };
         await scenarioRepository.update(id, { parametres: updatedParametres });
         set(state => ({
-          scenarios: state.scenarios.map(s => 
+          scenarios: state.scenarios.map(s =>
             s.id === id ? { ...s, parametres: updatedParametres, updatedAt: new Date() } : s
           ),
         }));
@@ -117,12 +117,12 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       throw error;
     }
   },
-  
+
   updateCritere: async (scenarioId, critereId, updates) => {
     try {
       const scenario = get().getScenarioById(scenarioId);
       if (scenario) {
-        const criteres = scenario.parametres.criteres.map(c => 
+        const criteres = scenario.parametres.criteres.map(c =>
           c.id === critereId ? { ...c, ...updates } : c
         );
         await get().updateParametres(scenarioId, { criteres });
@@ -132,7 +132,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       throw error;
     }
   },
-  
+
   duplicateScenario: async (id, newNom) => {
     try {
       const newScenario = await scenarioRepository.duplicate(id, newNom);
@@ -145,14 +145,19 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       throw error;
     }
   },
-  
+
   deleteScenario: async (id) => {
+    const deletedSteps: string[] = [];
     try {
       // Cascade: supprimer les données liées avant le scénario
       await affectationRepository.deleteByScenario(id);
+      deletedSteps.push('affectations');
       await groupeRepository.deleteByScenario(id);
+      deletedSteps.push('groupes');
       await juryRepository.deleteByScenarioId(id);
+      deletedSteps.push('jurys');
       await scenarioRepository.delete(id);
+      deletedSteps.push('scenario');
       set(state => {
         const newScenarios = state.scenarios.filter(s => s.id !== id);
         const newCurrentId = state.currentScenarioId === id
@@ -164,25 +169,24 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
         };
       });
     } catch (error) {
+      console.error(
+        `[ScenarioStore] Cascade delete failed for scenario ${id}. ` +
+        `Already deleted: [${deletedSteps.join(', ')}]. ` +
+        `Error:`, error
+      );
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   setCurrentScenario: (id) => {
     set({ currentScenarioId: id });
   },
 
-  setActiveScenario: async (id) => {
-    try {
-      // Simply set this scenario as the current one
-      set({ currentScenarioId: id });
-    } catch (error) {
-      set({ error: extractErrorMessage(error) });
-      throw error;
-    }
+  setActiveScenario: (id) => {
+    set({ currentScenarioId: id });
   },
-  
+
   getCurrentScenario: () => {
     const { scenarios, currentScenarioId } = get();
     return scenarios.find(s => s.id === currentScenarioId);
@@ -192,7 +196,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
     const { scenarios, currentScenarioId } = get();
     return scenarios.find(s => s.id === currentScenarioId) || scenarios[0];
   },
-  
+
   getScenarioById: (id) => {
     return get().scenarios.find(s => s.id === id);
   },
