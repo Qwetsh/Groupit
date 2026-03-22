@@ -98,10 +98,15 @@ export function JuryTable({ jurys }: JuryTableProps) {
                 {jury.eleves.map(eleve => {
                   const fs = jury.finalScores.get(eleve.id);
                   const badge = getStatusBadge(eleve.status);
+                  const hasBinome = eleve.binome_id != null;
                   return (
-                    <tr key={eleve.id} style={styles.tr}>
+                    <tr key={eleve.id} style={{
+                      ...styles.tr,
+                      ...(hasBinome ? { borderLeft: '3px solid #6b46c1' } : {}),
+                    }}>
                       <td style={styles.td}>
                         <span style={{ fontWeight: 600 }}>{eleve.display_name}</span>
+                        {hasBinome && <span style={styles.binomeBadge}>Binôme</span>}
                       </td>
                       <td style={styles.td}>{eleve.classe}</td>
                       <td style={styles.td}>
@@ -235,6 +240,16 @@ const styles: Record<string, React.CSSProperties> = {
   td: {
     padding: '8px 10px',
     verticalAlign: 'middle' as const,
+  },
+  binomeBadge: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: '#6b46c1',
+    background: '#e9d8fd',
+    padding: '1px 5px',
+    borderRadius: 4,
+    marginLeft: 6,
+    verticalAlign: 'middle',
   },
   parcoursBadge: {
     fontSize: 11,

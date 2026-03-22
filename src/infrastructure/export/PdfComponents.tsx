@@ -478,6 +478,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ eleves, options, styles }) 
   const colHeure = { width: '10%' };
 
   return (
+    <>
     <View style={styles.table} wrap={false}>
       <View style={styles.tableHeader}>
         <Text style={[styles.tableHeaderCell, colNom]}>Nom</Text>
@@ -492,26 +493,41 @@ const StudentTable: React.FC<StudentTableProps> = ({ eleves, options, styles }) 
         )}
       </View>
 
-      {eleves.map((eleve, idx) => (
-        <View
-          key={idx}
-          style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlt : {}]}
-        >
-          <Text style={[styles.tableCell, colNom]}>{eleve.nom}</Text>
-          <Text style={[styles.tableCell, colPrenom]}>{eleve.prenom}</Text>
-          <Text style={[styles.tableCell, colClasse]}>{eleve.classe}</Text>
-          <Text style={[styles.tableCell, colMatiere]}>
-            {[eleve.parcoursOral, eleve.sujetOral].filter(Boolean).join(' — ') || '-'}
-          </Text>
-          {showSchedule && (
-            <Text style={[styles.tableCell, colHeure]}>{eleve.heurePassage || '-'}</Text>
-          )}
-          {showTopic && (
-            <Text style={[styles.tableCell, styles.colSujet]}>{eleve.sujetIntitule || '-'}</Text>
-          )}
-        </View>
-      ))}
+      {eleves.map((eleve, idx) => {
+        const isBinome = !!eleve.binomeNom;
+        return (
+          <View
+            key={idx}
+            style={[
+              styles.tableRow,
+              idx % 2 === 1 ? styles.tableRowAlt : {},
+              isBinome ? { backgroundColor: '#f5f3ff', borderLeftWidth: 2, borderLeftColor: '#7c3aed', borderLeftStyle: 'solid' as const } : {},
+            ]}
+          >
+            <Text style={[styles.tableCell, colNom]}>
+              {eleve.nom}{isBinome ? '  ♦' : ''}
+            </Text>
+            <Text style={[styles.tableCell, colPrenom]}>{eleve.prenom}</Text>
+            <Text style={[styles.tableCell, colClasse]}>{eleve.classe}</Text>
+            <Text style={[styles.tableCell, colMatiere]}>
+              {[eleve.parcoursOral, eleve.sujetOral].filter(Boolean).join(' — ') || '-'}
+            </Text>
+            {showSchedule && (
+              <Text style={[styles.tableCell, colHeure]}>{eleve.heurePassage || '-'}</Text>
+            )}
+            {showTopic && (
+              <Text style={[styles.tableCell, styles.colSujet]}>{eleve.sujetIntitule || '-'}</Text>
+            )}
+          </View>
+        );
+      })}
     </View>
+    {eleves.some(e => e.binomeNom) && (
+      <Text style={{ fontSize: 7, color: '#7c3aed', marginTop: 2 }}>
+        ♦ Binôme — Les élèves marqués passent ensemble
+      </Text>
+    )}
+    </>
   );
 };
 
@@ -774,19 +790,29 @@ const AttendancePage: React.FC<AttendancePageProps> = ({ jury, data, options, st
           <Text style={[styles.tableHeaderCell, styles.attendanceColSignature]}>Signature</Text>
         </View>
 
-        {jury.eleves.map((eleve, idx) => (
-          <View
-            key={idx}
-            style={[styles.tableRow, idx % 2 === 1 ? styles.tableRowAlt : {}, { minHeight: 22 }]}
-          >
-            <Text style={[styles.tableCell, styles.attendanceColNum]}>{idx + 1}</Text>
-            <Text style={[styles.tableCell, styles.attendanceColHeure]}>{eleve.heurePassage || '—'}</Text>
-            <Text style={[styles.tableCell, styles.attendanceColNom]}>{eleve.nom}</Text>
-            <Text style={[styles.tableCell, styles.attendanceColPrenom]}>{eleve.prenom}</Text>
-            <Text style={[styles.tableCell, styles.attendanceColClasse]}>{eleve.classe}</Text>
-            <View style={[styles.attendanceColSignature, styles.signatureCell]} />
-          </View>
-        ))}
+        {jury.eleves.map((eleve, idx) => {
+          const isBinome = !!eleve.binomeNom;
+          return (
+            <View
+              key={idx}
+              style={[
+                styles.tableRow,
+                idx % 2 === 1 ? styles.tableRowAlt : {},
+                { minHeight: 22 },
+                isBinome ? { backgroundColor: '#f5f3ff', borderLeftWidth: 2, borderLeftColor: '#7c3aed', borderLeftStyle: 'solid' as const } : {},
+              ]}
+            >
+              <Text style={[styles.tableCell, styles.attendanceColNum]}>{idx + 1}</Text>
+              <Text style={[styles.tableCell, styles.attendanceColHeure]}>{eleve.heurePassage || '—'}</Text>
+              <Text style={[styles.tableCell, styles.attendanceColNom]}>
+                {eleve.nom}{isBinome ? '  ♦' : ''}
+              </Text>
+              <Text style={[styles.tableCell, styles.attendanceColPrenom]}>{eleve.prenom}</Text>
+              <Text style={[styles.tableCell, styles.attendanceColClasse]}>{eleve.classe}</Text>
+              <View style={[styles.attendanceColSignature, styles.signatureCell]} />
+            </View>
+          );
+        })}
       </View>
     </View>
 

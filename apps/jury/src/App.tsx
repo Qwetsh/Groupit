@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { JoinScreen } from './screens/JoinScreen';
 import { StudentListScreen } from './screens/StudentListScreen';
 import { EvaluateScreen } from './screens/EvaluateScreen';
+import { BinomeEvaluateScreen } from './screens/BinomeEvaluateScreen';
 import { supabase } from '@groupit/shared';
 import type { SessionEleveRow } from '@groupit/shared';
 import type { RealtimeChannel } from '@supabase/supabase-js';
@@ -9,7 +10,8 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 export type Screen =
   | { type: 'join' }
   | { type: 'students'; juryId: string; sessionId: string }
-  | { type: 'evaluate'; juryId: string; sessionId: string; eleve: SessionEleveRow };
+  | { type: 'evaluate'; juryId: string; sessionId: string; eleve: SessionEleveRow }
+  | { type: 'evaluate-binome'; juryId: string; sessionId: string; eleves: [SessionEleveRow, SessionEleveRow] };
 
 const SESSION_NAV_KEY = 'jury-nav';
 
@@ -17,6 +19,7 @@ interface SavedNav {
   juryId: string;
   sessionId: string;
   eleveId?: string;
+  eleveIds?: [string, string];
 }
 
 function saveNav(screen: Screen) {
@@ -27,9 +30,14 @@ function saveNav(screen: Screen) {
       sessionStorage.setItem(SESSION_NAV_KEY, JSON.stringify({
         juryId: screen.juryId, sessionId: screen.sessionId,
       }));
-    } else {
+    } else if (screen.type === 'evaluate') {
       sessionStorage.setItem(SESSION_NAV_KEY, JSON.stringify({
         juryId: screen.juryId, sessionId: screen.sessionId, eleveId: screen.eleve.id,
+      }));
+    } else {
+      sessionStorage.setItem(SESSION_NAV_KEY, JSON.stringify({
+        juryId: screen.juryId, sessionId: screen.sessionId,
+        eleveIds: [screen.eleves[0].id, screen.eleves[1].id],
       }));
     }
   } catch { /* ignore */ }
@@ -54,6 +62,19 @@ export default function App() {
     async function restore() {
       const nav = loadNav();
       if (!nav) { setRestoring(false); return; }
+
+      if (nav.eleveIds) {
+        const { data } = await supabase
+          .from('session_eleves')
+          .select('*')
+          .in('id', nav.eleveIds);
+        if (data && data.length === 2) {
+          const sorted = nav.eleveIds.map(id => data.find(e => e.id === id)!) as [SessionEleveRow, SessionEleveRow];
+          setScreen({ type: 'evaluate-binome', juryId: nav.juryId, sessionId: nav.sessionId, eleves: sorted });
+          setRestoring(false);
+          return;
+        }
+      }
 
       if (nav.eleveId) {
         const { data: eleve } = await supabase
@@ -141,6 +162,9 @@ export default function App() {
           onSelectEleve={(eleve) =>
             navigate({ type: 'evaluate', juryId: screen.juryId, sessionId: screen.sessionId, eleve })
           }
+          onSelectBinome={(eleves) =>
+            navigate({ type: 'evaluate-binome', juryId: screen.juryId, sessionId: screen.sessionId, eleves })
+          }
           onDisconnect={() => navigate({ type: 'join' })}
         />;
 
@@ -150,6 +174,19 @@ export default function App() {
           juryId={screen.juryId}
           onDone={() => {
             setToast('Note enregistrée ✓');
+            navigate({ type: 'students', juryId: screen.juryId, sessionId: screen.sessionId });
+          }}
+          onBack={() =>
+            navigate({ type: 'students', juryId: screen.juryId, sessionId: screen.sessionId })
+          }
+        />;
+
+      case 'evaluate-binome':
+        return <BinomeEvaluateScreen
+          eleves={screen.eleves}
+          juryId={screen.juryId}
+          onDone={() => {
+            setToast('Notes enregistrées ✓');
             navigate({ type: 'students', juryId: screen.juryId, sessionId: screen.sessionId });
           }}
           onBack={() =>
