@@ -13,7 +13,7 @@ import { useJuryStore } from '../../../stores/juryStore';
 import { useAffectationStore } from '../../../stores/affectationStore';
 import { useStageStore } from '../../../stores/stageStore';
 import { solveOralDnbComplete, solveStageMatching, toStageGeoInfo, toEnseignantGeoInfo, assignTimeSlots, type DistributionMode } from '../../../algorithms';
-import { computeRoutePairs } from '../../../infrastructure/geo/stageGeoWorkflow';
+import { computeRoutePairs, geocodeAddressWithFallback } from '../../../infrastructure/geo/stageGeoWorkflow';
 import { DistributionModeModal } from '../../modals/DistributionModeModal';
 import '../GuidedMode.css';
 
@@ -36,6 +36,9 @@ export function StepRecap({ onBack }: StepRecapProps) {
 
   const stages = useStageStore(state => state.stages);
   const loadStages = useStageStore(state => state.loadStages);
+  const updateStageGeoExtended = useStageStore(state => state.updateStageGeoExtended);
+  const setStageGeoError = useStageStore(state => state.setStageGeoError);
+  const updateEnseignant = useEnseignantStore(state => state.updateEnseignant);
 
   const [state, setState] = useState<RecapState>('ready');
   const [error, setError] = useState<string | null>(null);
@@ -120,13 +123,69 @@ export function StepRecap({ onBack }: StepRecapProps) {
 
         // Get stages for 3e students
         const eleveIds3e = new Set(eleves3e.map(e => e.id));
-        const stagesForEleves = stages.filter(s => s.eleveId && eleveIds3e.has(s.eleveId) && !s.scenarioId);
+        let stagesForEleves = stages.filter(s => s.eleveId && eleveIds3e.has(s.eleveId) && !s.scenarioId);
 
         if (stagesForEleves.length === 0) {
-          throw new Error('Aucun stage trouve pour les eleves de 3eme. Importez les stages dans la page Eleves > Stages.');
+          throw new Error('Aucun stage trouve pour les eleves de 3eme. Importez les stages dans l\'etape Stages du wizard.');
         }
 
-        // Convert to geo info
+        // Get selected enseignants
+        const selectedEnsIds = new Set(scenario.parametres.filtresEnseignants?.enseignantIds || []);
+        const selectedEns = selectedEnsIds.size > 0
+          ? enseignants.filter(e => selectedEnsIds.has(e.id!))
+          : enseignants;
+
+        // === Phase 1: Auto-geocode stages + enseignants with pending/error status ===
+        const stagesToGeocode = stagesForEleves.filter(
+          s => s.adresse && (!s.geoStatus || s.geoStatus === 'pending' || s.geoStatus === 'error' || s.geoStatus === 'not_found')
+        );
+        const teachersToGeocode = selectedEns.filter(
+          e => e.adresse && (!e.geoStatus || e.geoStatus === 'pending' || e.geoStatus === 'error' || e.geoStatus === 'not_found')
+        );
+
+        const totalToGeocode = stagesToGeocode.length + teachersToGeocode.length;
+        if (totalToGeocode > 0) {
+          let geocoded = 0;
+          setProgressMessage(`Geocodage des adresses (0/${totalToGeocode})...`);
+
+          // Geocode stages
+          for (const stage of stagesToGeocode) {
+            const geoResult = await geocodeAddressWithFallback(stage.adresse!);
+            if (geoResult.point) {
+              await updateStageGeoExtended(
+                stage.id, geoResult.point.lat, geoResult.point.lon,
+                geoResult.status, geoResult.statusExtended, geoResult.precision, geoResult.queryUsed
+              );
+            } else {
+              await setStageGeoError(stage.id, geoResult.errorMessage || 'Non trouve');
+            }
+            geocoded++;
+            setProgressMessage(`Geocodage des adresses (${geocoded}/${totalToGeocode})...`);
+            await new Promise(r => setTimeout(r, 100));
+          }
+
+          // Geocode enseignants
+          for (const teacher of teachersToGeocode) {
+            const geoResult = await geocodeAddressWithFallback(teacher.adresse!);
+            if (geoResult.point) {
+              await updateEnseignant(teacher.id!, {
+                lat: geoResult.point.lat,
+                lon: geoResult.point.lon,
+                geoStatus: geoResult.status,
+              });
+            }
+            geocoded++;
+            setProgressMessage(`Geocodage des adresses (${geocoded}/${totalToGeocode})...`);
+            await new Promise(r => setTimeout(r, 100));
+          }
+
+          // Reload fresh data from stores after geocoding
+          await loadStages();
+          const freshStages = useStageStore.getState().stages;
+          stagesForEleves = freshStages.filter(s => s.eleveId && eleveIds3e.has(s.eleveId) && !s.scenarioId);
+        }
+
+        // === Phase 2: Build geo infos + compute routes ===
         const stageGeoInfos = stagesForEleves.map(s => toStageGeoInfo({
           id: s.id,
           eleveId: s.eleveId,
@@ -143,13 +202,12 @@ export function StepRecap({ onBack }: StepRecapProps) {
           dateFin: s.dateFin,
         }));
 
-        // Get selected enseignants
-        const selectedEnsIds = new Set(scenario.parametres.filtresEnseignants?.enseignantIds || []);
-        const selectedEns = selectedEnsIds.size > 0
-          ? enseignants.filter(e => selectedEnsIds.has(e.id!))
-          : enseignants;
+        // Re-read enseignants (may have updated geo)
+        const freshEns = selectedEnsIds.size > 0
+          ? useEnseignantStore.getState().enseignants.filter(e => selectedEnsIds.has(e.id!))
+          : useEnseignantStore.getState().enseignants;
 
-        const ensGeoInfos = selectedEns.map(e => toEnseignantGeoInfo({
+        const ensGeoInfos = freshEns.map(e => toEnseignantGeoInfo({
           id: e.id!,
           nom: e.nom,
           prenom: e.prenom,
@@ -170,7 +228,7 @@ export function StepRecap({ onBack }: StepRecapProps) {
           maxDistanceKm: scenario.parametres.suiviStage?.distanceMaxKm || 20,
         });
 
-        // Run the solver
+        // === Phase 3: Run the solver ===
         setProgressMessage('Optimisation des affectations...');
         const stageParams = scenario.parametres.suiviStage;
         const matchingResult = solveStageMatching(stageGeoInfos, ensGeoInfos, routeResult.pairs, {
@@ -211,7 +269,7 @@ export function StepRecap({ onBack }: StepRecapProps) {
       setError(String(err));
       setState('error');
     }
-  }, [scenario, eleves3e, enseignants, scenarioJurys, stages, addAffectations]);
+  }, [scenario, eleves3e, enseignants, scenarioJurys, stages, addAffectations, updateStageGeoExtended, setStageGeoError, updateEnseignant, loadStages]);
 
   const applyTimeSlots = useCallback(async (
     savedAffectations: Awaited<ReturnType<typeof addAffectations>>,
@@ -395,17 +453,24 @@ export function StepRecap({ onBack }: StepRecapProps) {
               {scenarioJurys.reduce((sum, j) => sum + j.capaciteMax, 0)} places au total
             </div>
           </div>
-        ) : (
-          <div className="recap-card">
-            <div className="recap-icon jury">
-              <Briefcase size={28} />
+        ) : (() => {
+          const stagesForRecap = stages.filter(s => s.eleveId && !s.scenarioId && eleves3e.some(e => e.id === s.eleveId));
+          const geocodedStages = stagesForRecap.filter(s => s.geoStatus === 'ok' || s.geoStatus === 'manual');
+          const pendingGeo = stagesForRecap.length - geocodedStages.length;
+          return (
+            <div className="recap-card">
+              <div className="recap-icon jury">
+                <Briefcase size={28} />
+              </div>
+              <div className="recap-value">{stagesForRecap.length}</div>
+              <div className="recap-label">stages</div>
+              <div className="recap-detail">
+                {geocodedStages.length}/{stagesForRecap.length} geocodes
+                {pendingGeo > 0 && ` — ${pendingGeo} seront geocodes automatiquement`}
+              </div>
             </div>
-            <div className="recap-value">
-              {stages.filter(s => s.eleveId && !s.scenarioId && eleves3e.some(e => e.id === s.eleveId)).length}
-            </div>
-            <div className="recap-label">stages</div>
-          </div>
-        )}
+          );
+        })()}
 
         <div className="recap-card">
           <div className="recap-icon config">

@@ -10,7 +10,7 @@ type Modal = 'import' | 'importMatiereOral' | 'editEleve' | 'editEnseignant' | '
 
 // Guided mode types
 export type GuidedScenarioType = 'suivi_stage' | 'oral_dnb' | 'personnalise' | 'libre' | null;
-export type GuidedStep = 'welcome' | 'scenario' | 'eleves' | 'themes' | 'binomes' | 'enseignants' | 'configuration' | 'salles' | 'recap' | 'results';
+export type GuidedStep = 'welcome' | 'scenario' | 'eleves' | 'stages' | 'themes' | 'binomes' | 'enseignants' | 'configuration' | 'salles' | 'recap' | 'results';
 
 export interface GuidedModeState {
   isActive: boolean;
@@ -19,6 +19,7 @@ export interface GuidedModeState {
   scenarioType: GuidedScenarioType;
   importedElevesCount: number;
   importedEnseignantsCount: number;
+  importedStagesCount: number;
   createdScenarioId: string | null;
 }
 
@@ -44,6 +45,7 @@ const DEFAULT_GUIDED_MODE: GuidedModeState = {
   scenarioType: null,
   importedElevesCount: 0,
   importedEnseignantsCount: 0,
+  importedStagesCount: 0,
   createdScenarioId: null,
 };
 
@@ -119,6 +121,7 @@ interface UIState {
   setGuidedScenarioType: (type: GuidedScenarioType) => void;
   setGuidedImportedEleves: (count: number) => void;
   setGuidedImportedEnseignants: (count: number) => void;
+  setGuidedImportedStages: (count: number) => void;
   setGuidedCreatedScenarioId: (id: string | null) => void;
   markWelcomeSeen: () => void;
   resetGuidedMode: () => void;
@@ -253,6 +256,11 @@ export const useUIStore = create<UIState>((set, get) => ({
   setGuidedImportedEnseignants: (count) => {
     set(state => ({
       guidedMode: { ...state.guidedMode, importedEnseignantsCount: count }
+    }));
+  },
+  setGuidedImportedStages: (count) => {
+    set(state => ({
+      guidedMode: { ...state.guidedMode, importedStagesCount: count }
     }));
   },
   setGuidedCreatedScenarioId: (id) => {
