@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   DndContext,
@@ -24,6 +24,10 @@ import {
   DoorOpen,
   Settings2,
   MapPin,
+  ShieldCheck,
+  Link2,
+  Unlink,
+  Info,
 } from 'lucide-react';
 import { useEleveStore } from '../stores/eleveStore';
 import { useEnseignantStore } from '../stores/enseignantStore';
@@ -33,10 +37,136 @@ import type { Eleve, Enseignant } from '../domain/models';
 import './LibreModePage.css';
 
 // ============================================================
+// HELPER: extract niveau from classe string
+// ============================================================
+function extractNiveau(classe: string): string {
+  return classe.replace(/[^0-9eè]/g, '').replace(/[eè].*/, 'e');
+}
+
+// ============================================================
+// CONTEXT MENU COMPONENT
+// ============================================================
+
+interface ContextMenuState {
+  x: number;
+  y: number;
+  type: 'eleve' | 'enseignant';
+  id: string;
+}
+
+interface ContextMenuProps {
+  menu: ContextMenuState;
+  allEleves: Eleve[];
+  allEnseignants: Enseignant[];
+  eleveLinkGroups: string[][];
+  linkMode: string | null;
+  onClose: () => void;
+  onStartLink: (eleveId: string) => void;
+  onUnlink: (eleveId: string) => void;
+}
+
+const ContextMenu: React.FC<ContextMenuProps> = ({
+  menu,
+  allEleves,
+  allEnseignants,
+  eleveLinkGroups,
+  linkMode,
+  onClose,
+  onStartLink,
+  onUnlink,
+}) => {
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose();
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [onClose]);
+
+  if (menu.type === 'eleve') {
+    const eleve = allEleves.find(e => e.id === menu.id);
+    if (!eleve) return null;
+    const linkGroup = eleveLinkGroups.find(g => g.includes(eleve.id));
+    const linkedNames = linkGroup
+      ? linkGroup.filter(id => id !== eleve.id).map(id => {
+          const e = allEleves.find(el => el.id === id);
+          return e ? `${e.prenom} ${e.nom}` : '?';
+        })
+      : [];
+
+    return (
+      <div ref={menuRef} className="libre-context-menu" style={{ left: menu.x, top: menu.y }}>
+        <div className="ctx-header">
+          <Info size={12} />
+          {eleve.prenom} {eleve.nom}
+        </div>
+        <div className="ctx-info">
+          <div><strong>Classe :</strong> {eleve.classe}</div>
+          {eleve.sexe && <div><strong>Sexe :</strong> {eleve.sexe === 'M' ? 'Masculin' : 'Feminin'}</div>}
+          {eleve.options.length > 0 && <div><strong>Options :</strong> {eleve.options.join(', ')}</div>}
+          {eleve.parcoursOral && <div><strong>Parcours oral :</strong> {eleve.parcoursOral}</div>}
+          {eleve.sujetOral && <div><strong>Sujet oral :</strong> {eleve.sujetOral}</div>}
+          {eleve.matieresOral && eleve.matieresOral.length > 0 && (
+            <div><strong>Matieres oral :</strong> {eleve.matieresOral.join(', ')}</div>
+          )}
+          {eleve.regime && <div><strong>Regime :</strong> {eleve.regime}</div>}
+          {eleve.tags.length > 0 && <div><strong>Tags :</strong> {eleve.tags.join(', ')}</div>}
+        </div>
+        <div className="ctx-separator" />
+        {linkedNames.length > 0 && (
+          <div className="ctx-linked">
+            <Link2 size={11} />
+            Lie avec : {linkedNames.join(', ')}
+          </div>
+        )}
+        <button className="ctx-action" onClick={() => { onStartLink(eleve.id); onClose(); }}>
+          <Link2 size={12} />
+          {linkMode ? 'Lier avec cet eleve' : 'Lier avec un autre eleve...'}
+        </button>
+        {linkGroup && (
+          <button className="ctx-action danger" onClick={() => { onUnlink(eleve.id); onClose(); }}>
+            <Unlink size={12} />
+            Delier cet eleve
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // Enseignant context menu — info only
+  const ens = allEnseignants.find(e => e.id === menu.id);
+  if (!ens) return null;
+
+  return (
+    <div ref={menuRef} className="libre-context-menu" style={{ left: menu.x, top: menu.y }}>
+      <div className="ctx-header">
+        <Info size={12} />
+        {ens.prenom} {ens.nom}
+      </div>
+      <div className="ctx-info">
+        <div><strong>Matiere :</strong> {ens.matierePrincipale}</div>
+        {ens.matiereSecondaire && ens.matiereSecondaire.length > 0 && (
+          <div><strong>Secondaires :</strong> {ens.matiereSecondaire.join(', ')}</div>
+        )}
+        <div><strong>Classes :</strong> {ens.classesEnCharge.join(', ') || 'Aucune'}</div>
+        {ens.estProfPrincipal && <div><strong>PP :</strong> {ens.classePP || 'Oui'}</div>}
+        {ens.tags.length > 0 && <div><strong>Tags :</strong> {ens.tags.join(', ')}</div>}
+      </div>
+    </div>
+  );
+};
+
+// ============================================================
 // DRAGGABLE POOL ITEMS
 // ============================================================
 
-const DraggablePoolEleve: React.FC<{ eleve: Eleve }> = ({ eleve }) => {
+const DraggablePoolEleve: React.FC<{
+  eleve: Eleve;
+  isLinked: boolean;
+  onContextMenu: (e: React.MouseEvent, id: string) => void;
+}> = ({ eleve, isLinked, onContextMenu }) => {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `pool-eleve:${eleve.id}`,
     data: { type: 'eleve', id: eleve.id },
@@ -45,18 +175,23 @@ const DraggablePoolEleve: React.FC<{ eleve: Eleve }> = ({ eleve }) => {
   return (
     <div
       ref={setNodeRef}
-      className={`libre-pool-item eleve ${isDragging ? 'dragging' : ''}`}
+      className={`libre-pool-item eleve ${isDragging ? 'dragging' : ''} ${isLinked ? 'linked' : ''}`}
+      onContextMenu={e => { e.preventDefault(); onContextMenu(e, eleve.id); }}
       {...listeners}
       {...attributes}
     >
       <span className="item-initial">{eleve.prenom[0]}{eleve.nom[0]}</span>
       <span className="item-name">{eleve.prenom} {eleve.nom}</span>
+      {isLinked && <Link2 size={10} className="link-icon" />}
       <span className="item-detail">{eleve.classe}</span>
     </div>
   );
 };
 
-const DraggablePoolEnseignant: React.FC<{ enseignant: Enseignant }> = ({ enseignant }) => {
+const DraggablePoolEnseignant: React.FC<{
+  enseignant: Enseignant;
+  onContextMenu: (e: React.MouseEvent, id: string) => void;
+}> = ({ enseignant, onContextMenu }) => {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `pool-ens:${enseignant.id}`,
     data: { type: 'enseignant', id: enseignant.id },
@@ -66,6 +201,7 @@ const DraggablePoolEnseignant: React.FC<{ enseignant: Enseignant }> = ({ enseign
     <div
       ref={setNodeRef}
       className={`libre-pool-item enseignant ${isDragging ? 'dragging' : ''}`}
+      onContextMenu={e => { e.preventDefault(); onContextMenu(e, enseignant.id); }}
       {...listeners}
       {...attributes}
     >
@@ -73,6 +209,69 @@ const DraggablePoolEnseignant: React.FC<{ enseignant: Enseignant }> = ({ enseign
       <span className="item-name">{enseignant.prenom} {enseignant.nom}</span>
       <span className="item-detail">{enseignant.matierePrincipale}</span>
     </div>
+  );
+};
+
+// ============================================================
+// DRAGGABLE CHIP (inside group cards)
+// ============================================================
+
+const DraggableGroupEleve: React.FC<{
+  eleve: Eleve;
+  groupeId: string;
+  isLinked: boolean;
+  onRemove: () => void;
+  onContextMenu: (e: React.MouseEvent, id: string) => void;
+}> = ({ eleve, groupeId, isLinked, onRemove, onContextMenu }) => {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `grp-eleve:${groupeId}:${eleve.id}`,
+    data: { type: 'eleve', id: eleve.id, fromGroupe: groupeId },
+  });
+
+  return (
+    <span
+      ref={setNodeRef}
+      className={`libre-group-eleve-chip ${isDragging ? 'dragging' : ''} ${isLinked ? 'linked' : ''}`}
+      onContextMenu={e => { e.preventDefault(); onContextMenu(e, eleve.id); }}
+      {...listeners}
+      {...attributes}
+    >
+      {eleve.prenom} {eleve.nom.charAt(0)}.
+      <span className="item-detail">{eleve.classe}</span>
+      {isLinked && <Link2 size={8} className="link-icon" />}
+      <span className="remove-eleve" onPointerDown={e => e.stopPropagation()} onClick={onRemove}>
+        <X size={9} />
+      </span>
+    </span>
+  );
+};
+
+const DraggableGroupEns: React.FC<{
+  ens: Enseignant;
+  groupeId: string;
+  isSuppleant?: boolean;
+  onRemove: () => void;
+  onContextMenu: (e: React.MouseEvent, id: string) => void;
+}> = ({ ens, groupeId, isSuppleant, onRemove, onContextMenu }) => {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `grp-ens:${groupeId}:${ens.id}${isSuppleant ? ':sup' : ''}`,
+    data: { type: 'enseignant', id: ens.id, fromGroupe: groupeId, isSuppleant },
+  });
+
+  return (
+    <span
+      ref={setNodeRef}
+      className={`libre-group-ens-chip ${isSuppleant ? 'suppleant' : ''} ${isDragging ? 'dragging' : ''}`}
+      onContextMenu={e => { e.preventDefault(); onContextMenu(e, ens.id); }}
+      {...listeners}
+      {...attributes}
+    >
+      {isSuppleant && <ShieldCheck size={10} className="sup-icon" />}
+      {ens.prenom} {ens.nom.charAt(0)}.
+      <span className="remove-ens" onPointerDown={e => e.stopPropagation()} onClick={onRemove}>
+        <X size={10} />
+      </span>
+    </span>
   );
 };
 
@@ -85,10 +284,15 @@ interface GroupCardProps {
   eleves: Eleve[];
   enseignants: Enseignant[];
   tailleJuryDefaut: number;
-  onUpdate: (id: string, patch: Partial<Pick<LibreGroupe, 'nom' | 'salle' | 'tailleJuryOverride'>>) => void;
+  nbReservesDefaut: number;
+  eleveLinkGroups: string[][];
+  onUpdate: (id: string, patch: Partial<Pick<LibreGroupe, 'nom' | 'salle' | 'tailleJuryOverride' | 'nbReservesOverride'>>) => void;
   onRemove: (id: string) => void;
   onRemoveEleve: (eleveId: string, groupeId: string) => void;
   onRemoveEnseignant: (enseignantId: string, groupeId: string) => void;
+  onRemoveSuppleant: (enseignantId: string, groupeId: string) => void;
+  onEleveContextMenu: (e: React.MouseEvent, id: string) => void;
+  onEnsContextMenu: (e: React.MouseEvent, id: string) => void;
 }
 
 const GroupCard: React.FC<GroupCardProps> = ({
@@ -96,14 +300,18 @@ const GroupCard: React.FC<GroupCardProps> = ({
   eleves,
   enseignants,
   tailleJuryDefaut,
+  nbReservesDefaut,
+  eleveLinkGroups,
   onUpdate,
   onRemove,
   onRemoveEleve,
   onRemoveEnseignant,
+  onRemoveSuppleant,
+  onEleveContextMenu,
+  onEnsContextMenu,
 }) => {
   const { setNodeRef, isOver } = useDroppable({ id: `groupe:${groupe.id}` });
   const [showSallePicker, setShowSallePicker] = useState(false);
-  const salleRef = useRef<HTMLDivElement>(null);
 
   const groupeEleves = useMemo(
     () => groupe.eleveIds.map(id => eleves.find(e => e.id === id)).filter(Boolean) as Eleve[],
@@ -115,8 +323,22 @@ const GroupCard: React.FC<GroupCardProps> = ({
     [groupe.enseignantIds, enseignants]
   );
 
+  const groupeSuppleants = useMemo(
+    () => groupe.suppleantsIds.map(id => enseignants.find(e => e.id === id)).filter(Boolean) as Enseignant[],
+    [groupe.suppleantsIds, enseignants]
+  );
+
   const tailleJury = groupe.tailleJuryOverride ?? tailleJuryDefaut;
+  const nbReserves = groupe.nbReservesOverride ?? nbReservesDefaut;
   const hasEleves = groupeEleves.length > 0;
+
+  const linkedEleveIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const g of eleveLinkGroups) {
+      if (g.length >= 2) for (const id of g) set.add(id);
+    }
+    return set;
+  }, [eleveLinkGroups]);
 
   const sallesByCategory = useMemo(() => {
     const map = new Map<string, typeof SALLES_DISPONIBLES>();
@@ -147,7 +369,7 @@ const GroupCard: React.FC<GroupCardProps> = ({
             )}
           </div>
           <div className="libre-group-actions">
-            <div style={{ position: 'relative' }} ref={salleRef}>
+            <div style={{ position: 'relative' }}>
               <button title="Salle" onClick={() => setShowSallePicker(!showSallePicker)}>
                 <DoorOpen size={14} />
               </button>
@@ -176,9 +398,8 @@ const GroupCard: React.FC<GroupCardProps> = ({
                 </div>
               )}
             </div>
-            <button title="Taille jury" onClick={() => {
-              const current = groupe.tailleJuryOverride ?? tailleJuryDefaut;
-              const next = current >= 4 ? 1 : current + 1;
+            <button title={`Taille jury : ${tailleJury}`} onClick={() => {
+              const next = tailleJury >= 4 ? 1 : tailleJury + 1;
               onUpdate(groupe.id, { tailleJuryOverride: next });
             }}>
               <Settings2 size={14} />
@@ -196,22 +417,49 @@ const GroupCard: React.FC<GroupCardProps> = ({
           <span className="libre-group-count-badge">
             {groupeEnseignants.length}/{tailleJury} ens.
           </span>
+          {nbReserves > 0 && (
+            <span className="libre-group-count-badge reserve">
+              {groupeSuppleants.length}/{nbReserves} res.
+            </span>
+          )}
         </div>
 
-        {/* Enseignants */}
+        {/* Enseignants titulaires */}
         {groupeEnseignants.length > 0 ? (
           <div className="libre-group-enseignants">
             {groupeEnseignants.map(ens => (
-              <span key={ens.id} className="libre-group-ens-chip">
-                {ens.prenom} {ens.nom.charAt(0)}.
-                <span className="remove-ens" onClick={() => onRemoveEnseignant(ens.id, groupe.id)}>
-                  <X size={10} />
-                </span>
-              </span>
+              <DraggableGroupEns
+                key={ens.id}
+                ens={ens}
+                groupeId={groupe.id}
+                onRemove={() => onRemoveEnseignant(ens.id, groupe.id)}
+                onContextMenu={onEnsContextMenu}
+              />
             ))}
           </div>
         ) : (
           <div className="libre-group-ens-placeholder">Deposer des enseignants ici</div>
+        )}
+
+        {/* Suppléants */}
+        {nbReserves > 0 && (
+          <div className="libre-group-suppleants">
+            <span className="suppleants-label"><ShieldCheck size={10} /> Reserve</span>
+            {groupeSuppleants.length > 0 ? (
+              groupeSuppleants.map(ens => (
+                <DraggableGroupEns
+                  key={ens.id}
+                  ens={ens}
+                  groupeId={groupe.id}
+                  isSuppleant
+                  onRemove={() => onRemoveSuppleant(ens.id, groupe.id)}
+                  onContextMenu={onEnsContextMenu}
+                />
+              ))
+            ) : (
+              <span className="suppleants-empty">Aucun</span>
+            )}
+          </div>
         )}
       </div>
 
@@ -219,13 +467,14 @@ const GroupCard: React.FC<GroupCardProps> = ({
       <div className="libre-group-eleves">
         {groupeEleves.length > 0 ? (
           groupeEleves.map(eleve => (
-            <span key={eleve.id} className="libre-group-eleve-chip">
-              {eleve.prenom} {eleve.nom.charAt(0)}.
-              <span className="item-detail">{eleve.classe}</span>
-              <span className="remove-eleve" onClick={() => onRemoveEleve(eleve.id, groupe.id)}>
-                <X size={9} />
-              </span>
-            </span>
+            <DraggableGroupEleve
+              key={eleve.id}
+              eleve={eleve}
+              groupeId={groupe.id}
+              isLinked={linkedEleveIds.has(eleve.id)}
+              onRemove={() => onRemoveEleve(eleve.id, groupe.id)}
+              onContextMenu={onEleveContextMenu}
+            />
           ))
         ) : (
           <div className="libre-group-drop-zone">Deposer des eleves ici</div>
@@ -255,9 +504,11 @@ export const LibreModePage: React.FC = () => {
   const {
     groupes,
     config,
+    eleveLinkGroups,
     assignedEleveIds,
     assignedEnseignantIds,
     setTailleJuryDefaut,
+    setNbReservesDefaut,
     setShowDistance,
     addGroupe,
     removeGroupe,
@@ -266,6 +517,10 @@ export const LibreModePage: React.FC = () => {
     removeEleveFromGroupe,
     addEnseignantToGroupe,
     removeEnseignantFromGroupe,
+    addSuppleantToGroupe: addSuppleant,
+    removeSuppleantFromGroupe,
+    linkEleves,
+    unlinkEleve,
     exportJSON,
     importJSON,
     resetAll,
@@ -277,20 +532,28 @@ export const LibreModePage: React.FC = () => {
   const [eleveClasse, setEleveClasse] = useState('');
   const [ensSearch, setEnsSearch] = useState('');
   const [ensMatiere, setEnsMatiere] = useState('');
+  const [ensNiveauEnseigne, setEnsNiveauEnseigne] = useState('');
+  const [ensPPOnly, setEnsPPOnly] = useState(false);
 
   // DnD state
   const [activeId, setActiveId] = useState<string | null>(null);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-  // File input ref for import
+  // Context menu
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+
+  // Link mode: when set, next right-click on an élève will link them
+  const [linkMode, setLinkMode] = useState<string | null>(null);
+
+  // File input ref
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Extract unique values for filters
   const niveaux = useMemo(() => {
     const set = new Set<string>();
     for (const e of allEleves) {
-      const niveau = e.classe.replace(/[^0-9eè]/g, '').replace(/[eè].*/, 'e');
-      if (niveau) set.add(niveau);
+      const n = extractNiveau(e.classe);
+      if (n) set.add(n);
     }
     return [...set].sort();
   }, [allEleves]);
@@ -309,6 +572,27 @@ export const LibreModePage: React.FC = () => {
     return [...set].sort();
   }, [allEnseignants]);
 
+  // Niveaux enseignés (extracted from classesEnCharge)
+  const niveauxEnseignes = useMemo(() => {
+    const set = new Set<string>();
+    for (const e of allEnseignants) {
+      for (const c of e.classesEnCharge) {
+        const n = extractNiveau(c);
+        if (n) set.add(n);
+      }
+    }
+    return [...set].sort();
+  }, [allEnseignants]);
+
+  // Linked eleve IDs set (for visual indicator)
+  const linkedEleveIdsSet = useMemo(() => {
+    const set = new Set<string>();
+    for (const g of eleveLinkGroups) {
+      if (g.length >= 2) for (const id of g) set.add(id);
+    }
+    return set;
+  }, [eleveLinkGroups]);
+
   // Filtered pools
   const filteredEleves = useMemo(() => {
     return allEleves.filter(e => {
@@ -318,8 +602,7 @@ export const LibreModePage: React.FC = () => {
         if (!`${e.prenom} ${e.nom}`.toLowerCase().includes(s) && !e.classe.toLowerCase().includes(s)) return false;
       }
       if (eleveNiveau) {
-        const niveau = e.classe.replace(/[^0-9eè]/g, '').replace(/[eè].*/, 'e');
-        if (niveau !== eleveNiveau) return false;
+        if (extractNiveau(e.classe) !== eleveNiveau) return false;
       }
       if (eleveClasse && e.classe !== eleveClasse) return false;
       return true;
@@ -334,9 +617,37 @@ export const LibreModePage: React.FC = () => {
         if (!`${e.prenom} ${e.nom}`.toLowerCase().includes(s) && !e.matierePrincipale.toLowerCase().includes(s)) return false;
       }
       if (ensMatiere && e.matierePrincipale !== ensMatiere) return false;
+      if (ensNiveauEnseigne) {
+        const hasNiveau = e.classesEnCharge.some(c => extractNiveau(c) === ensNiveauEnseigne);
+        if (!hasNiveau) return false;
+      }
+      if (ensPPOnly && !e.estProfPrincipal) return false;
       return true;
     });
-  }, [allEnseignants, assignedEnseignantIds, ensSearch, ensMatiere]);
+  }, [allEnseignants, assignedEnseignantIds, ensSearch, ensMatiere, ensNiveauEnseigne, ensPPOnly]);
+
+  // Context menu handlers
+  const handleEleveContextMenu = useCallback((e: React.MouseEvent, eleveId: string) => {
+    // If in link mode, link the two élèves
+    if (linkMode && linkMode !== eleveId) {
+      linkEleves(linkMode, eleveId);
+      setLinkMode(null);
+      return;
+    }
+    setContextMenu({ x: e.clientX, y: e.clientY, type: 'eleve', id: eleveId });
+  }, [linkMode, linkEleves]);
+
+  const handleEnsContextMenu = useCallback((e: React.MouseEvent, ensId: string) => {
+    setContextMenu({ x: e.clientX, y: e.clientY, type: 'enseignant', id: ensId });
+  }, []);
+
+  const handleStartLink = useCallback((eleveId: string) => {
+    setLinkMode(eleveId);
+  }, []);
+
+  const handleUnlink = useCallback((eleveId: string) => {
+    unlinkEleve(eleveId);
+  }, [unlinkEleve]);
 
   // DnD handlers
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -358,11 +669,20 @@ export const LibreModePage: React.FC = () => {
     if (activeData.type === 'eleve') {
       addEleveToGroupe(activeData.id, groupeId);
     } else if (activeData.type === 'enseignant') {
-      addEnseignantToGroupe(activeData.id, groupeId);
+      // Try titulaire first, if full try suppléant
+      const groupe = groupes.find(g => g.id === groupeId);
+      if (groupe) {
+        const maxTitulaires = groupe.tailleJuryOverride ?? config.tailleJuryDefaut;
+        if (groupe.enseignantIds.length >= maxTitulaires) {
+          addSuppleant(activeData.id, groupeId);
+        } else {
+          addEnseignantToGroupe(activeData.id, groupeId);
+        }
+      }
     }
-  }, [addEleveToGroupe, addEnseignantToGroupe]);
+  }, [addEleveToGroupe, addEnseignantToGroupe, addSuppleant, groupes, config.tailleJuryDefaut]);
 
-  // Export PDF (simple print for now)
+  // Export PDF
   const handleExportPdf = useCallback(() => {
     window.print();
   }, []);
@@ -403,9 +723,9 @@ export const LibreModePage: React.FC = () => {
   // Drag overlay content
   const dragOverlayContent = useMemo(() => {
     if (!activeId) return null;
-    if (activeId.startsWith('pool-eleve:')) {
-      const id = activeId.replace('pool-eleve:', '');
-      const eleve = allEleves.find(e => e.id === id);
+    const eleveMatch = activeId.match(/(?:pool-eleve|grp-eleve:[^:]+):(.+)/);
+    if (eleveMatch) {
+      const eleve = allEleves.find(e => e.id === eleveMatch[1]);
       if (!eleve) return null;
       return (
         <div className="libre-pool-item eleve" style={{ background: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', borderRadius: 6, padding: '5px 8px' }}>
@@ -414,9 +734,9 @@ export const LibreModePage: React.FC = () => {
         </div>
       );
     }
-    if (activeId.startsWith('pool-ens:')) {
-      const id = activeId.replace('pool-ens:', '');
-      const ens = allEnseignants.find(e => e.id === id);
+    const ensMatch = activeId.match(/(?:pool-ens|grp-ens:[^:]+):(.+?)(?::sup)?$/);
+    if (ensMatch) {
+      const ens = allEnseignants.find(e => e.id === ensMatch[1]);
       if (!ens) return null;
       return (
         <div className="libre-pool-item enseignant" style={{ background: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', borderRadius: 6, padding: '5px 8px' }}>
@@ -431,6 +751,15 @@ export const LibreModePage: React.FC = () => {
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="libre-page">
+        {/* Link mode banner */}
+        {linkMode && (
+          <div className="libre-link-banner">
+            <Link2 size={14} />
+            Cliquez-droit sur un autre eleve pour le lier, ou
+            <button onClick={() => setLinkMode(null)}>Annuler</button>
+          </div>
+        )}
+
         {/* Toolbar */}
         <div className="libre-toolbar">
           <button className="libre-btn" onClick={() => navigate('/')} title="Retour accueil">
@@ -440,12 +769,24 @@ export const LibreModePage: React.FC = () => {
           <div className="libre-toolbar-sep" />
 
           <div className="libre-toolbar-group">
-            <label>Jury par defaut :</label>
+            <label>Jury :</label>
             <select
               value={config.tailleJuryDefaut}
               onChange={e => setTailleJuryDefaut(Number(e.target.value))}
             >
               {[1, 2, 3, 4].map(n => (
+                <option key={n} value={n}>{n}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="libre-toolbar-group">
+            <label>Reserve :</label>
+            <select
+              value={config.nbReservesDefaut}
+              onChange={e => setNbReservesDefaut(Number(e.target.value))}
+            >
+              {[0, 1, 2, 3].map(n => (
                 <option key={n} value={n}>{n}</option>
               ))}
             </select>
@@ -509,7 +850,7 @@ export const LibreModePage: React.FC = () => {
                 <select value={eleveClasse} onChange={e => setEleveClasse(e.target.value)}>
                   <option value="">Toutes classes</option>
                   {classes
-                    .filter(c => !eleveNiveau || c.replace(/[^0-9eè]/g, '').replace(/[eè].*/, 'e') === eleveNiveau)
+                    .filter(c => !eleveNiveau || extractNiveau(c) === eleveNiveau)
                     .map(c => <option key={c} value={c}>{c}</option>)
                   }
                 </select>
@@ -523,7 +864,14 @@ export const LibreModePage: React.FC = () => {
             </div>
             <div className="libre-pool-list">
               {filteredEleves.length > 0 ? (
-                filteredEleves.map(e => <DraggablePoolEleve key={e.id} eleve={e} />)
+                filteredEleves.map(e => (
+                  <DraggablePoolEleve
+                    key={e.id}
+                    eleve={e}
+                    isLinked={linkedEleveIdsSet.has(e.id)}
+                    onContextMenu={handleEleveContextMenu}
+                  />
+                ))
               ) : (
                 <div className="libre-pool-empty">
                   {assignedEleveIds.size === allEleves.length ? 'Tous les eleves sont assignes' : 'Aucun resultat'}
@@ -542,10 +890,15 @@ export const LibreModePage: React.FC = () => {
                   eleves={allEleves}
                   enseignants={allEnseignants}
                   tailleJuryDefaut={config.tailleJuryDefaut}
+                  nbReservesDefaut={config.nbReservesDefaut}
+                  eleveLinkGroups={eleveLinkGroups}
                   onUpdate={updateGroupe}
                   onRemove={removeGroupe}
                   onRemoveEleve={removeEleveFromGroupe}
                   onRemoveEnseignant={removeEnseignantFromGroupe}
+                  onRemoveSuppleant={removeSuppleantFromGroupe}
+                  onEleveContextMenu={handleEleveContextMenu}
+                  onEnsContextMenu={handleEnsContextMenu}
                 />
               ))}
               <div className="libre-add-group" onClick={() => addGroupe()}>
@@ -568,6 +921,16 @@ export const LibreModePage: React.FC = () => {
                   <option value="">Toutes matieres</option>
                   {matieres.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
+                <select value={ensNiveauEnseigne} onChange={e => setEnsNiveauEnseigne(e.target.value)}>
+                  <option value="">Tous niveaux</option>
+                  {niveauxEnseignes.map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </div>
+              <div className="libre-pool-filters">
+                <label className="libre-pool-toggle">
+                  <input type="checkbox" checked={ensPPOnly} onChange={e => setEnsPPOnly(e.target.checked)} />
+                  PP uniquement
+                </label>
               </div>
               <input
                 className="libre-pool-search"
@@ -578,7 +941,13 @@ export const LibreModePage: React.FC = () => {
             </div>
             <div className="libre-pool-list">
               {filteredEnseignants.length > 0 ? (
-                filteredEnseignants.map(e => <DraggablePoolEnseignant key={e.id} enseignant={e} />)
+                filteredEnseignants.map(e => (
+                  <DraggablePoolEnseignant
+                    key={e.id}
+                    enseignant={e}
+                    onContextMenu={handleEnsContextMenu}
+                  />
+                ))
               ) : (
                 <div className="libre-pool-empty">
                   {assignedEnseignantIds.size === allEnseignants.length ? 'Tous les enseignants sont assignes' : 'Aucun resultat'}
@@ -589,6 +958,20 @@ export const LibreModePage: React.FC = () => {
         </div>
 
         <DragOverlay>{dragOverlayContent}</DragOverlay>
+
+        {/* Context menu */}
+        {contextMenu && (
+          <ContextMenu
+            menu={contextMenu}
+            allEleves={allEleves}
+            allEnseignants={allEnseignants}
+            eleveLinkGroups={eleveLinkGroups}
+            linkMode={linkMode}
+            onClose={() => setContextMenu(null)}
+            onStartLink={handleStartLink}
+            onUnlink={handleUnlink}
+          />
+        )}
       </div>
     </DndContext>
   );
