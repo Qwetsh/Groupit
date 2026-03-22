@@ -98,14 +98,7 @@ export interface BoardToolbarProps {
   isJuryMode: boolean;
   isStageScenario: boolean;
   isRunning: boolean;
-  isValidating: boolean;
   scenarioInfo: string;
-  affectationsCount: number;
-  runButtonDisabled: boolean;
-  runButtonTitle: string;
-  onRunMatching: () => void;
-  onResetAffectations: () => void;
-  onValidateClick: () => void;
   onExportSession: () => void;
   onImportSession: () => void;
 }

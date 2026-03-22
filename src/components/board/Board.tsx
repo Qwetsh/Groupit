@@ -18,9 +18,7 @@ import { useScenarioStore } from '../../stores/scenarioStore';
 import { useJuryStore } from '../../stores/juryStore';
 import { useStageStore } from '../../stores/stageStore';
 import { useScenarioArchiveStore } from '../../stores/scenarioArchiveStore';
-import { buildArchiveFromCurrentState } from '../../services';
-import { solveMatching, convertToAffectations, solveOralDnbComplete, solveStageMatching, toStageGeoInfo, toEnseignantGeoInfo, calculateDistance, recalcTimeSlotsForJurys } from '../../algorithms';
-import { getEffectiveCriteres, criteresToStageOptions } from '../../domain/criteriaConfig';
+import { calculateDistance, recalcTimeSlotsForJurys } from '../../algorithms';
 import type { Eleve, Enseignant, Affectation, Jury, MatchingResultDNB, Stage } from '../../domain/models';
 import { calculateCapacitesStage, getHeuresMatiere } from '../../domain/models';
 import { filterEleves, filterEnseignants } from '../../utils/filteringUtils';
@@ -39,7 +37,6 @@ import { exportAffectationSession, downloadSessionAsJson, importAffectationSessi
 // Sous-composants
 import { BoardToolbar } from './BoardToolbar';
 import { BoardMessages } from './BoardMessages';
-import { ValidationModal } from './ValidationModal';
 import { DraggableEleve, DroppableEnseignantTile, DroppableJuryTile } from './tiles';
 import type { DragData, DropData, ContextMenuState, EnseignantContextMenuState, JuryAffectationDisplay, MatchingStats, ValidationSuccess, NonAffectationInfo } from './types';
 
@@ -50,10 +47,10 @@ import './Board.css';
 // ============================================================
 
 /** Durée d'affichage du message de succès de validation (en ms) */
-const VALIDATION_SUCCESS_DISPLAY_MS = 5000;
+
 
 /** Vitesse moyenne pour estimation durée trajet (km/h) */
-const AVERAGE_SPEED_KMH = 40;
+
 
 // ============================================================
 // UNASSIGNED DROP ZONE
@@ -93,7 +90,6 @@ export const Board: React.FC = () => {
   const jurys = useJuryStore(state => state.jurys);
   const stages = useStageStore(state => state.stages);
   const loadGlobalStages = useStageStore(state => state.loadGlobalStages);
-  const createArchive = useScenarioArchiveStore(state => state.createArchive);
 
   // Active scenario
   const activeScenario = useMemo(() => {
@@ -130,8 +126,6 @@ export const Board: React.FC = () => {
   const [infoModalEleve, setInfoModalEleve] = useState<{ eleve: Eleve; affectation?: Affectation; enseignant?: Enseignant; jury?: Jury; stage?: Stage } | null>(null);
   const [mapDrawerOpen, setMapDrawerOpen] = useState(false);
   const [selectedTeacherForMap, setSelectedTeacherForMap] = useState<Enseignant | null>(null);
-  const [isValidating, setIsValidating] = useState(false);
-  const [showValidationModal, setShowValidationModal] = useState(false);
   const [validationSuccess, setValidationSuccess] = useState<ValidationSuccess | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
 
@@ -287,22 +281,6 @@ export const Board: React.FC = () => {
 
   const jurysWithoutEnseignants = isJuryMode ? scenarioJurys.filter(j => !j.enseignantIds || j.enseignantIds.length === 0) : [];
   const hasJurysWithoutEnseignants = jurysWithoutEnseignants.length > 0;
-
-  const runButtonDisabled = isRunning || !activeScenario
-    || (isJuryMode && (scenarioJurys.length === 0 || hasJurysWithoutEnseignants))
-    || (isStageScenario && !stageReadyForMatching);
-
-  const runButtonTitle = !activeScenario
-    ? 'Sélectionnez une configuration pour lancer la répartition'
-    : isJuryMode && scenarioJurys.length === 0
-      ? 'Créez d\'abord des jurys dans la page Configurations'
-      : isJuryMode && hasJurysWithoutEnseignants
-        ? `Associez au moins un enseignant à chaque jury`
-        : isStageScenario && geocodedStagesCount === 0
-          ? 'Localisez d\'abord les stages dans la page Configurations'
-          : isStageScenario && geocodedEnseignantsCount === 0
-            ? 'Les enseignants doivent avoir une adresse localisée'
-            : '';
 
   // Stages for selected teacher map
   const selectedTeacherStages = useMemo(() => {
@@ -692,284 +670,7 @@ export const Board: React.FC = () => {
     }
   }, [activeScenario, jurysById, enseignantsById, addAffectation, updateAffectation, deleteAffectation, affectations, scenarioJurys, eleves]);
 
-  // Run matching algorithm
-  const runMatching = useCallback(async () => {
-    if (!activeScenario) {
-      setMatchingError('Aucune configuration active.');
-      return;
-    }
 
-    // Validation for Oral DNB
-    if (activeScenario.type === 'oral_dnb') {
-      const elevesWithoutMatiere = scenarioEleves.filter(e => !e.matieresOral || e.matieresOral.length === 0);
-      if (elevesWithoutMatiere.length > 0) {
-        const names = elevesWithoutMatiere.slice(0, 3).map(e => `${e.prenom} ${e.nom}`);
-        const more = elevesWithoutMatiere.length > 3 ? ` et ${elevesWithoutMatiere.length - 3} autres` : '';
-        setMatchingError(`⚠️ ${elevesWithoutMatiere.length} élève(s) n'ont pas de matière d'oral assignée : ${names.join(', ')}${more}. Allez dans la page "Élèves" > "Matières Oral DNB" pour attribuer les matières.`);
-        return;
-      }
-    }
-
-    if (isJuryMode) {
-      if (scenarioJurys.length === 0) {
-        setMatchingError('⚠️ Aucun jury configuré. Rendez-vous dans "Configurations" > "Jurys" pour en créer.');
-        return;
-      }
-      const jurysSansEnseignant = scenarioJurys.filter(j => !j.enseignantIds || j.enseignantIds.length === 0);
-      if (jurysSansEnseignant.length > 0) {
-        setMatchingError(`⚠️ ${jurysSansEnseignant.length} jury(s) n'ont aucun enseignant assigné.`);
-        return;
-      }
-    }
-
-    setIsRunning(true);
-    setMatchingError(null);
-    setMatchingStats(null);
-    setDnbResults(new Map());
-    setNonAffectesInfo(new Map());
-
-    try {
-      if (isStageScenario) {
-        // Stage matching
-        const eleveIds = new Set(scenarioEleves.map(e => e.id!));
-        const scenarioStagesForMatching = stages.filter(s => s.eleveId && eleveIds.has(s.eleveId));
-        const geocodedStages = scenarioStagesForMatching.filter(s => (s.geoStatus === 'ok' || s.geoStatus === 'manual') && s.lat && s.lon);
-        const geocodedEnseignants = scenarioEnseignants.filter(e => (e.geoStatus === 'ok' || e.geoStatus === 'manual') && e.lat && e.lon);
-
-        if (geocodedStages.length === 0) {
-          setMatchingError('⚠️ Aucun stage géocodé.');
-          return;
-        }
-        if (geocodedEnseignants.length === 0) {
-          setMatchingError('⚠️ Aucun enseignant géocodé.');
-          return;
-        }
-
-        // Map des élèves pour récupérer leurs options
-        const elevesById = new Map(scenarioEleves.map(e => [e.id, e]));
-
-        const stagesGeoInfo = geocodedStages.map(s => {
-          const eleve = s.eleveId ? elevesById.get(s.eleveId) : undefined;
-          return toStageGeoInfo({
-            id: s.id,
-            eleveId: s.eleveId,
-            eleveClasse: s.eleveClasse,
-            eleveOptions: eleve?.options,
-            adresse: s.adresse || '',
-            lat: s.lat,
-            lon: s.lon,
-            geoStatus: s.geoStatus || 'pending',
-            nomEntreprise: s.nomEntreprise
-          });
-        });
-
-        // Capacité par enseignant: calculée ou fixe selon l'option du scénario
-        const capaciteDefaut = activeScenario.parametres.suiviStage?.capaciteTuteurDefaut ?? 5;
-        const enseignantsGeoInfo = geocodedEnseignants.map(e => {
-          const capacite = utiliserCapaciteCalculee
-            ? (capacitesStageCalculees.get(e.id!) ?? capaciteDefaut)
-            : capaciteDefaut;
-          return toEnseignantGeoInfo({
-            id: e.id!,
-            nom: e.nom,
-            prenom: e.prenom,
-            matierePrincipale: e.matierePrincipale,
-            adresse: e.adresse,
-            lat: e.lat,
-            lon: e.lon,
-            geoStatus: e.geoStatus,
-            capaciteStage: capacite,
-            classesEnCharge: e.classesEnCharge
-          });
-        });
-
-        const effectiveCriteres = getEffectiveCriteres(activeScenario.type, activeScenario.parametres.criteresV2 || []);
-        const stageOptions = criteresToStageOptions(effectiveCriteres, { distanceMaxKm: activeScenario.parametres.suiviStage?.distanceMaxKm, dureeMaxMin: activeScenario.parametres.suiviStage?.dureeMaxMin });
-
-        const distanceMaxKm = activeScenario.parametres.suiviStage?.distanceMaxKm ?? 25;
-        const pairs: Array<{ enseignantId: string; stageId: string; distanceKm: number; durationMin: number; isValid: boolean }> = [];
-
-        for (const stage of stagesGeoInfo) {
-          if (!stage.geo) continue;
-          for (const ens of enseignantsGeoInfo) {
-            if (!ens.homeGeo) continue;
-            const distanceKm = calculateDistance(ens.homeGeo.lat, ens.homeGeo.lon, stage.geo.lat, stage.geo.lon);
-            if (distanceKm <= distanceMaxKm) {
-              pairs.push({ enseignantId: ens.enseignantId, stageId: stage.stageId, distanceKm: Math.round(distanceKm * 10) / 10, durationMin: Math.round((distanceKm / AVERAGE_SPEED_KMH) * 60), isValid: true });
-            }
-          }
-        }
-
-        const result = solveStageMatching(stagesGeoInfo, enseignantsGeoInfo, pairs, {
-          ...stageOptions,
-          useLocalSearch: true,
-          verbose: false,
-          // Fallback: affecter les stages restants aux enseignants avec places
-          collegeGeo: COLLEGE_GEO,
-          fallbackCollegeActif: true,
-          fallbackAngleMaxDeg: 45, // Cône de 90° vers le domicile
-        });
-
-        // Clear and create affectations
-        await deleteAffectationsByScenario(activeScenario.id!);
-
-        for (const aff of result.affectations) {
-          const stage = geocodedStages.find(s => s.id === aff.stageId);
-          try {
-            await addAffectation({ eleveId: aff.eleveId, enseignantId: aff.enseignantId, scenarioId: activeScenario.id!, type: 'suivi_stage', metadata: { stageId: aff.stageId, distanceKm: aff.distanceKm, durationMin: aff.durationMin, entreprise: stage?.nomEntreprise }, scoreDetail: { trajet: Math.round(100 - aff.score) }, scoreTotal: Math.round(100 - aff.score) });
-          } catch (err) {
-            setMatchingError(`Erreur lors de la création d'une affectation : ${String(err)}`);
-          }
-        }
-
-        setMatchingStats({ total: geocodedStages.length, affected: result.affectations.length, score: result.stats.totalAffectes > 0 ? Math.round(100 - (result.stats.dureeMoyenneMin / 60) * 100) : 0 });
-        if (result.nonAffectes.length > 0) {
-          const reasons = result.nonAffectes.slice(0, 3).map(n => n.raisons[0]).join('; ');
-          setMatchingError(`${result.nonAffectes.length} stage(s) non affecté(s): ${reasons}`);
-        }
-
-        // Build non-affectation info for tooltips
-        const newNonAffectesInfo = new Map<string, NonAffectationInfo>();
-        const stageByEleveId = new Map(scenarioStagesForMatching.map(s => [s.eleveId!, s]));
-        const geocodedStageEleveIds = new Set(geocodedStages.map(s => s.eleveId!));
-        const affectedEleveIds = new Set(result.affectations.map(a => a.eleveId));
-
-        for (const eleve of scenarioEleves) {
-          if (affectedEleveIds.has(eleve.id!)) continue; // Skip affected students
-
-          const stage = stageByEleveId.get(eleve.id!);
-          const raisons: string[] = [];
-          let problemType: NonAffectationInfo['problemType'] = 'unknown';
-
-          // Vérifier si le stage existe ET a des données significatives
-          const hasStage = stage && (stage.nomEntreprise || stage.adresse);
-          const hasAddress = stage && stage.adresse && stage.adresse.trim().length > 0;
-
-          if (!hasStage) {
-            // Pas de stage OU stage vide
-            raisons.push('📭 Pas de stage renseigné');
-            problemType = 'no-stage';
-          } else if (!hasAddress) {
-            // Stage avec entreprise mais sans adresse
-            raisons.push('🏢 Stage sans adresse');
-            if (stage.nomEntreprise) raisons.push(`Entreprise: ${stage.nomEntreprise}`);
-            problemType = 'no-address';
-          } else if (!geocodedStageEleveIds.has(eleve.id!)) {
-            // Stage avec adresse mais pas géocodé
-            raisons.push('📍 Adresse non géolocalisée');
-            raisons.push(`Adresse: ${stage.adresse}`);
-            if (stage.geoStatus === 'error' || stage.geoStatus === 'not_found') {
-              raisons.push('⚠️ Échec du géocodage');
-            }
-            problemType = 'no-geo';
-          } else {
-            // Student has geocoded stage but wasn't affected - check why
-            const nonAffecte = result.nonAffectes.find(n => n.eleveId === eleve.id);
-            if (nonAffecte && nonAffecte.raisons.length > 0) {
-              raisons.push(...nonAffecte.raisons.map(r =>
-                r.includes('distance') || r.includes('loin') ? `🚗 ${r}` :
-                r.includes('capacité') ? `👥 ${r}` : r
-              ));
-              problemType = nonAffecte.raisons.some(r => r.includes('distance') || r.includes('loin'))
-                ? 'too-far'
-                : nonAffecte.raisons.some(r => r.includes('capacité'))
-                  ? 'capacity'
-                  : 'unknown';
-            } else {
-              raisons.push('🚗 Trop loin de tous les enseignants');
-              problemType = 'too-far';
-            }
-          }
-
-          newNonAffectesInfo.set(eleve.id!, { eleveId: eleve.id!, raisons, problemType });
-        }
-        setNonAffectesInfo(newNonAffectesInfo);
-      } else if (isJuryMode && scenarioJurys.length > 0) {
-        // DNB jury matching
-        const result = solveOralDnbComplete(scenarioEleves, enseignants, scenarioJurys, activeScenario, { verbose: false });
-
-        const resultsMap = new Map<string, MatchingResultDNB>();
-        result.affectations.forEach(a => resultsMap.set(a.eleveId, a));
-        setDnbResults(resultsMap);
-
-        await deleteAffectationsByScenario(activeScenario.id!);
-
-        for (const aff of result.affectations) {
-          await addAffectation({ eleveId: aff.eleveId, enseignantId: '', juryId: aff.juryId, scenarioId: activeScenario.id!, type: 'oral_dnb', metadata: { source: 'algorithm' }, explication: aff.explication, scoreDetail: aff.scoreDetail, scoreTotal: aff.score });
-        }
-
-        setMatchingStats({ total: scenarioEleves.length, affected: result.affectations.length, score: result.scoreGlobal, tauxMatiere: result.tauxMatchMatiere });
-        if (result.nonAffectes.length > 0) setMatchingError(`${result.nonAffectes.length} élève(s) non affectés`);
-      } else {
-        // Standard matching
-        const result = solveMatching(scenarioEleves, scenarioEnseignants, activeScenario, new Map(), { verbose: false });
-        const newAffectations = convertToAffectations(result.affectations, activeScenario);
-
-        await deleteAffectationsByScenario(activeScenario.id!);
-
-        for (const aff of newAffectations) await addAffectation(aff);
-
-        setMatchingStats({ total: scenarioEleves.length, affected: result.affectations.length, score: result.scoreGlobal });
-        if (result.nonAffectes.length > 0) setMatchingError(`${result.nonAffectes.length} élève(s) non affectés`);
-      }
-    } catch (err) {
-      setMatchingError(`Erreur: ${String(err)}`);
-    } finally {
-      setIsRunning(false);
-    }
-  }, [activeScenario, isJuryMode, isStageScenario, scenarioEleves, scenarioEnseignants, scenarioJurys, stages, enseignants, addAffectation, deleteAffectationsByScenario]);
-
-  const handleResetAffectations = useCallback(async () => {
-    if (!activeScenario) return;
-
-    const confirmed = await confirmReset('Êtes-vous sûr de vouloir réinitialiser toutes les affectations ?');
-    if (!confirmed) return;
-
-    try {
-      await deleteAffectationsByScenario(activeScenario.id!);
-      setMatchingStats(null);
-      setMatchingError(null);
-      setDnbResults(new Map());
-      setNonAffectesInfo(new Map());
-    } catch (err) {
-      setMatchingError(`Erreur lors de la réinitialisation : ${String(err)}`);
-    }
-  }, [activeScenario, deleteAffectationsByScenario, confirmReset]);
-
-  const handleValidateClick = useCallback(() => {
-    if (scenarioAffectations.length === 0) {
-      setMatchingError('Aucune affectation à valider. Lancez d\'abord la répartition.');
-      return;
-    }
-    setShowValidationModal(true);
-  }, [scenarioAffectations]);
-
-  const handleValidateAffectations = useCallback(async () => {
-    if (!activeScenario) return;
-
-    setIsValidating(true);
-    setMatchingError(null);
-
-    try {
-      const result = buildArchiveFromCurrentState({
-        scenario: activeScenario,
-        affectations,
-        eleves,
-        enseignants,
-        jurys: isJuryMode ? scenarioJurys : undefined,
-        stages: isStageScenario ? stages : undefined,
-      });
-
-      const archiveId = await createArchive(result.archive);
-      setValidationSuccess({ date: new Date(), archiveId });
-      setShowValidationModal(false);
-      setTimeout(() => setValidationSuccess(null), VALIDATION_SUCCESS_DISPLAY_MS);
-    } catch (err) {
-      setMatchingError(`Erreur lors de la validation : ${String(err)}`);
-    } finally {
-      setIsValidating(false);
-    }
-  }, [activeScenario, affectations, eleves, enseignants, isJuryMode, isStageScenario, scenarioJurys, stages, createArchive]);
 
   // ============================================================
   // EXPORT/IMPORT SESSION HANDLERS
@@ -1023,14 +724,7 @@ export const Board: React.FC = () => {
         isJuryMode={isJuryMode ?? false}
         isStageScenario={isStageScenario}
         isRunning={isRunning}
-        isValidating={isValidating}
         scenarioInfo={scenarioInfo}
-        affectationsCount={scenarioAffectations.length}
-        runButtonDisabled={runButtonDisabled}
-        runButtonTitle={runButtonTitle}
-        onRunMatching={runMatching}
-        onResetAffectations={handleResetAffectations}
-        onValidateClick={handleValidateClick}
         onExportSession={handleExportSession}
         onImportSession={() => setShowImportModal(true)}
       />
@@ -1188,21 +882,6 @@ export const Board: React.FC = () => {
         indeterminate
         showElapsedTime
       />
-
-      {activeScenario && (
-        <ValidationModal
-          isOpen={showValidationModal}
-          isValidating={isValidating}
-          scenario={activeScenario}
-          affectations={scenarioAffectations}
-          eleves={scenarioEleves}
-          enseignants={displayedEnseignants}
-          jurys={scenarioJurys}
-          stages={stages}
-          onClose={() => setShowValidationModal(false)}
-          onConfirm={handleValidateAffectations}
-        />
-      )}
 
       {/* Import Session Modal */}
       <ImportSessionModal
