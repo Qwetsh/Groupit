@@ -20,6 +20,7 @@ import { useEnseignantStore } from './stores/enseignantStore';
 import { useScenarioStore } from './stores/scenarioStore';
 import { useGroupeStore } from './stores/groupeStore';
 import { useAffectationStore } from './stores/affectationStore';
+import { useStageStore } from './stores/stageStore';
 import { useJuryStore } from './stores/juryStore';
 import { useScenarioArchiveStore } from './stores/scenarioArchiveStore';
 import { useUIStore } from './stores/uiStore';
@@ -38,6 +39,7 @@ function App() {
   const loadScenarios = useScenarioStore(state => state.loadScenarios);
   const loadGroupes = useGroupeStore(state => state.loadGroupes);
   const loadAffectations = useAffectationStore(state => state.loadAffectations);
+  const loadStages = useStageStore(state => state.loadStages);
   const loadJurys = useJuryStore(state => state.loadJurys);
   const loadArchives = useScenarioArchiveStore(state => state.loadArchives);
 
@@ -52,6 +54,7 @@ function App() {
           loadScenarios(),
           loadGroupes(),
           loadAffectations(),
+          loadStages(),
           loadJurys(),
           loadArchives(),
         ]);
@@ -63,7 +66,7 @@ function App() {
     };
 
     initializeApp();
-  }, [loadEleves, loadEnseignants, loadScenarios, loadGroupes, loadAffectations, loadJurys, loadArchives]);
+  }, [loadEleves, loadEnseignants, loadScenarios, loadGroupes, loadAffectations, loadStages, loadJurys, loadArchives]);
 
   const handleImport = async (eleves: Partial<Eleve>[]) => {
     // Filtrer les entrées invalides (champs requis manquants)
