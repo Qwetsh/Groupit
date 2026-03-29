@@ -223,7 +223,7 @@ export function useStats(jurys: JuryWithEleves[], allFinalScores: FinalScoreRow[
 
     for (const jury of jurys) {
       for (const eleve of jury.eleves) {
-        const parcours = eleve.parcours || 'Non d\u00e9fini';
+        const parcours = eleve.parcours || 'Non défini';
         if (!map.has(parcours)) map.set(parcours, { scores: [], count: 0 });
         const entry = map.get(parcours)!;
         entry.count++;

@@ -83,7 +83,7 @@ export function JuryBarChart({ data, maxTotal = 20 }: JuryBarChartProps) {
             contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0' }}
             formatter={(value: number, name: string) => [
               name === 'moyenne' ? `${value}/${maxTotal}` : value,
-              name === 'moyenne' ? 'Moyenne' : '\u00c9valu\u00e9s',
+              name === 'moyenne' ? 'Moyenne' : 'Évalués',
             ]}
           />
           <Bar dataKey="moyenne" fill="#059669" radius={[4, 4, 0, 0]} />
@@ -174,13 +174,13 @@ export function DureeNoteScatterChart({ data, maxTotal = 20 }: DureeNoteScatterC
 
   return (
     <div style={styles.chartCard}>
-      <h3 style={styles.chartTitle}>Dur\u00e9e de passage vs Note</h3>
+      <h3 style={styles.chartTitle}>Durée de passage vs Note</h3>
       <ResponsiveContainer width="100%" height={280}>
         <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis
             dataKey="dureeMinutes"
-            name="Dur\u00e9e"
+            name="Durée"
             unit=" min"
             fontSize={12}
             type="number"
@@ -197,7 +197,7 @@ export function DureeNoteScatterChart({ data, maxTotal = 20 }: DureeNoteScatterC
           <Tooltip
             contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0' }}
             formatter={(value: number, name: string) => {
-              if (name === 'Dur\u00e9e') return [`${value} min`, name];
+              if (name === 'Durée') return [`${value} min`, name];
               return [`${value}/${maxTotal}`, name];
             }}
             labelFormatter={(_: unknown, payload: Array<{ payload?: DureeNotePoint }>) => {

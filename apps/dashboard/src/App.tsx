@@ -24,8 +24,8 @@ export default function App() {
     return (
       <div style={styles.loginContainer}>
         <div style={styles.loginCard}>
-          <div style={styles.loginTitle}>\uD83D\uDCCA Tableau de bord \u2014 Oral DNB</div>
-          <div style={styles.loginSub}>Entrez le code de session pour suivre les notes en temps r\u00e9el.</div>
+          <div style={styles.loginTitle}>📊 Tableau de bord — Oral DNB</div>
+          <div style={styles.loginSub}>Entrez le code de session pour suivre les notes en temps réel.</div>
           <input
             style={styles.loginInput}
             placeholder="Code de session (ex: ABC123)"
@@ -43,7 +43,7 @@ export default function App() {
               opacity: sessionCode.trim() ? 1 : 0.5,
             }}
           >
-            Acc\u00e9der au tableau de bord \u2192
+            Accéder au tableau de bord →
           </button>
         </div>
       </div>
@@ -63,7 +63,7 @@ export default function App() {
       <div style={styles.loginContainer}>
         <div style={styles.loginCard}>
           <div style={{ color: '#c53030', fontWeight: 700, marginBottom: 12 }}>{error}</div>
-          <button onClick={() => setActiveCode('')} style={styles.loginBtn}>\u2190 Retour</button>
+          <button onClick={() => setActiveCode('')} style={styles.loginBtn}>← Retour</button>
         </div>
       </div>
     );
@@ -74,20 +74,20 @@ export default function App() {
       {/* Header */}
       <header style={styles.header}>
         <div>
-          <div style={styles.headerTitle}>\uD83D\uDCCA Oral DNB \u2014 {scenarioName || 'Tableau de bord'}</div>
+          <div style={styles.headerTitle}>📊 Oral DNB — {scenarioName || 'Tableau de bord'}</div>
           <div style={styles.headerSub}>
             Session : {activeCode}
-            {dateOral && ` \u00b7 ${new Date(dateOral).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`}
-            {isConnected && <span style={styles.liveBadge}>\u25CF En direct</span>}
+            {dateOral && ` · ${new Date(dateOral).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`}
+            {isConnected && <span style={styles.liveBadge}>● En direct</span>}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <button onClick={() => setShowConfigModal(true)} style={styles.configBtn} title="Configurer la grille de crit\u00e8res">
-            \u2699\uFE0F
+          <button onClick={() => setShowConfigModal(true)} style={styles.configBtn} title="Configurer la grille de critères">
+            ⚙️
           </button>
           <ExportButton jurys={jurys} scenarioName={scenarioName} criteriaConfig={criteriaConfig} />
-          <button onClick={refresh} style={styles.refreshBtn}>\u21BB</button>
-          <button onClick={() => setActiveCode('')} style={styles.disconnectBtn}>D\u00e9connexion</button>
+          <button onClick={refresh} style={styles.refreshBtn}>↻</button>
+          <button onClick={() => setActiveCode('')} style={styles.disconnectBtn}>Déconnexion</button>
         </div>
       </header>
 
@@ -118,7 +118,7 @@ export default function App() {
           <DureeNoteScatterChart data={dureeNoteData} maxTotal={maxTotal} />
         </div>
 
-        <h2 style={styles.sectionTitle}>D\u00e9tail par jury</h2>
+        <h2 style={styles.sectionTitle}>Détail par jury</h2>
         <JuryTable
           jurys={jurys}
           criteriaConfig={criteriaConfig}

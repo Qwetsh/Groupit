@@ -49,11 +49,11 @@ export function ExportButton({ jurys, scenarioName, criteriaConfig }: ExportButt
 
   function handleExport() {
     const headers = [
-      '\u00c9l\u00e8ve', 'Jury', 'Salle', 'Classe', 'Parcours', 'Sujet',
+      'Élève', 'Jury', 'Salle', 'Classe', 'Parcours', 'Sujet',
       ...criteriaConfig.criteria.map(c => c.label),
       ...criteriaConfig.categories.map(cat => `${cat.label} /${maxByCategory[cat.id] ?? 0}`),
       `Total /${maxTotal}`,
-      'Points forts', "Axes d'am\u00e9lioration",
+      'Points forts', "Axes d'amélioration",
     ];
 
     const rows: string[][] = [];
@@ -76,7 +76,7 @@ export function ExportButton({ jurys, scenarioName, criteriaConfig }: ExportButt
       }
     }
 
-    const csv = '\uFEFF' + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
+    const csv = '﻿' + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -88,7 +88,7 @@ export function ExportButton({ jurys, scenarioName, criteriaConfig }: ExportButt
 
   return (
     <button onClick={handleExport} style={styles.btn}>
-      \uD83D\uDCE5 Exporter CSV
+      📥 Exporter CSV
     </button>
   );
 }

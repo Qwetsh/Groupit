@@ -209,7 +209,7 @@ export default function App() {
           eleve={screen.eleve}
           juryId={screen.juryId}
           onDone={() => {
-            setToast('Note enregistrée \u2713');
+            setToast('Note enregistrée ✓');
             navigate({ type: 'students', juryId: screen.juryId, sessionId: screen.sessionId });
           }}
           onBack={() =>
@@ -222,7 +222,7 @@ export default function App() {
           eleves={screen.eleves}
           juryId={screen.juryId}
           onDone={() => {
-            setToast('Notes enregistrées \u2713');
+            setToast('Notes enregistrées ✓');
             navigate({ type: 'students', juryId: screen.juryId, sessionId: screen.sessionId });
           }}
           onBack={() =>

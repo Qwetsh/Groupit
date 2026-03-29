@@ -178,8 +178,8 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
     if (markingAbsent) return;
     const isCurrentlyAbsent = eleve.status === 'absent';
     const msg = isCurrentlyAbsent
-      ? 'Remettre cet \u00e9l\u00e8ve comme "\u00c0 passer" ?'
-      : 'Marquer cet \u00e9l\u00e8ve comme absent ?';
+      ? 'Remettre cet élève comme "À passer" ?'
+      : 'Marquer cet élève comme absent ?';
     if (!window.confirm(msg)) return;
 
     setMarkingAbsent(true);
@@ -194,7 +194,7 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
 
     if (isRevisit) {
       const confirmed = window.confirm(
-        'Cet \u00e9l\u00e8ve a d\u00e9j\u00e0 \u00e9t\u00e9 not\u00e9. Voulez-vous \u00e9craser la note pr\u00e9c\u00e9dente ?'
+        'Cet élève a déjà été noté. Voulez-vous écraser la note précédente ?'
       );
       if (!confirmed) return;
     }
@@ -236,7 +236,7 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
     }, { onConflict: 'eleve_id,juror_slot' }));
 
     if (evalErr) {
-      setSubmitError('Erreur persistante. V\u00e9rifiez votre connexion et r\u00e9essayez.');
+      setSubmitError('Erreur persistante. Vérifiez votre connexion et réessayez.');
       console.error('[EvaluateScreen] upsert evaluation:', evalErr);
       setSubmitting(false);
       return;
@@ -254,7 +254,7 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
     }, { onConflict: 'eleve_id' }));
 
     if (fsErr) {
-      setSubmitError('Erreur persistante. V\u00e9rifiez votre connexion et r\u00e9essayez.');
+      setSubmitError('Erreur persistante. Vérifiez votre connexion et réessayez.');
       console.error('[EvaluateScreen] upsert final_scores:', fsErr);
       setSubmitting(false);
       return;
@@ -282,7 +282,7 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
           <button onClick={onBack} disabled={submitting} style={{
             ...styles.backBtn,
             opacity: submitting ? 0.4 : 1,
-          }}>\u2190 Retour</button>
+          }}>← Retour</button>
           <button
             onClick={handleAbsent}
             disabled={submitting || markingAbsent}
@@ -292,7 +292,7 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
               opacity: (submitting || markingAbsent) ? 0.4 : 0.7,
             }}
           >
-            {eleve.status === 'absent' ? 'Remettre pr\u00e9sent' : 'Absent'}
+            {eleve.status === 'absent' ? 'Remettre présent' : 'Absent'}
           </button>
           <div style={{
             background: 'rgba(255,255,255,0.2)',
@@ -307,9 +307,9 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
         <div style={{ marginTop: 8, fontSize: 18, fontWeight: 700 }}>{eleve.display_name}</div>
         <div style={{ fontSize: 12, opacity: 0.75 }}>
           {eleve.classe}
-          {eleve.parcours && ` \u00b7 ${eleve.parcours}`}
-          {eleve.sujet && ` \u00b7 ${eleve.sujet}`}
-          {isCollectif && ' \u00b7 Collectif'}
+          {eleve.parcours && ` · ${eleve.parcours}`}
+          {eleve.sujet && ` · ${eleve.sujet}`}
+          {isCollectif && ' · Collectif'}
         </div>
         {isRevisit && (
           <div style={{
@@ -390,7 +390,7 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
           onChange={(e) => setPointsForts(e.target.value)}
         />
         <div style={{ marginTop: 10 }}>
-          <label style={styles.label}>Axes d'am\u00e9lioration</label>
+          <label style={styles.label}>Axes d'amélioration</label>
           <textarea
             style={styles.textarea}
             placeholder="Optionnel..."
@@ -426,9 +426,9 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
             ? 'Enregistrement...'
             : allScored
               ? isRevisit
-                ? `Modifier la note \u2014 ${totals.total}/${maxTotal}`
-                : `\u2713 Termin\u00e9 \u2014 ${totals.total}/${maxTotal}`
-              : `Crit\u00e8res restants : ${config.criteria.filter(c => scores[c.id] === undefined).length}`}
+                ? `Modifier la note — ${totals.total}/${maxTotal}`
+                : `✓ Terminé — ${totals.total}/${maxTotal}`
+              : `Critères restants : ${config.criteria.filter(c => scores[c.id] === undefined).length}`}
         </button>
       </div>
     </div>

@@ -2,7 +2,7 @@ import type { FinalScoreRow, CriteriaConfig } from '@groupit/shared';
 import type { JuryWithEleves } from '../hooks/useSessionData';
 
 function formatDuration(seconds: number | null | undefined): string {
-  if (!seconds) return '\u2014';
+  if (!seconds) return '—';
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${String(s).padStart(2, '0')}`;
@@ -61,12 +61,12 @@ function getScoreBg(total: number, maxTotal: number): string {
 
 function getStatusBadge(status: string) {
   switch (status) {
-    case 'validated': return { label: '\u2713', bg: '#c6f6d5', color: '#276749' };
-    case 'scored': return { label: '\u23F3', bg: '#fefcbf', color: '#975a16' };
-    case 'in_progress': return { label: '\uD83C\uDFA4', bg: '#bee3f8', color: '#2b6cb0' };
+    case 'validated': return { label: '✓', bg: '#c6f6d5', color: '#276749' };
+    case 'scored': return { label: '⏳', bg: '#fefcbf', color: '#975a16' };
+    case 'in_progress': return { label: '📌', bg: '#bee3f8', color: '#2b6cb0' };
     case 'absent': return { label: 'ABS', bg: '#fed7d7', color: '#9b2c2c' };
-    case 'lobby': return { label: '\u2026', bg: '#e9d8fd', color: '#6b46c1' };
-    default: return { label: '\u2014', bg: '#f1f5f9', color: '#94a3b8' };
+    case 'lobby': return { label: '…', bg: '#e9d8fd', color: '#6b46c1' };
+    default: return { label: '—', bg: '#f1f5f9', color: '#94a3b8' };
   }
 }
 
@@ -91,10 +91,10 @@ export function JuryTable({ jurys, criteriaConfig, maxTotal, maxByCategory }: Ju
                   background: jury.connected ? '#c6f6d5' : '#f1f5f9',
                   color: jury.connected ? '#276749' : '#94a3b8',
                 }}>
-                  {jury.connected ? '\u25CF Connect\u00e9' : '\u25CB Hors ligne'}
+                  {jury.connected ? '● Connecté' : '○ Hors ligne'}
                 </span>
                 <span style={{ fontSize: 13, color: '#64748b' }}>
-                  {evalues}/{jury.eleves.length} \u00e9valu\u00e9{evalues > 1 ? 's' : ''}
+                  {evalues}/{jury.eleves.length} évalué{evalues > 1 ? 's' : ''}
                 </span>
               </div>
             </div>
@@ -102,7 +102,7 @@ export function JuryTable({ jurys, criteriaConfig, maxTotal, maxByCategory }: Ju
             <table style={styles.table}>
               <thead>
                 <tr>
-                  <th style={styles.th}>\u00c9l\u00e8ve</th>
+                  <th style={styles.th}>Élève</th>
                   <th style={styles.th}>Classe</th>
                   <th style={styles.th}>Parcours</th>
                   <th style={styles.th}>Statut</th>
@@ -117,7 +117,7 @@ export function JuryTable({ jurys, criteriaConfig, maxTotal, maxByCategory }: Ju
                     </th>
                   ))}
                   <th style={{ ...styles.th, textAlign: 'center' as const, fontWeight: 800 }}>Total</th>
-                  <th style={{ ...styles.th, textAlign: 'center' as const }}>Dur\u00e9e</th>
+                  <th style={{ ...styles.th, textAlign: 'center' as const }}>Durée</th>
                 </tr>
               </thead>
               <tbody>
@@ -132,11 +132,11 @@ export function JuryTable({ jurys, criteriaConfig, maxTotal, maxByCategory }: Ju
                     }}>
                       <td style={styles.td}>
                         <span style={{ fontWeight: 600 }}>{eleve.display_name}</span>
-                        {hasBinome && <span style={styles.binomeBadge}>Bin\u00f4me</span>}
+                        {hasBinome && <span style={styles.binomeBadge}>Binôme</span>}
                       </td>
                       <td style={styles.td}>{eleve.classe}</td>
                       <td style={styles.td}>
-                        <span style={styles.parcoursBadge}>{eleve.parcours || '\u2014'}</span>
+                        <span style={styles.parcoursBadge}>{eleve.parcours || '—'}</span>
                       </td>
                       <td style={styles.td}>
                         <span style={{
@@ -152,12 +152,12 @@ export function JuryTable({ jurys, criteriaConfig, maxTotal, maxByCategory }: Ju
                       </td>
                       {criteriaConfig.criteria.map(c => (
                         <td key={c.id} style={{ ...styles.td, textAlign: 'center' as const, fontSize: 12 }}>
-                          {fs ? `${getScoreValue(fs, c.id) ?? '\u2014'}` : '\u2014'}
+                          {fs ? `${getScoreValue(fs, c.id) ?? '—'}` : '—'}
                         </td>
                       ))}
                       {criteriaConfig.categories.map(cat => (
                         <td key={cat.id} style={{ ...styles.td, textAlign: 'center' as const, fontWeight: 600, color: '#2b6cb0' }}>
-                          {fs ? `${getCategoryTotal(fs, cat.id, criteriaConfig)}` : '\u2014'}
+                          {fs ? `${getCategoryTotal(fs, cat.id, criteriaConfig)}` : '—'}
                         </td>
                       ))}
                       <td style={{
@@ -169,7 +169,7 @@ export function JuryTable({ jurys, criteriaConfig, maxTotal, maxByCategory }: Ju
                         background: fs ? getScoreBg(fs.total, maxTotal) : 'transparent',
                         borderRadius: 6,
                       }}>
-                        {fs ? `${fs.total}` : '\u2014'}
+                        {fs ? `${fs.total}` : '—'}
                       </td>
                       <td style={{ ...styles.td, textAlign: 'center' as const, fontSize: 12, color: '#64748b' }}>
                         {formatDuration(eleve.duree_passage)}
@@ -186,15 +186,15 @@ export function JuryTable({ jurys, criteriaConfig, maxTotal, maxByCategory }: Ju
               return fs && (fs.points_forts || fs.axes_amelioration);
             }) && (
               <details style={styles.details}>
-                <summary style={styles.summary}>Observations d\u00e9taill\u00e9es</summary>
+                <summary style={styles.summary}>Observations détaillées</summary>
                 {jury.eleves.map(eleve => {
                   const fs = jury.finalScores.get(eleve.id);
                   if (!fs || (!fs.points_forts && !fs.axes_amelioration)) return null;
                   return (
                     <div key={eleve.id} style={styles.observation}>
                       <span style={{ fontWeight: 600 }}>{eleve.display_name}</span>
-                      {fs.points_forts && <span style={styles.obsPF}>\u2705 {fs.points_forts}</span>}
-                      {fs.axes_amelioration && <span style={styles.obsAA}>\uD83D\uDCCC {fs.axes_amelioration}</span>}
+                      {fs.points_forts && <span style={styles.obsPF}>✅ {fs.points_forts}</span>}
+                      {fs.axes_amelioration && <span style={styles.obsAA}>📌 {fs.axes_amelioration}</span>}
                     </div>
                   );
                 })}

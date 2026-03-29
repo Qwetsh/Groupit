@@ -206,7 +206,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
     const eleve = eleves[idx]!;
     const isCurrentlyAbsent = eleve.status === 'absent';
     const msg = isCurrentlyAbsent
-      ? `Remettre ${eleve.display_name} comme "\u00c0 passer" ?`
+      ? `Remettre ${eleve.display_name} comme "À passer" ?`
       : `Marquer ${eleve.display_name} comme absent ?`;
     if (!window.confirm(msg)) return;
 
@@ -218,7 +218,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
     if (submitting) return;
 
     if (bothRevisit) {
-      if (!window.confirm('Les deux \u00e9l\u00e8ves ont d\u00e9j\u00e0 \u00e9t\u00e9 not\u00e9s. \u00c9craser les notes pr\u00e9c\u00e9dentes ?')) return;
+      if (!window.confirm('Les deux élèves ont déjà été notés. Écraser les notes précédentes ?')) return;
     }
 
     setSubmitting(true);
@@ -270,7 +270,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
       }, { onConflict: 'eleve_id,juror_slot' }));
 
       if (evalErr) {
-        setSubmitError(`Erreur pour ${eleve.display_name}. R\u00e9essayez.`);
+        setSubmitError(`Erreur pour ${eleve.display_name}. Réessayez.`);
         console.error('[BinomeEvaluate] upsert evaluation:', evalErr);
         setSubmitting(false);
         return;
@@ -288,7 +288,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
       }, { onConflict: 'eleve_id' }));
 
       if (fsErr) {
-        setSubmitError(`Erreur pour ${eleve.display_name}. R\u00e9essayez.`);
+        setSubmitError(`Erreur pour ${eleve.display_name}. Réessayez.`);
         console.error('[BinomeEvaluate] upsert final_scores:', fsErr);
         setSubmitting(false);
         return;
@@ -315,7 +315,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
           <button onClick={onBack} disabled={submitting} style={{
             ...styles.backBtn,
             opacity: submitting ? 0.4 : 1,
-          }}>\u2190 Retour</button>
+          }}>← Retour</button>
           <div style={{
             background: 'rgba(255,255,255,0.15)',
             padding: '4px 10px',
@@ -323,7 +323,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
             fontSize: 11,
             fontWeight: 700,
           }}>
-            BIN\u00d4ME
+            BINÔME
           </div>
           <div style={{
             background: 'rgba(255,255,255,0.2)',
@@ -386,7 +386,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
                 padding: '2px 0',
               }}
             >
-              {eleve.status === 'absent' ? 'Remettre pr\u00e9sent' : 'Absent'}
+              {eleve.status === 'absent' ? 'Remettre présent' : 'Absent'}
             </button>
           ))}
         </div>
@@ -419,11 +419,11 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
       {/* Contenu */}
       {activeEleve.status === 'absent' ? (
         <div style={{ padding: '40px 16px', textAlign: 'center', color: '#94a3b8' }}>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>\u00c9l\u00e8ve absent</div>
-          <div style={{ fontSize: 13, marginTop: 4 }}>Cliquez "Remettre pr\u00e9sent" pour annuler.</div>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>Élève absent</div>
+          <div style={{ fontSize: 13, marginTop: 4 }}>Cliquez "Remettre présent" pour annuler.</div>
         </div>
       ) : (<>
-        {/* Sections par cat\u00e9gorie (dynamique) */}
+        {/* Sections par catégorie (dynamique) */}
         {config.categories.map((cat, catIdx) => {
           const catCriteria = config.criteria.filter(c => c.categoryId === cat.id);
           if (catCriteria.length === 0) return null;
@@ -477,7 +477,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
             onChange={(e) => setPointsForts(e.target.value)}
           />
           <div style={{ marginTop: 10 }}>
-            <label style={styles.label}>Axes d'am\u00e9lioration</label>
+            <label style={styles.label}>Axes d'amélioration</label>
             <textarea
               style={styles.textarea}
               placeholder="Optionnel..."
@@ -514,9 +514,9 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
             ? 'Enregistrement...'
             : canSubmit
               ? bothRevisit
-                ? `Modifier \u2014 ${totalsA.total}/${maxTotal} \u00b7 ${totalsB.total}/${maxTotal}`
-                : `\u2713 Valider le bin\u00f4me \u2014 ${totalsA.total}/${maxTotal} \u00b7 ${totalsB.total}/${maxTotal}`
-              : `Crit\u00e8res restants`}
+                ? `Modifier — ${totalsA.total}/${maxTotal} · ${totalsB.total}/${maxTotal}`
+                : `✓ Valider le binôme — ${totalsA.total}/${maxTotal} · ${totalsB.total}/${maxTotal}`
+              : `Critères restants`}
         </button>
       </div>
     </div>
