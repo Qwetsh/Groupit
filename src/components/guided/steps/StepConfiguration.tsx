@@ -199,7 +199,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
   const [createdScenarioId, setCreatedScenarioId] = useState<string | null>(null);
   const [showJuryEditor, setShowJuryEditor] = useState(false);
   const [activeEnseignant, setActiveEnseignant] = useState<Enseignant | null>(null);
-  const [demiJourneesOral, setDemiJourneesOral] = useState<string[]>(['jeudi_matin', 'jeudi_aprem']);
+  const [demiJourneesOral, setDemiJourneesOral] = useState<string[]>(['mercredi_matin']);
   const [filterNiveaux, setFilterNiveaux] = useState<Set<string>>(new Set());
   const [filterMatieres, setFilterMatieres] = useState<Set<string>>(new Set());
 
@@ -397,7 +397,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
               poidsMatiere: 50,
               criteresSecondaires: ['equilibrage'],
               capaciteJuryDefaut: elevesParJury,
-              demiJourneesOral: demiJourneesOral.length > 0 ? demiJourneesOral : ['jeudi_matin', 'jeudi_aprem'],
+              demiJourneesOral: demiJourneesOral.length > 0 ? demiJourneesOral : ['mercredi_matin'],
             },
           },
         };
