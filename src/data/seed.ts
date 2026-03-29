@@ -15,48 +15,48 @@ const elevesData: Omit<Eleve, 'id' | 'createdAt' | 'updatedAt'>[] = [];
 
 // Coordonnées pré-géocodées pour éviter le géocodage manuel à chaque session
 const enseignantsData: Omit<Enseignant, 'id' | 'createdAt' | 'updatedAt'>[] = [
-  { nom: 'ALTINTAS', prenom: 'Sevval', matierePrincipale: 'Physique-Chimie', classesEnCharge: ['4A', '4B', '4C'], estProfPrincipal: false, tags: [], adresse: "47 B RUE DE CARLING", commune: "L'HOPITAL 57490", lat: 49.166, lon: 6.633, geoStatus: 'ok' },
-  { nom: 'AUBERNIAS', prenom: 'Marie', matierePrincipale: 'Français', classesEnCharge: ['3A', '3D', '3E'], estProfPrincipal: true, classePP: '4F', tags: [], adresse: "3 RUE DU HAUT POIRIER", commune: "METZ 57000", lat: 49.119, lon: 6.176, geoStatus: 'ok' },
+  { nom: 'ALTINTAS', prenom: 'Sevval', matierePrincipale: 'Physique-Chimie', classesEnCharge: ['4A', '4B', '4C'], estProfPrincipal: false, tags: [], indisponibilites: ['mardi_matin', 'mardi_aprem', 'mercredi_matin'], adresse: "47 B RUE DE CARLING", commune: "L'HOPITAL 57490", lat: 49.166, lon: 6.633, geoStatus: 'ok' },
+  { nom: 'AUBERNIAS', prenom: 'Marie', matierePrincipale: 'Français', classesEnCharge: ['3A', '3D', '3E'], estProfPrincipal: true, classePP: '4F', tags: [], indisponibilites: ['mardi_aprem'], adresse: "3 RUE DU HAUT POIRIER", commune: "METZ 57000", lat: 49.119, lon: 6.176, geoStatus: 'ok' },
   { nom: 'BARET', prenom: 'Hélène', matierePrincipale: 'Documentation', classesEnCharge: ['6A', '6B', '6C', '6D', '6E', '5A', '5B', '5C', '5D', '4A', '4B', '4C', '4D', '4E', '4F'], estProfPrincipal: false, tags: [], adresse: "39 RUE RENE PAQUET", commune: "METZ 57050", lat: 49.125, lon: 6.168, geoStatus: 'ok' },
-  { nom: 'BETTINGER', prenom: 'Rosaria', matierePrincipale: 'Anglais', classesEnCharge: ['5A', '5B', '4A', '4B'], estProfPrincipal: false, tags: [], adresse: "31 RUE DU HAUT DES AMBES", commune: "BAZONCOURT 57530", lat: 49.017, lon: 6.327, geoStatus: 'ok' },
-  { nom: 'BOUCHKHACHEKH', prenom: 'Sarah', matierePrincipale: 'Espagnol', classesEnCharge: ['3A', '3B', '3C', '3D'], estProfPrincipal: false, tags: [], adresse: "4 RUE GASTON ZELLER", commune: "METZ 57000", lat: 49.119, lon: 6.176, geoStatus: 'ok' },
-  { nom: 'BOULENOUAR', prenom: 'Mohamed', matierePrincipale: 'Technologie', classesEnCharge: ['3A', '3B', '3C', '3D', '3E'], estProfPrincipal: false, tags: [], adresse: "28 RUE DU GENERAL GIBON", commune: "WOIPPY 57140", lat: 49.155, lon: 6.152, geoStatus: 'ok' },
-  { nom: 'BULLIER', prenom: 'Marie-Noëlle', matierePrincipale: 'Français', classesEnCharge: ['6A', '6B', '5C', '5D'], estProfPrincipal: false, tags: [], adresse: "4 RUE AUGUSTE RENOIR", commune: "FEVES 57280", lat: 49.204, lon: 6.111, geoStatus: 'ok' },
-  { nom: 'CHARBONNIER', prenom: 'Antoine', matierePrincipale: 'EPS', classesEnCharge: ['6A', '6B', '6C', '6D', '6E'], estProfPrincipal: true, classePP: '6D', tags: [], adresse: "4 RUE DES FAUVETTES", commune: "LORRY LES METZ 57050", lat: 49.134, lon: 6.115, geoStatus: 'ok' },
-  { nom: 'CHARLES', prenom: 'Thomas', matierePrincipale: 'SVT', classesEnCharge: ['3A', '3B', '3C', '3D', '3E'], estProfPrincipal: true, classePP: '4E', tags: [], adresse: "3 AVENUE REPUBLIQUE", commune: "BRIEY 54150", lat: 49.249, lon: 5.940, geoStatus: 'ok' },
-  { nom: 'CHEDANI', prenom: 'Mammar', matierePrincipale: 'EPS', classesEnCharge: ['3A', '3B'], estProfPrincipal: true, classePP: '3A', tags: [], adresse: "46 ROUTE DE WOIPPY", commune: "METZ 57050", lat: 49.125, lon: 6.168, geoStatus: 'ok' },
-  { nom: 'FAN CHAMBON', prenom: 'Lijun', matierePrincipale: 'Chinois', classesEnCharge: ['3A'], estProfPrincipal: false, tags: [], adresse: "22 RUE DU GENERAL TREZEL", commune: "MARLY 57155", lat: 49.064, lon: 6.155, geoStatus: 'ok' },
-  { nom: 'GABRIEL', prenom: 'Christine', matierePrincipale: 'Mathématiques', classesEnCharge: ['3A', '3B'], estProfPrincipal: true, classePP: '6A', tags: [], adresse: "1 RUE RENE CASSIN", commune: "METZ 57050", lat: 49.125, lon: 6.168, geoStatus: 'ok' },
-  { nom: 'GAUDEL', prenom: 'Géraldine', matierePrincipale: 'Français', classesEnCharge: ['3A', '3B', '3C'], estProfPrincipal: false, tags: [], adresse: "113 ROUTE DE WOIPPY", commune: "METZ 57050", lat: 49.125, lon: 6.168, geoStatus: 'ok' },
-  { nom: 'GENTILLET', prenom: 'Julie', matierePrincipale: 'Allemand', classesEnCharge: ['3A', '3B', '3C', '3D', '3E'], estProfPrincipal: true, classePP: '4C', tags: [], adresse: "13 RUE DE LA CHENEAU", commune: "SCY-CHAZELLES 57160", lat: 49.117, lon: 6.118, geoStatus: 'ok' },
-  { nom: 'GESENHUES', prenom: 'Nathalie', matierePrincipale: 'Français', classesEnCharge: ['3B', '3C'], estProfPrincipal: true, classePP: '3C', tags: [], adresse: "57 AVENUE DE NANCY", commune: "METZ 57000", lat: 49.119, lon: 6.176, geoStatus: 'ok' },
-  { nom: 'HEITZ', prenom: 'Florent', matierePrincipale: 'Mathématiques', classesEnCharge: ['4A', '4B', '4C'], estProfPrincipal: false, tags: [], adresse: "4 RUE CHRISTIAN PFISTER", commune: "METZ 57000", lat: 49.119, lon: 6.176, geoStatus: 'ok' },
+  { nom: 'BETTINGER', prenom: 'Rosaria', matierePrincipale: 'Anglais', classesEnCharge: ['5A', '5B', '4A', '4B'], estProfPrincipal: false, tags: [], indisponibilites: ['lundi_aprem', 'mardi_matin', 'jeudi_matin', 'vendredi_matin'], adresse: "31 RUE DU HAUT DES AMBES", commune: "BAZONCOURT 57530", lat: 49.017, lon: 6.327, geoStatus: 'ok' },
+  { nom: 'BOUCHKHACHEKH', prenom: 'Sarah', matierePrincipale: 'Espagnol', classesEnCharge: ['3A', '3B', '3C', '3D'], estProfPrincipal: false, tags: [], indisponibilites: ['lundi_matin', 'lundi_aprem', 'mardi_matin', 'jeudi_matin', 'vendredi_matin'], adresse: "4 RUE GASTON ZELLER", commune: "METZ 57000", lat: 49.119, lon: 6.176, geoStatus: 'ok' },
+  { nom: 'BOULENOUAR', prenom: 'Mohamed', matierePrincipale: 'Technologie', classesEnCharge: ['3A', '3B', '3C', '3D', '3E'], estProfPrincipal: false, tags: [], indisponibilites: ['lundi_matin', 'vendredi_aprem'], adresse: "28 RUE DU GENERAL GIBON", commune: "WOIPPY 57140", lat: 49.155, lon: 6.152, geoStatus: 'ok' },
+  { nom: 'BULLIER', prenom: 'Marie-Noëlle', matierePrincipale: 'Français', classesEnCharge: ['6A', '6B', '5C', '5D'], estProfPrincipal: false, tags: [], indisponibilites: ['lundi_aprem', 'mardi_aprem', 'vendredi_aprem'], adresse: "4 RUE AUGUSTE RENOIR", commune: "FEVES 57280", lat: 49.204, lon: 6.111, geoStatus: 'ok' },
+  { nom: 'CHARBONNIER', prenom: 'Antoine', matierePrincipale: 'EPS', classesEnCharge: ['6A', '6B', '6C', '6D', '6E'], estProfPrincipal: true, classePP: '6D', tags: [], indisponibilites: ['mercredi_matin', 'jeudi_aprem'], adresse: "4 RUE DES FAUVETTES", commune: "LORRY LES METZ 57050", lat: 49.134, lon: 6.115, geoStatus: 'ok' },
+  { nom: 'CHARLES', prenom: 'Thomas', matierePrincipale: 'SVT', classesEnCharge: ['3A', '3B', '3C', '3D', '3E'], estProfPrincipal: true, classePP: '4E', tags: [], indisponibilites: ['lundi_matin', 'vendredi_aprem'], adresse: "3 AVENUE REPUBLIQUE", commune: "BRIEY 54150", lat: 49.249, lon: 5.940, geoStatus: 'ok' },
+  { nom: 'CHEDANI', prenom: 'Mammar', matierePrincipale: 'EPS', classesEnCharge: ['3A', '3B'], estProfPrincipal: true, classePP: '3A', tags: [], indisponibilites: ['mardi_matin', 'mercredi_matin', 'jeudi_aprem'], adresse: "46 ROUTE DE WOIPPY", commune: "METZ 57050", lat: 49.125, lon: 6.168, geoStatus: 'ok' },
+  { nom: 'FAN CHAMBON', prenom: 'Lijun', matierePrincipale: 'Chinois', classesEnCharge: ['3A'], estProfPrincipal: false, tags: [], indisponibilites: ['lundi_matin', 'mardi_aprem', 'mercredi_matin', 'jeudi_aprem', 'vendredi_matin', 'vendredi_aprem'], adresse: "22 RUE DU GENERAL TREZEL", commune: "MARLY 57155", lat: 49.064, lon: 6.155, geoStatus: 'ok' },
+  { nom: 'GABRIEL', prenom: 'Christine', matierePrincipale: 'Mathématiques', classesEnCharge: ['3A', '3B'], estProfPrincipal: true, classePP: '6A', tags: [], indisponibilites: ['vendredi_matin', 'vendredi_aprem'], adresse: "1 RUE RENE CASSIN", commune: "METZ 57050", lat: 49.125, lon: 6.168, geoStatus: 'ok' },
+  { nom: 'GAUDEL', prenom: 'Géraldine', matierePrincipale: 'Français', classesEnCharge: ['3A', '3B', '3C'], estProfPrincipal: false, tags: [], indisponibilites: ['lundi_aprem', 'vendredi_aprem'], adresse: "113 ROUTE DE WOIPPY", commune: "METZ 57050", lat: 49.125, lon: 6.168, geoStatus: 'ok' },
+  { nom: 'GENTILLET', prenom: 'Julie', matierePrincipale: 'Allemand', classesEnCharge: ['3A', '3B', '3C', '3D', '3E'], estProfPrincipal: true, classePP: '4C', tags: [], indisponibilites: ['mercredi_matin'], adresse: "13 RUE DE LA CHENEAU", commune: "SCY-CHAZELLES 57160", lat: 49.117, lon: 6.118, geoStatus: 'ok' },
+  { nom: 'GESENHUES', prenom: 'Nathalie', matierePrincipale: 'Français', classesEnCharge: ['3B', '3C'], estProfPrincipal: true, classePP: '3C', tags: [], indisponibilites: ['mardi_aprem'], adresse: "57 AVENUE DE NANCY", commune: "METZ 57000", lat: 49.119, lon: 6.176, geoStatus: 'ok' },
+  { nom: 'HEITZ', prenom: 'Florent', matierePrincipale: 'Mathématiques', classesEnCharge: ['4A', '4B', '4C'], estProfPrincipal: false, tags: [], indisponibilites: ['jeudi_aprem', 'vendredi_aprem'], adresse: "4 RUE CHRISTIAN PFISTER", commune: "METZ 57000", lat: 49.119, lon: 6.176, geoStatus: 'ok' },
   { nom: 'HOJLO', prenom: 'Emmanuelle', matierePrincipale: 'ULIS TFC', classesEnCharge: ['3E'], estProfPrincipal: false, tags: [], adresse: "34 RUE G LENOTRE", commune: "METZ 57050", lat: 49.125, lon: 6.168, geoStatus: 'ok' },
-  { nom: 'JASKOWIAK', prenom: 'Hugo', matierePrincipale: 'EPS', classesEnCharge: ['3C', '3E'], estProfPrincipal: true, classePP: '5A', tags: [], adresse: "8 SQUARE MICHEL PRAILLON", commune: "METZ 57000", lat: 49.119, lon: 6.176, geoStatus: 'ok' },
-  { nom: 'KARST', prenom: 'Claudia', matierePrincipale: 'Histoire-Géographie', classesEnCharge: ['5C', '5D', '4A', '4B'], estProfPrincipal: true, classePP: '5C', tags: [], adresse: "6 CHEMIN DES VIGNERONS", commune: "METZ 57070", lat: 49.100, lon: 6.200, geoStatus: 'ok' },
-  { nom: 'KRENC', prenom: 'Carine', matierePrincipale: 'Mathématiques', classesEnCharge: ['4D', '4E', '4F'], estProfPrincipal: true, classePP: '4A', tags: [], adresse: "1 IMPASSE DES PEUPLIERS", commune: "LORRY LES METZ 57050", lat: 49.134, lon: 6.115, geoStatus: 'ok' },
-  { nom: 'LANGBACH', prenom: 'Pauline', matierePrincipale: 'Anglais', classesEnCharge: [], estProfPrincipal: false, tags: [], adresse: "74 RUE NOTRE DAME", commune: "LORRY-MARDIGNY 57420", lat: 48.972, lon: 6.023, geoStatus: 'ok' },
-  { nom: 'LASSALLE', prenom: 'Carole', matierePrincipale: 'Physique-Chimie', classesEnCharge: ['3A', '3B', '3C', '3D', '3E'], estProfPrincipal: true, classePP: '3E', tags: [], adresse: "26 IMPASSE AUGUSTE RENOIR", commune: "FEVES 57280", lat: 49.204, lon: 6.111, geoStatus: 'ok' },
+  { nom: 'JASKOWIAK', prenom: 'Hugo', matierePrincipale: 'EPS', classesEnCharge: ['3C', '3E'], estProfPrincipal: true, classePP: '5A', tags: [], indisponibilites: ['mardi_aprem', 'jeudi_aprem'], adresse: "8 SQUARE MICHEL PRAILLON", commune: "METZ 57000", lat: 49.119, lon: 6.176, geoStatus: 'ok' },
+  { nom: 'KARST', prenom: 'Claudia', matierePrincipale: 'Histoire-Géographie', classesEnCharge: ['5C', '5D', '4A', '4B'], estProfPrincipal: true, classePP: '5C', tags: [], indisponibilites: ['mardi_matin', 'mardi_aprem'], adresse: "6 CHEMIN DES VIGNERONS", commune: "METZ 57070", lat: 49.100, lon: 6.200, geoStatus: 'ok' },
+  { nom: 'KRENC', prenom: 'Carine', matierePrincipale: 'Mathématiques', classesEnCharge: ['4D', '4E', '4F'], estProfPrincipal: true, classePP: '4A', tags: [], indisponibilites: ['vendredi_aprem'], adresse: "1 IMPASSE DES PEUPLIERS", commune: "LORRY LES METZ 57050", lat: 49.134, lon: 6.115, geoStatus: 'ok' },
+  { nom: 'LANGBACH', prenom: 'Pauline', matierePrincipale: 'Anglais', classesEnCharge: [], estProfPrincipal: false, tags: [], indisponibilites: ['vendredi_aprem'], adresse: "74 RUE NOTRE DAME", commune: "LORRY-MARDIGNY 57420", lat: 48.972, lon: 6.023, geoStatus: 'ok' },
+  { nom: 'LASSALLE', prenom: 'Carole', matierePrincipale: 'Physique-Chimie', classesEnCharge: ['3A', '3B', '3C', '3D', '3E'], estProfPrincipal: true, classePP: '3E', tags: [], indisponibilites: ['vendredi_aprem'], adresse: "26 IMPASSE AUGUSTE RENOIR", commune: "FEVES 57280", lat: 49.204, lon: 6.111, geoStatus: 'ok' },
   { nom: 'MALLET', prenom: 'Céline', matierePrincipale: 'Anglais', classesEnCharge: ['3A', '3B', '3C'], estProfPrincipal: true, classePP: '3B', tags: [], adresse: "12 RUE GRAMMONT", commune: "MOYEUVRE-GRANDE 57250", lat: 49.257, lon: 6.042, geoStatus: 'ok' },
-  { nom: 'MANSOURI M JAHED', prenom: 'Ahmed', matierePrincipale: 'Technologie', classesEnCharge: ['3A', '3B'], estProfPrincipal: true, classePP: '5B', tags: [], adresse: "27 RUE RABELAIS", commune: "METZ 57000", lat: 49.119, lon: 6.176, geoStatus: 'ok' },
-  { nom: 'MARTIN', prenom: 'Pauline', matierePrincipale: 'Histoire-Géographie', classesEnCharge: ['6A', '6B', '6E', '4C', '4D'], estProfPrincipal: true, classePP: '6E', tags: [] },
+  { nom: 'MANSOURI M JAHED', prenom: 'Ahmed', matierePrincipale: 'Technologie', classesEnCharge: ['3A', '3B'], estProfPrincipal: true, classePP: '5B', tags: [], indisponibilites: ['lundi_matin', 'mardi_aprem'], adresse: "27 RUE RABELAIS", commune: "METZ 57000", lat: 49.119, lon: 6.176, geoStatus: 'ok' },
+  { nom: 'MARTIN', prenom: 'Pauline', matierePrincipale: 'Histoire-Géographie', classesEnCharge: ['6A', '6B', '6E', '4C', '4D'], estProfPrincipal: true, classePP: '6E', tags: [], indisponibilites: ['lundi_aprem', 'mardi_aprem'] },
   { nom: 'MARTINEZ', prenom: 'Chloé', matierePrincipale: 'Espagnol', classesEnCharge: ['3A', '3B', '3E'], estProfPrincipal: false, tags: [], adresse: "121 ROUTE DE THIONVILLE", commune: "METZ 57050", lat: 49.125, lon: 6.168, geoStatus: 'ok' },
-  { nom: 'MEMBRE', prenom: 'Estelle', matierePrincipale: 'Éducation musicale', classesEnCharge: ['3A', '3B', '3C', '3D', '3E'], estProfPrincipal: false, tags: [], adresse: "51 RUE DU 19 MARS 1962", commune: "FAILLY 57640", lat: 49.117, lon: 6.333, geoStatus: 'ok' },
+  { nom: 'MEMBRE', prenom: 'Estelle', matierePrincipale: 'Éducation musicale', classesEnCharge: ['3A', '3B', '3C', '3D', '3E'], estProfPrincipal: false, tags: [], indisponibilites: ['lundi_aprem', 'jeudi_matin'], adresse: "51 RUE DU 19 MARS 1962", commune: "FAILLY 57640", lat: 49.117, lon: 6.333, geoStatus: 'ok' },
   { nom: 'MINELLA', prenom: 'Sarah', matierePrincipale: 'Anglais', classesEnCharge: [], estProfPrincipal: false, tags: [], adresse: "1 RUE PAUL DIACRE", commune: "METZ 57000", lat: 49.119, lon: 6.176, geoStatus: 'ok' },
   { nom: 'NENNIG', prenom: 'Nathalie', matierePrincipale: 'Français', classesEnCharge: ['3A', '3D', '3E'], estProfPrincipal: false, tags: [], adresse: "30 RUE DU RUCHER", commune: "WOIPPY 57140", lat: 49.155, lon: 6.152, geoStatus: 'ok' },
-  { nom: 'PERCHERON', prenom: 'Amandine', matierePrincipale: 'Histoire-Géographie', classesEnCharge: ['3A', '3C', '3D', '3E'], estProfPrincipal: true, classePP: '3D', tags: [], adresse: "118 ROUTE DE LORRY", commune: "METZ 57050", lat: 49.125, lon: 6.168, geoStatus: 'ok' },
-  { nom: 'PIZZOL', prenom: 'Stéphanie', matierePrincipale: 'Mathématiques', classesEnCharge: ['3C', '3D', '3E'], estProfPrincipal: true, classePP: '5D', tags: [], adresse: "1 RUE DE LA COTE BIEUVE", commune: "ROZERIEULLES 57160", lat: 49.099, lon: 6.081, geoStatus: 'ok' },
+  { nom: 'PERCHERON', prenom: 'Amandine', matierePrincipale: 'Histoire-Géographie', classesEnCharge: ['3A', '3C', '3D', '3E'], estProfPrincipal: true, classePP: '3D', tags: [], indisponibilites: ['vendredi_aprem'], adresse: "118 ROUTE DE LORRY", commune: "METZ 57050", lat: 49.125, lon: 6.168, geoStatus: 'ok' },
+  { nom: 'PIZZOL', prenom: 'Stéphanie', matierePrincipale: 'Mathématiques', classesEnCharge: ['3C', '3D', '3E'], estProfPrincipal: true, classePP: '5D', tags: [], indisponibilites: ['lundi_matin'], adresse: "1 RUE DE LA COTE BIEUVE", commune: "ROZERIEULLES 57160", lat: 49.099, lon: 6.081, geoStatus: 'ok' },
   { nom: 'ROULLET', prenom: 'Agathe', matierePrincipale: 'Anglais', classesEnCharge: ['4C', '4D', '4E', '4F'], estProfPrincipal: false, tags: [], adresse: "61 RUE DU GENERAL PATTON", commune: "LANEUVEVILLE DEVANT NANCY 54410", lat: 48.655, lon: 6.222, geoStatus: 'ok' },
-  { nom: 'SANTOS CAMILO', prenom: 'Ana Mayra', matierePrincipale: 'Espagnol', classesEnCharge: ['3A', '3B', '3E'], estProfPrincipal: false, tags: [], adresse: "1 RUE GASTON ZELLER", commune: "METZ 57000", lat: 49.119, lon: 6.176, geoStatus: 'ok' },
-  { nom: 'SCHURCH', prenom: 'Marion', matierePrincipale: 'EPS', classesEnCharge: ['3D'], estProfPrincipal: true, classePP: '6B', tags: [], adresse: "45 RUE DU NORD", commune: "LE BAN SAINT MARTIN 57050", lat: 49.125, lon: 6.151, geoStatus: 'ok' },
+  { nom: 'SANTOS CAMILO', prenom: 'Ana Mayra', matierePrincipale: 'Espagnol', classesEnCharge: ['3A', '3B', '3E'], estProfPrincipal: false, tags: [], indisponibilites: ['lundi_aprem', 'mercredi_matin', 'jeudi_aprem'], adresse: "1 RUE GASTON ZELLER", commune: "METZ 57000", lat: 49.119, lon: 6.176, geoStatus: 'ok' },
+  { nom: 'SCHURCH', prenom: 'Marion', matierePrincipale: 'EPS', classesEnCharge: ['3D'], estProfPrincipal: true, classePP: '6B', tags: [], indisponibilites: ['lundi_matin', 'lundi_aprem', 'vendredi_aprem'], adresse: "45 RUE DU NORD", commune: "LE BAN SAINT MARTIN 57050", lat: 49.125, lon: 6.151, geoStatus: 'ok' },
   { nom: 'SCHWARTZ', prenom: 'Nicolas', matierePrincipale: 'Allemand', classesEnCharge: ['6C', '6D', '6E', '5C', '5D', '4D', '4E'], estProfPrincipal: false, tags: [], adresse: "65 GRAND RUE", commune: "JOUY AUX ARCHES 57130", lat: 49.055, lon: 6.071, geoStatus: 'ok' },
-  { nom: 'STENGER', prenom: 'Hélène', matierePrincipale: 'Histoire-Géographie', classesEnCharge: ['3A', '3B', '3C', '3D', '3E'], estProfPrincipal: false, tags: [], adresse: "53 RUE DE LA CHENEAU", commune: "METZ 57070", lat: 49.100, lon: 6.200, geoStatus: 'ok' },
-  { nom: 'THIRY', prenom: 'Amandine', matierePrincipale: 'Anglais', classesEnCharge: ['3D', '3E'], estProfPrincipal: true, classePP: '6C', tags: [], adresse: "1 RUE PIERRE CURIE", commune: "PAGNY SUR MOSELLE 54530", lat: 48.985, lon: 6.026, geoStatus: 'ok' },
-  { nom: 'THOMAS', prenom: 'Rachel', matierePrincipale: 'Arts plastiques', classesEnCharge: ['3A', '3B', '3C', '3D', '3E'], estProfPrincipal: false, tags: [], adresse: "14 RUE TRES-AU-PRE", commune: "PLESNOIS 57140", lat: 49.184, lon: 6.120, geoStatus: 'ok' },
-  { nom: 'TILLE', prenom: 'Ibo', matierePrincipale: 'Français', classesEnCharge: ['4B', '4C', '4D', '4E'], estProfPrincipal: true, classePP: '4B', tags: [], adresse: "78 A RUE MIGETTE", commune: "LONGEVILLE LES METZ 57050", lat: 49.107, lon: 6.138, geoStatus: 'ok' },
+  { nom: 'STENGER', prenom: 'Hélène', matierePrincipale: 'Histoire-Géographie', classesEnCharge: ['3A', '3B', '3C', '3D', '3E'], estProfPrincipal: false, tags: [], indisponibilites: ['lundi_aprem', 'mardi_aprem', 'mercredi_matin', 'jeudi_aprem', 'vendredi_aprem'], adresse: "53 RUE DE LA CHENEAU", commune: "METZ 57070", lat: 49.100, lon: 6.200, geoStatus: 'ok' },
+  { nom: 'THIRY', prenom: 'Amandine', matierePrincipale: 'Anglais', classesEnCharge: ['3D', '3E'], estProfPrincipal: true, classePP: '6C', tags: [], indisponibilites: ['mardi_matin', 'mardi_aprem'], adresse: "1 RUE PIERRE CURIE", commune: "PAGNY SUR MOSELLE 54530", lat: 48.985, lon: 6.026, geoStatus: 'ok' },
+  { nom: 'THOMAS', prenom: 'Rachel', matierePrincipale: 'Arts plastiques', classesEnCharge: ['3A', '3B', '3C', '3D', '3E'], estProfPrincipal: false, tags: [], indisponibilites: ['mardi_matin', 'mercredi_matin', 'vendredi_aprem'], adresse: "14 RUE TRES-AU-PRE", commune: "PLESNOIS 57140", lat: 49.184, lon: 6.120, geoStatus: 'ok' },
+  { nom: 'TILLE', prenom: 'Ibo', matierePrincipale: 'Français', classesEnCharge: ['4B', '4C', '4D', '4E'], estProfPrincipal: true, classePP: '4B', tags: [], indisponibilites: ['lundi_aprem', 'mardi_aprem'], adresse: "78 A RUE MIGETTE", commune: "LONGEVILLE LES METZ 57050", lat: 49.107, lon: 6.138, geoStatus: 'ok' },
   { nom: 'TISON', prenom: 'Christophe', matierePrincipale: 'Arts plastiques', classesEnCharge: ['6A', '6B', '6C', '6D', '6E', '5A', '5B', '5C', '5D', '4A', '4B', '4C', '4D', '4E', '4F'], estProfPrincipal: false, tags: [], adresse: "32 RUE DE LA CHOUETTE", commune: "WOIPPY 57140", lat: 49.155, lon: 6.152, geoStatus: 'ok' },
   { nom: 'WEBER', prenom: 'Ewan', matierePrincipale: 'SVT', classesEnCharge: ['6A', '6B', '6C', '6D', '6E', '5A', '5B', '5C', '5D', '4D'], estProfPrincipal: true, classePP: '4D', tags: [], adresse: "25 RUE DE LA SOURCE", commune: "NANCY 54000", lat: 48.692, lon: 6.184, geoStatus: 'ok' },
-  { nom: 'ZANOUNE', prenom: 'Anissa', matierePrincipale: 'Mathématiques', classesEnCharge: ['6D', '6E', '4F', '5A'], estProfPrincipal: false, tags: [], adresse: "4 B SQUARE FRANCOIS MITTERRAND", commune: "UCKANGE 57270", lat: 49.299, lon: 6.157, geoStatus: 'ok' },
+  { nom: 'ZANOUNE', prenom: 'Anissa', matierePrincipale: 'Mathématiques', classesEnCharge: ['6D', '6E', '4F', '5A'], estProfPrincipal: false, tags: [], indisponibilites: ['lundi_matin', 'vendredi_matin'], adresse: "4 B SQUARE FRANCOIS MITTERRAND", commune: "UCKANGE 57270", lat: 49.299, lon: 6.157, geoStatus: 'ok' },
 ];
 
 // ============ FONCTION DE SEED ============
@@ -114,6 +114,76 @@ export async function clearAndReseedDatabase(): Promise<void> {
   await scenarioRepository.ensureDefaults();
   
   console.log('Database reseeded');
+}
+
+// ============ MIGRATION INDISPONIBILITÉS ============
+
+/**
+ * Mapping nom → indisponibilites pour mise à jour des enseignants existants.
+ */
+const INDISPONIBILITES_MAP: Record<string, string[]> = {
+  'ALTINTAS': ['mardi_matin', 'mardi_aprem', 'mercredi_matin'],
+  'AUBERNIAS': ['mardi_aprem'],
+  'BETTINGER': ['lundi_aprem', 'mardi_matin', 'jeudi_matin', 'vendredi_matin'],
+  'BOUCHKHACHEKH': ['lundi_matin', 'lundi_aprem', 'mardi_matin', 'jeudi_matin', 'vendredi_matin'],
+  'BOULENOUAR': ['lundi_matin', 'vendredi_aprem'],
+  'BULLIER': ['lundi_aprem', 'mardi_aprem', 'vendredi_aprem'],
+  'CHARBONNIER': ['mercredi_matin', 'jeudi_aprem'],
+  'CHARLES': ['lundi_matin', 'vendredi_aprem'],
+  'CHEDANI': ['mardi_matin', 'mercredi_matin', 'jeudi_aprem'],
+  'FAN CHAMBON': ['lundi_matin', 'mardi_aprem', 'mercredi_matin', 'jeudi_aprem', 'vendredi_matin', 'vendredi_aprem'],
+  'GABRIEL': ['vendredi_matin', 'vendredi_aprem'],
+  'GAUDEL': ['lundi_aprem', 'vendredi_aprem'],
+  'GENTILLET': ['mercredi_matin'],
+  'GESENHUES': ['mardi_aprem'],
+  'HEITZ': ['jeudi_aprem', 'vendredi_aprem'],
+  'JASKOWIAK': ['mardi_aprem', 'jeudi_aprem'],
+  'KARST': ['mardi_matin', 'mardi_aprem'],
+  'KRENC': ['vendredi_aprem'],
+  'LANGBACH': ['vendredi_aprem'],
+  'LASSALLE': ['vendredi_aprem'],
+  'MANSOURI M JAHED': ['lundi_matin', 'mardi_aprem'],
+  'MARTIN': ['lundi_aprem', 'mardi_aprem'],
+  'MEMBRE': ['lundi_aprem', 'jeudi_matin'],
+  'PERCHERON': ['vendredi_aprem'],
+  'PIZZOL': ['lundi_matin'],
+  'SANTOS CAMILO': ['lundi_aprem', 'mercredi_matin', 'jeudi_aprem'],
+  'SCHURCH': ['lundi_matin', 'lundi_aprem', 'vendredi_aprem'],
+  'STENGER': ['lundi_aprem', 'mardi_aprem', 'mercredi_matin', 'jeudi_aprem', 'vendredi_aprem'],
+  'THIRY': ['mardi_matin', 'mardi_aprem'],
+  'THOMAS': ['mardi_matin', 'mercredi_matin', 'vendredi_aprem'],
+  'TILLE': ['lundi_aprem', 'mardi_aprem'],
+  'ZANOUNE': ['lundi_matin', 'vendredi_matin'],
+};
+
+/**
+ * Met à jour les indisponibilités de tous les enseignants existants
+ * en se basant sur leur nom de famille.
+ */
+export async function applyIndisponibilites(): Promise<{
+  updated: number;
+  notFound: string[];
+}> {
+  const enseignants = await enseignantRepository.getAll();
+  let updated = 0;
+  const notFound: string[] = [];
+
+  for (const [nom, indispos] of Object.entries(INDISPONIBILITES_MAP)) {
+    const ens = enseignants.find(e => e.nom.toUpperCase() === nom.toUpperCase());
+    if (ens) {
+      await enseignantRepository.update(ens.id!, { indisponibilites: indispos });
+      updated++;
+    } else {
+      notFound.push(nom);
+    }
+  }
+
+  console.log(`Indisponibilités appliquées à ${updated} enseignants`);
+  if (notFound.length > 0) {
+    console.log(`Non trouvés dans la base :`, notFound);
+  }
+
+  return { updated, notFound };
 }
 
 // ============ FONCTIONS DE GÉNÉRATION DE DONNÉES DE TEST ============

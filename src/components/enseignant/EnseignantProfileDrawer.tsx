@@ -386,32 +386,42 @@ export function EnseignantProfileDrawer({
                 </section>
               ) : null}
 
-              {/* Section Indisponibilités */}
-              {enseignant.indisponibilites && enseignant.indisponibilites.length > 0 && (
-                <section className="info-section">
-                  <h3>
-                    <CalendarOff size={16} />
-                    Indisponibilités
-                  </h3>
-                  <div className="indispo-display-grid">
-                    {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'].map(jour => {
-                      const jourKey = jour.toLowerCase();
-                      const matinOff = enseignant.indisponibilites!.includes(`${jourKey}_matin`);
-                      const apremOff = enseignant.indisponibilites!.includes(`${jourKey}_aprem`);
-                      if (!matinOff && !apremOff) return null;
-                      return (
-                        <div key={jour} className="indispo-jour-item">
-                          <span className="indispo-jour-name">{jour}</span>
-                          <div className="indispo-periodes">
-                            {matinOff && <span className="indispo-periode-tag">Matin</span>}
-                            {apremOff && <span className="indispo-periode-tag">Après-midi</span>}
-                          </div>
-                        </div>
-                      );
-                    })}
+              {/* Section Indisponibilités - grille visuelle */}
+              <section className="info-section">
+                <h3>
+                  <CalendarOff size={16} />
+                  Demi-journées d'indisponibilité
+                </h3>
+                <div className="indispo-view-grid">
+                  <div className="indispo-view-header">
+                    <span className="indispo-view-label-col" />
+                    {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'].map(jour => (
+                      <span key={jour} className="indispo-view-jour">{jour.slice(0, 3)}</span>
+                    ))}
                   </div>
-                </section>
-              )}
+                  {['Matin', 'Après-midi'].map(periode => (
+                    <div key={periode} className="indispo-view-row">
+                      <span className="indispo-view-label-col">{periode === 'Après-midi' ? 'AP' : 'AM'}</span>
+                      {['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi'].map(jour => {
+                        const id = `${jour}_${periode === 'Matin' ? 'matin' : 'aprem'}`;
+                        const isIndispo = enseignant.indisponibilites?.includes(id);
+                        return (
+                          <span
+                            key={id}
+                            className={`indispo-view-cell ${isIndispo ? 'indispo' : 'dispo'}`}
+                            title={`${jour.charAt(0).toUpperCase() + jour.slice(1)} ${periode}`}
+                          >
+                            {isIndispo ? <X size={12} /> : ''}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+                {(!enseignant.indisponibilites || enseignant.indisponibilites.length === 0) && (
+                  <p className="no-data" style={{ marginTop: 8 }}>Aucune indisponibilité</p>
+                )}
+              </section>
 
               {/* Section Tags */}
               {enseignant.tags && enseignant.tags.length > 0 && (
