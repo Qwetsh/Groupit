@@ -55,10 +55,6 @@ function extractNiveaux(classes: string[]): string[] {
 
 const NIVEAUX = ['6e', '5e', '4e', '3e'];
 const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'];
-const DEMI_JOURNEES_IDS = JOURS.flatMap(j => {
-  const k = j.toLowerCase();
-  return [`${k}_matin`, `${k}_aprem`];
-});
 
 // ============================================================
 // CONTEXT MENU COMPONENT
