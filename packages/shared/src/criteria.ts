@@ -43,27 +43,14 @@ export interface CriteriaConfig {
 
 export const DEFAULT_CRITERIA_CONFIG: CriteriaConfig = {
   categories: [
-    { id: 'oral', label: 'Présentation orale', emoji: '\u{1F5E3}\u{FE0F}' },
-    { id: 'sujet', label: 'Maîtrise du sujet', emoji: '\u{1F9E0}' },
+    { id: 'oral', label: 'Maîtrise de la présentation orale', emoji: '\u{1F5E3}\u{FE0F}' },
+    { id: 'sujet', label: 'Maîtrise du sujet présenté', emoji: '\u{1F9E0}' },
   ],
   criteria: [
     {
       id: 'expression',
       label: 'Expression et présentation',
-      desc: 'Vocabulaire précis, syntaxe correcte, débit adapté',
-      categoryId: 'oral',
-      levels: [
-        { label: 'Très insuffisant', shortLabel: 'TI', value: 0.5 },
-        { label: 'Insuffisant', shortLabel: 'I', value: 1 },
-        { label: 'Satisfaisant', shortLabel: 'S', value: 1.5 },
-        { label: 'Très satisfaisant', shortLabel: 'TS', value: 2 },
-      ],
-      max: 2,
-    },
-    {
-      id: 'diaporama',
-      label: 'Qualité du diaporama',
-      desc: 'Soin, lisibilité, structure, présentation visuelle',
+      desc: 'Vocabulaire précis, syntaxe correcte, débit adapté, posture',
       categoryId: 'oral',
       levels: [
         { label: 'Très insuffisant', shortLabel: 'TI', value: 1 },
@@ -74,9 +61,22 @@ export const DEFAULT_CRITERIA_CONFIG: CriteriaConfig = {
       max: 4,
     },
     {
+      id: 'diaporama',
+      label: 'Qualité du support',
+      desc: 'Soin, lisibilité, structure des diapositives, présentation visuelle',
+      categoryId: 'oral',
+      levels: [
+        { label: 'Très insuffisant', shortLabel: 'TI', value: 0.5 },
+        { label: 'Insuffisant', shortLabel: 'I', value: 1 },
+        { label: 'Satisfaisant', shortLabel: 'S', value: 1.5 },
+        { label: 'Très satisfaisant', shortLabel: 'TS', value: 2 },
+      ],
+      max: 2,
+    },
+    {
       id: 'reactivite',
       label: 'Réactivité lors de l\'entretien',
-      desc: 'Capacité à écouter et répondre avec pertinence',
+      desc: 'Capacité à écouter les questions et à y répondre avec pertinence',
       categoryId: 'oral',
       levels: [
         { label: 'Très insuffisant', shortLabel: 'TI', value: 0.5 },
@@ -89,7 +89,7 @@ export const DEFAULT_CRITERIA_CONFIG: CriteriaConfig = {
     {
       id: 'contenu',
       label: 'Contenu et connaissances',
-      desc: 'Maîtrise des notions liées au sujet',
+      desc: 'Maîtrise des notions liées au sujet (Histoire des arts, EPI, etc.)',
       categoryId: 'sujet',
       levels: [
         { label: 'Très insuffisant', shortLabel: 'TI', value: 2 },
@@ -102,7 +102,7 @@ export const DEFAULT_CRITERIA_CONFIG: CriteriaConfig = {
     {
       id: 'structure',
       label: 'Structure de l\'exposé',
-      desc: 'Plan logique, intro, conclusion, respect du temps',
+      desc: 'Plan logique, introduction claire, conclusion et respect du temps de parole',
       categoryId: 'sujet',
       levels: [
         { label: 'Très insuffisant', shortLabel: 'TI', value: 0.5 },
@@ -115,7 +115,7 @@ export const DEFAULT_CRITERIA_CONFIG: CriteriaConfig = {
     {
       id: 'engagement',
       label: 'Engagement personnel',
-      desc: 'Expérience, rencontres, ressenti',
+      desc: 'Capacité à rendre compte de son expérience, de ses rencontres et de son ressenti',
       categoryId: 'sujet',
       levels: [
         { label: 'Très insuffisant', shortLabel: 'TI', value: 2 },
