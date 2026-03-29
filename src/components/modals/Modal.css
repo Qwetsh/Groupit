@@ -110,7 +110,8 @@
   align-items: start;
 }
 
-.form-group label {
+.form-group label,
+.modal-content .form-group label {
   display: block;
   margin-bottom: 6px;
   font-size: 14px;
@@ -123,12 +124,20 @@
 .form-group input[type="number"],
 .form-group input[type="date"],
 .form-group select,
-.form-group textarea {
+.form-group textarea,
+.modal-content .form-group input[type="text"],
+.modal-content .form-group input[type="email"],
+.modal-content .form-group input[type="number"],
+.modal-content .form-group input[type="date"],
+.modal-content .form-group select,
+.modal-content .form-group textarea {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 14px;
+  color: #1e293b;
+  background: #ffffff;
   transition: all 0.2s;
 }
 
