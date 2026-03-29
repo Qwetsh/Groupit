@@ -1,17 +1,46 @@
-import { CRITERIA } from '@groupit/shared';
-import type { FinalScoreRow } from '@groupit/shared';
+import { computeMaxByCategory, computeMaxTotal } from '@groupit/shared';
+import type { FinalScoreRow, CriteriaConfig } from '@groupit/shared';
 import type { JuryWithEleves } from '../hooks/useSessionData';
 
 interface ExportButtonProps {
   jurys: JuryWithEleves[];
   scenarioName: string;
+  criteriaConfig: CriteriaConfig;
 }
 
-export function ExportButton({ jurys, scenarioName }: ExportButtonProps) {
-  // Sanitize CSV cell to prevent formula injection (=, +, -, @, tab, CR)
+const LEGACY_SCORE_KEYS: Record<string, keyof FinalScoreRow> = {
+  expression: 'score_expression',
+  diaporama: 'score_diaporama',
+  reactivite: 'score_reactivite',
+  contenu: 'score_contenu',
+  structure: 'score_structure',
+  engagement: 'score_engagement',
+};
+
+function getScoreValue(fs: FinalScoreRow, criterionId: string): number | null {
+  if (fs.scores && typeof fs.scores === 'object' && criterionId in fs.scores) {
+    return (fs.scores as Record<string, number>)[criterionId]!;
+  }
+  const legacyKey = LEGACY_SCORE_KEYS[criterionId];
+  if (legacyKey) {
+    const val = fs[legacyKey];
+    return typeof val === 'number' ? val : null;
+  }
+  return null;
+}
+
+function getCategoryTotal(fs: FinalScoreRow, categoryId: string, config: CriteriaConfig): number {
+  return config.criteria
+    .filter(c => c.categoryId === categoryId)
+    .reduce((sum, c) => sum + (getScoreValue(fs, c.id) ?? 0), 0);
+}
+
+export function ExportButton({ jurys, scenarioName, criteriaConfig }: ExportButtonProps) {
+  const maxByCategory = computeMaxByCategory(criteriaConfig);
+  const maxTotal = computeMaxTotal(criteriaConfig);
+
   function csvSafe(value: string): string {
     const escaped = value.replace(/"/g, '""');
-    // Prefix dangerous characters with a single quote to prevent formula execution
     if (/^[=+\-@\t\r]/.test(escaped)) {
       return `"'${escaped}"`;
     }
@@ -20,35 +49,26 @@ export function ExportButton({ jurys, scenarioName }: ExportButtonProps) {
 
   function handleExport() {
     const headers = [
-      'Jury', 'Salle', 'Élève', 'Classe', 'Parcours', 'Sujet',
-      ...CRITERIA.map(c => c.label),
-      'Oral /8', 'Sujet /12', 'Total /20',
-      'Points forts', "Axes d'amélioration",
+      '\u00c9l\u00e8ve', 'Jury', 'Salle', 'Classe', 'Parcours', 'Sujet',
+      ...criteriaConfig.criteria.map(c => c.label),
+      ...criteriaConfig.categories.map(cat => `${cat.label} /${maxByCategory[cat.id] ?? 0}`),
+      `Total /${maxTotal}`,
+      'Points forts', "Axes d'am\u00e9lioration",
     ];
-
-    const scoreKey: Record<string, keyof FinalScoreRow> = {
-      expression: 'score_expression',
-      diaporama: 'score_diaporama',
-      reactivite: 'score_reactivite',
-      contenu: 'score_contenu',
-      structure: 'score_structure',
-      engagement: 'score_engagement',
-    };
 
     const rows: string[][] = [];
     for (const jury of jurys) {
       for (const eleve of jury.eleves) {
         const fs = jury.finalScores.get(eleve.id);
         rows.push([
+          csvSafe(eleve.display_name),
           csvSafe(jury.jury_name),
           csvSafe(jury.salle || ''),
-          csvSafe(eleve.display_name),
           csvSafe(eleve.classe || ''),
           csvSafe(eleve.parcours || ''),
           csvSafe(eleve.sujet || ''),
-          ...CRITERIA.map(c => fs ? `${fs[scoreKey[c.id]!]}` : ''),
-          fs ? `${fs.total_oral}` : '',
-          fs ? `${fs.total_sujet}` : '',
+          ...criteriaConfig.criteria.map(c => fs ? `${getScoreValue(fs, c.id) ?? ''}` : ''),
+          ...criteriaConfig.categories.map(cat => fs ? `${getCategoryTotal(fs, cat.id, criteriaConfig)}` : ''),
           fs ? `${fs.total}` : '',
           csvSafe(fs?.points_forts || ''),
           csvSafe(fs?.axes_amelioration || ''),
@@ -68,7 +88,7 @@ export function ExportButton({ jurys, scenarioName }: ExportButtonProps) {
 
   return (
     <button onClick={handleExport} style={styles.btn}>
-      📥 Exporter CSV
+      \uD83D\uDCE5 Exporter CSV
     </button>
   );
 }

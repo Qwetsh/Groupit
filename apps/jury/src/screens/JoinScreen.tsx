@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { supabase } from '@groupit/shared';
+import type { CriteriaConfig } from '@groupit/shared';
 
 interface JoinScreenProps {
-  onJoined: (juryId: string, sessionId: string) => void;
+  onJoined: (juryId: string, sessionId: string, criteriaConfig: CriteriaConfig | null) => void;
 }
 
 export function JoinScreen({ onJoined }: JoinScreenProps) {
@@ -22,10 +23,10 @@ export function JoinScreen({ onJoined }: JoinScreenProps) {
       const { error: authError } = await supabase.auth.signInAnonymously();
       if (authError) throw new Error('Erreur de connexion');
 
-      // 2. Trouver la session par code
+      // 2. Trouver la session par code (inclut criteria_config)
       const { data: session, error: sessionError } = await supabase
         .from('exam_sessions')
-        .select('id')
+        .select('id, criteria_config')
         .eq('code', sessionCode.trim().toUpperCase())
         .single();
 
@@ -45,7 +46,7 @@ export function JoinScreen({ onJoined }: JoinScreenProps) {
         throw new Error('Numéro de jury introuvable');
       }
 
-      onJoined(jury.id, session.id);
+      onJoined(jury.id, session.id, (session as Record<string, unknown>).criteria_config as CriteriaConfig | null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {

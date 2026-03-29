@@ -3,8 +3,9 @@ import { JoinScreen } from './screens/JoinScreen';
 import { StudentListScreen } from './screens/StudentListScreen';
 import { EvaluateScreen } from './screens/EvaluateScreen';
 import { BinomeEvaluateScreen } from './screens/BinomeEvaluateScreen';
-import { supabase } from '@groupit/shared';
-import type { SessionEleveRow } from '@groupit/shared';
+import { CriteriaProvider } from './context/CriteriaContext';
+import { supabase, DEFAULT_CRITERIA_CONFIG } from '@groupit/shared';
+import type { SessionEleveRow, CriteriaConfig } from '@groupit/shared';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export type Screen =
@@ -14,6 +15,7 @@ export type Screen =
   | { type: 'evaluate-binome'; juryId: string; sessionId: string; eleves: [SessionEleveRow, SessionEleveRow] };
 
 const SESSION_NAV_KEY = 'jury-nav';
+const CRITERIA_CONFIG_KEY = 'jury-criteria-config';
 
 interface SavedNav {
   juryId: string;
@@ -55,13 +57,38 @@ export default function App() {
   const [screen, setScreen] = useState<Screen>({ type: 'join' });
   const [restoring, setRestoring] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
+  const [criteriaConfig, setCriteriaConfig] = useState<CriteriaConfig>(DEFAULT_CRITERIA_CONFIG);
   const presenceRef = useRef<RealtimeChannel | null>(null);
+
+  // Restaurer la config critères du sessionStorage
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(CRITERIA_CONFIG_KEY);
+      if (saved) setCriteriaConfig(JSON.parse(saved));
+    } catch { /* ignore */ }
+  }, []);
 
   // Restaurer la navigation au chargement
   useEffect(() => {
     async function restore() {
       const nav = loadNav();
       if (!nav) { setRestoring(false); return; }
+
+      // Restaurer criteria_config depuis la session Supabase
+      try {
+        const { data: session } = await supabase
+          .from('exam_sessions')
+          .select('criteria_config')
+          .eq('id', nav.sessionId)
+          .single();
+        if (session) {
+          const config = (session as Record<string, unknown>).criteria_config as CriteriaConfig | null;
+          if (config) {
+            setCriteriaConfig(config);
+            sessionStorage.setItem(CRITERIA_CONFIG_KEY, JSON.stringify(config));
+          }
+        }
+      } catch { /* ignore */ }
 
       if (nav.eleveIds) {
         const { data } = await supabase
@@ -154,9 +181,16 @@ export default function App() {
   const content = (() => {
     switch (screen.type) {
       case 'join':
-        return <JoinScreen onJoined={(juryId, sessionId) =>
-          navigate({ type: 'students', juryId, sessionId })
-        } />;
+        return <JoinScreen onJoined={(juryId, sessionId, config) => {
+          if (config) {
+            setCriteriaConfig(config);
+            try { sessionStorage.setItem(CRITERIA_CONFIG_KEY, JSON.stringify(config)); } catch { /* ignore */ }
+          } else {
+            setCriteriaConfig(DEFAULT_CRITERIA_CONFIG);
+            try { sessionStorage.removeItem(CRITERIA_CONFIG_KEY); } catch { /* ignore */ }
+          }
+          navigate({ type: 'students', juryId, sessionId });
+        }} />;
 
       case 'students':
         return <StudentListScreen
@@ -175,7 +209,7 @@ export default function App() {
           eleve={screen.eleve}
           juryId={screen.juryId}
           onDone={() => {
-            setToast('Note enregistrée ✓');
+            setToast('Note enregistrée \u2713');
             navigate({ type: 'students', juryId: screen.juryId, sessionId: screen.sessionId });
           }}
           onBack={() =>
@@ -188,7 +222,7 @@ export default function App() {
           eleves={screen.eleves}
           juryId={screen.juryId}
           onDone={() => {
-            setToast('Notes enregistrées ✓');
+            setToast('Notes enregistrées \u2713');
             navigate({ type: 'students', juryId: screen.juryId, sessionId: screen.sessionId });
           }}
           onBack={() =>
@@ -199,7 +233,7 @@ export default function App() {
   })();
 
   return (
-    <>
+    <CriteriaProvider config={criteriaConfig}>
       {content}
       {toast && (
         <div style={{
@@ -219,6 +253,6 @@ export default function App() {
           {toast}
         </div>
       )}
-    </>
+    </CriteriaProvider>
   );
 }

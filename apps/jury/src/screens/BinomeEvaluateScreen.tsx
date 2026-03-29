@@ -1,14 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   supabase,
-  CRITERIA,
   TIMER_COLLECTIF,
   computeTotals,
+  computeMaxTotal,
+  computeMaxByCategory,
   allCriteriaScored,
+  toCriterion,
 } from '@groupit/shared';
 import type { SessionEleveRow } from '@groupit/shared';
 import { Timer } from '../components/Timer';
 import { CriterionRow } from '../components/CriterionRow';
+import { useCriteriaConfig } from '../context/CriteriaContext';
 
 interface BinomeEvaluateScreenProps {
   eleves: [SessionEleveRow, SessionEleveRow];
@@ -36,17 +39,51 @@ async function withRetry(
 const STORAGE_KEY = (id: string) => `jury-scores-${id}`;
 const TIMER_KEY = (id: string) => `jury-timer-binome-${id}`;
 
-// Clé timer partagée basée sur le plus petit ID pour être stable
 function sharedTimerKey(a: string, b: string) {
   return TIMER_KEY(a < b ? a : b);
 }
 
+const LEGACY_SCORE_KEYS: Record<string, string> = {
+  expression: 'score_expression',
+  diaporama: 'score_diaporama',
+  reactivite: 'score_reactivite',
+  contenu: 'score_contenu',
+  structure: 'score_structure',
+  engagement: 'score_engagement',
+};
+
+function extractScores(fs: Record<string, unknown>): Record<string, number | undefined> {
+  if (fs.scores && typeof fs.scores === 'object') {
+    const result: Record<string, number | undefined> = {};
+    for (const [k, v] of Object.entries(fs.scores as Record<string, number>)) {
+      result[k] = v;
+    }
+    return result;
+  }
+  const result: Record<string, number | undefined> = {};
+  for (const [criterionId, colName] of Object.entries(LEGACY_SCORE_KEYS)) {
+    const val = fs[colName];
+    if (val != null) result[criterionId] = val as number;
+  }
+  return result;
+}
+
+const CATEGORY_STYLES = [
+  { bg: '#ebf4ff', border: '#bee3f8', titleColor: '#2b6cb0' },
+  { bg: '#f0fff4', border: '#c6f6d5', titleColor: '#276749' },
+  { bg: '#faf5ff', border: '#e9d8fd', titleColor: '#6b46c1' },
+  { bg: '#fffaf0', border: '#feebc8', titleColor: '#c05621' },
+];
+
 export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }: BinomeEvaluateScreenProps) {
   void _juryId;
+  const config = useCriteriaConfig();
+  const maxTotal = computeMaxTotal(config);
+  const maxByCategory = computeMaxByCategory(config);
+
   const [activeIdx, setActiveIdx] = useState(0);
   const activeEleve = eleves[activeIdx]!;
 
-  // Scores séparés pour chaque élève
   const [scoresA, setScoresA] = useState<Record<string, number | undefined>>({});
   const [scoresB, setScoresB] = useState<Record<string, number | undefined>>({});
   const [pointsFortsA, setPointsFortsA] = useState('');
@@ -77,7 +114,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
     return () => { mountedRef.current = false; };
   }, []);
 
-  // Restaurer scores des deux élèves
+  // Restaurer scores des deux
   useEffect(() => {
     async function restore() {
       for (let i = 0; i < 2; i++) {
@@ -95,14 +132,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
             .single();
 
           if (fs) {
-            setSc({
-              expression: fs.score_expression ?? undefined,
-              diaporama: fs.score_diaporama ?? undefined,
-              reactivite: fs.score_reactivite ?? undefined,
-              contenu: fs.score_contenu ?? undefined,
-              structure: fs.score_structure ?? undefined,
-              engagement: fs.score_engagement ?? undefined,
-            });
+            setSc(extractScores(fs as unknown as Record<string, unknown>));
             setPF(fs.points_forts || '');
             setAx(fs.axes_amelioration || '');
             setRev(true);
@@ -110,7 +140,6 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
           }
         }
 
-        // Fallback localStorage
         try {
           const saved = localStorage.getItem(STORAGE_KEY(eleve.id));
           if (saved) {
@@ -122,7 +151,6 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
         } catch { /* ignore */ }
       }
 
-      // Timer partagé
       try {
         const t = localStorage.getItem(timerKey);
         if (t) setSavedElapsed(parseInt(t, 10));
@@ -133,7 +161,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
     restore();
   }, [eleves[0].id, eleves[1].id, timerKey]);
 
-  // Sauvegarder scores dans localStorage
+  // Sauvegarder scores
   useEffect(() => {
     if (!restoredRef.current) return;
     for (let i = 0; i < 2; i++) {
@@ -162,16 +190,14 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
     try { localStorage.setItem(timerKey, String(elapsed)); } catch { /* ignore */ }
   }, [timerKey]);
 
-  const totalsA = computeTotals(scoresA);
-  const totalsB = computeTotals(scoresB);
-  const allScoredA = allCriteriaScored(scoresA);
-  const allScoredB = allCriteriaScored(scoresB);
+  const totalsA = computeTotals(scoresA, config);
+  const totalsB = computeTotals(scoresB, config);
+  const allScoredA = allCriteriaScored(scoresA, config);
+  const allScoredB = allCriteriaScored(scoresB, config);
   const currentTotals = activeIdx === 0 ? totalsA : totalsB;
   const bothRevisit = isRevisitA && isRevisitB;
 
   const isEleveAbsent = (i: number) => eleves[i]!.status === 'absent';
-
-  // Un élève absent est considéré "noté" pour la validation
   const effectiveScoredA = allScoredA || isEleveAbsent(0);
   const effectiveScoredB = allScoredB || isEleveAbsent(1);
   const canSubmit = effectiveScoredA && effectiveScoredB;
@@ -180,7 +206,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
     const eleve = eleves[idx]!;
     const isCurrentlyAbsent = eleve.status === 'absent';
     const msg = isCurrentlyAbsent
-      ? `Remettre ${eleve.display_name} comme "À passer" ?`
+      ? `Remettre ${eleve.display_name} comme "\u00c0 passer" ?`
       : `Marquer ${eleve.display_name} comme absent ?`;
     if (!window.confirm(msg)) return;
 
@@ -192,7 +218,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
     if (submitting) return;
 
     if (bothRevisit) {
-      if (!window.confirm('Les deux élèves ont déjà été notés. Écraser les notes précédentes ?')) return;
+      if (!window.confirm('Les deux \u00e9l\u00e8ves ont d\u00e9j\u00e0 \u00e9t\u00e9 not\u00e9s. \u00c9craser les notes pr\u00e9c\u00e9dentes ?')) return;
     }
 
     setSubmitting(true);
@@ -204,7 +230,6 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
       if (t) dureePassage = parseInt(t, 10);
     } catch { /* ignore */ }
 
-    // Soumettre les deux élèves
     for (let i = 0; i < 2; i++) {
       const eleve = eleves[i]!;
       if (eleve.status === 'absent') continue;
@@ -212,27 +237,40 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
       const sc = i === 0 ? scoresA : scoresB;
       const pf = i === 0 ? pointsFortsA : pointsFortsB;
       const ax = i === 0 ? axesA : axesB;
-      const { totalOral, totalSujet, total } = computeTotals(sc);
+      const { total, categoryTotals } = computeTotals(sc, config);
+
+      const scoresJsonb: Record<string, number> = {};
+      for (const c of config.criteria) {
+        if (sc[c.id] !== undefined) scoresJsonb[c.id] = sc[c.id]!;
+      }
+
+      const legacyEval: Record<string, unknown> = {};
+      const legacyFinal: Record<string, unknown> = {};
+      for (const [criterionId, colName] of Object.entries(LEGACY_SCORE_KEYS)) {
+        if (sc[criterionId] !== undefined) {
+          legacyEval[colName] = sc[criterionId];
+          legacyFinal[colName] = sc[criterionId]!;
+        }
+      }
+
+      const totalOral = categoryTotals['oral'] ?? 0;
+      const totalSujet = categoryTotals['sujet'] ?? 0;
 
       const { error: evalErr } = await withRetry(() => supabase.from('evaluations').upsert({
         eleve_id: eleve.id,
         juror_slot: 'A',
-        score_expression: sc.expression,
-        score_diaporama: sc.diaporama,
-        score_reactivite: sc.reactivite,
-        score_contenu: sc.contenu,
-        score_structure: sc.structure,
-        score_engagement: sc.engagement,
+        ...legacyEval,
         total_oral: totalOral,
         total_sujet: totalSujet,
         total,
+        scores: scoresJsonb,
         points_forts: pf || null,
         axes_amelioration: ax || null,
         submitted_at: new Date().toISOString(),
       }, { onConflict: 'eleve_id,juror_slot' }));
 
       if (evalErr) {
-        setSubmitError(`Erreur pour ${eleve.display_name}. Réessayez.`);
+        setSubmitError(`Erreur pour ${eleve.display_name}. R\u00e9essayez.`);
         console.error('[BinomeEvaluate] upsert evaluation:', evalErr);
         setSubmitting(false);
         return;
@@ -240,21 +278,17 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
 
       const { error: fsErr } = await withRetry(() => supabase.from('final_scores').upsert({
         eleve_id: eleve.id,
-        score_expression: sc.expression!,
-        score_diaporama: sc.diaporama!,
-        score_reactivite: sc.reactivite!,
-        score_contenu: sc.contenu!,
-        score_structure: sc.structure!,
-        score_engagement: sc.engagement!,
+        ...legacyFinal,
         total_oral: totalOral,
         total_sujet: totalSujet,
         total,
+        scores: scoresJsonb,
         points_forts: pf || null,
         axes_amelioration: ax || null,
       }, { onConflict: 'eleve_id' }));
 
       if (fsErr) {
-        setSubmitError(`Erreur pour ${eleve.display_name}. Réessayez.`);
+        setSubmitError(`Erreur pour ${eleve.display_name}. R\u00e9essayez.`);
         console.error('[BinomeEvaluate] upsert final_scores:', fsErr);
         setSubmitting(false);
         return;
@@ -269,7 +303,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
     }
 
     if (mountedRef.current) onDone();
-  }, [scoresA, scoresB, pointsFortsA, pointsFortsB, axesA, axesB, eleves, onDone, submitting, bothRevisit, timerKey]);
+  }, [scoresA, scoresB, pointsFortsA, pointsFortsB, axesA, axesB, eleves, onDone, submitting, bothRevisit, timerKey, config]);
 
   const allRevisit = isRevisitA && isRevisitB;
 
@@ -281,7 +315,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
           <button onClick={onBack} disabled={submitting} style={{
             ...styles.backBtn,
             opacity: submitting ? 0.4 : 1,
-          }}>← Retour</button>
+          }}>\u2190 Retour</button>
           <div style={{
             background: 'rgba(255,255,255,0.15)',
             padding: '4px 10px',
@@ -289,7 +323,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
             fontSize: 11,
             fontWeight: 700,
           }}>
-            BINÔME
+            BIN\u00d4ME
           </div>
           <div style={{
             background: 'rgba(255,255,255,0.2)',
@@ -298,17 +332,18 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
             fontSize: 18,
             fontWeight: 800,
           }}>
-            {currentTotals.total}<span style={{ fontSize: 12, opacity: 0.7 }}>/20</span>
+            {currentTotals.total}<span style={{ fontSize: 12, opacity: 0.7 }}>/{maxTotal}</span>
           </div>
         </div>
 
-        {/* Onglets élèves */}
+        {/* Onglets */}
         <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
           {eleves.map((eleve, i) => {
             const isActive = activeIdx === i;
             const isAbs = eleve.status === 'absent';
             const scored = i === 0 ? allScoredA : allScoredB;
             const t = i === 0 ? totalsA : totalsB;
+            const remaining = config.criteria.filter(c => (i === 0 ? scoresA : scoresB)[c.id] === undefined).length;
             return (
               <button
                 key={eleve.id}
@@ -327,14 +362,14 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
               >
                 <div style={{ fontSize: 14, fontWeight: 700 }}>{eleve.display_name}</div>
                 <div style={{ fontSize: 11, opacity: 0.8, marginTop: 2 }}>
-                  {isAbs ? 'Absent' : scored ? `${t.total}/20` : `${CRITERIA.filter(c => (i === 0 ? scoresA : scoresB)[c.id] === undefined).length} restant(s)`}
+                  {isAbs ? 'Absent' : scored ? `${t.total}/${maxTotal}` : `${remaining} restant(s)`}
                 </div>
               </button>
             );
           })}
         </div>
 
-        {/* Boutons absence individuels */}
+        {/* Boutons absence */}
         <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
           {eleves.map((eleve, i) => (
             <button
@@ -351,7 +386,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
                 padding: '2px 0',
               }}
             >
-              {eleve.status === 'absent' ? 'Remettre présent' : 'Absent'}
+              {eleve.status === 'absent' ? 'Remettre pr\u00e9sent' : 'Absent'}
             </button>
           ))}
         </div>
@@ -372,7 +407,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
         )}
       </div>
 
-      {/* Timer partagé */}
+      {/* Timer */}
       <div style={{ padding: '12px 16px 0' }}>
         {allRevisit ? (
           <Timer duration={TIMER_COLLECTIF} elapsedSeconds={savedElapsed ?? 0} />
@@ -381,52 +416,56 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
         )}
       </div>
 
-      {/* Contenu de l'élève actif (masqué si absent) */}
+      {/* Contenu */}
       {activeEleve.status === 'absent' ? (
         <div style={{ padding: '40px 16px', textAlign: 'center', color: '#94a3b8' }}>
-          <div style={{ fontSize: 18, fontWeight: 700 }}>Élève absent</div>
-          <div style={{ fontSize: 13, marginTop: 4 }}>Cliquez "Remettre présent" pour annuler.</div>
+          <div style={{ fontSize: 18, fontWeight: 700 }}>\u00c9l\u00e8ve absent</div>
+          <div style={{ fontSize: 13, marginTop: 4 }}>Cliquez "Remettre pr\u00e9sent" pour annuler.</div>
         </div>
       ) : (<>
-        {/* Oral */}
-        <div style={{ margin: '12px 16px 0' }}>
-          <div style={styles.sectionOral}>
-            <div style={styles.sectionTitle}>
-              <span>🗣️</span> PRÉSENTATION ORALE
-              <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, opacity: 0.7 }}>
-                {currentTotals.totalOral}/8
-              </span>
-            </div>
-            {CRITERIA.filter(c => c.category === 'oral').map(c => (
-              <CriterionRow
-                key={c.id}
-                criterion={c}
-                selected={scores[c.id]}
-                onSelect={(val) => setScores({ ...scores, [c.id]: val })}
-              />
-            ))}
-          </div>
-        </div>
+        {/* Sections par cat\u00e9gorie (dynamique) */}
+        {config.categories.map((cat, catIdx) => {
+          const catCriteria = config.criteria.filter(c => c.categoryId === cat.id);
+          if (catCriteria.length === 0) return null;
+          const catStyle = CATEGORY_STYLES[catIdx % CATEGORY_STYLES.length]!;
+          const catTotal = currentTotals.categoryTotals[cat.id] ?? 0;
+          const catMax = maxByCategory[cat.id] ?? 0;
 
-        {/* Sujet */}
-        <div style={{ margin: '12px 16px 0' }}>
-          <div style={styles.sectionSujet}>
-            <div style={{ ...styles.sectionTitle, color: '#276749' }}>
-              <span>🧠</span> MAÎTRISE DU SUJET
-              <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, opacity: 0.7 }}>
-                {currentTotals.totalSujet}/12
-              </span>
+          return (
+            <div key={cat.id} style={{ margin: '12px 16px 0' }}>
+              <div style={{
+                background: catStyle.bg,
+                borderRadius: 12,
+                padding: '10px 14px 4px',
+                border: `1px solid ${catStyle.border}`,
+              }}>
+                <div style={{
+                  fontSize: 13,
+                  fontWeight: 800,
+                  color: catStyle.titleColor,
+                  marginBottom: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}>
+                  {cat.emoji && <span>{cat.emoji}</span>}
+                  {cat.label.toUpperCase()}
+                  <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, opacity: 0.7 }}>
+                    {catTotal}/{catMax}
+                  </span>
+                </div>
+                {catCriteria.map(c => (
+                  <CriterionRow
+                    key={c.id}
+                    criterion={toCriterion(c)}
+                    selected={scores[c.id]}
+                    onSelect={(val) => setScores({ ...scores, [c.id]: val })}
+                  />
+                ))}
+              </div>
             </div>
-            {CRITERIA.filter(c => c.category === 'sujet').map(c => (
-              <CriterionRow
-                key={c.id}
-                criterion={c}
-                selected={scores[c.id]}
-                onSelect={(val) => setScores({ ...scores, [c.id]: val })}
-              />
-            ))}
-          </div>
-        </div>
+          );
+        })}
 
         {/* Commentaires */}
         <div style={styles.card}>
@@ -438,7 +477,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
             onChange={(e) => setPointsForts(e.target.value)}
           />
           <div style={{ marginTop: 10 }}>
-            <label style={styles.label}>Axes d'amélioration</label>
+            <label style={styles.label}>Axes d'am\u00e9lioration</label>
             <textarea
               style={styles.textarea}
               placeholder="Optionnel..."
@@ -456,7 +495,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
         </div>
       )}
 
-      {/* Valider les deux */}
+      {/* Valider */}
       <div style={{ padding: '4px 16px 24px' }}>
         <button
           onClick={handleSubmit}
@@ -475,9 +514,9 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
             ? 'Enregistrement...'
             : canSubmit
               ? bothRevisit
-                ? `Modifier — ${totalsA.total}/20 · ${totalsB.total}/20`
-                : `✓ Valider le binôme — ${totalsA.total}/20 · ${totalsB.total}/20`
-              : `Critères restants`}
+                ? `Modifier \u2014 ${totalsA.total}/${maxTotal} \u00b7 ${totalsB.total}/${maxTotal}`
+                : `\u2713 Valider le bin\u00f4me \u2014 ${totalsA.total}/${maxTotal} \u00b7 ${totalsB.total}/${maxTotal}`
+              : `Crit\u00e8res restants`}
         </button>
       </div>
     </div>
@@ -510,27 +549,6 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 8,
     cursor: 'pointer',
     fontWeight: 600,
-  },
-  sectionOral: {
-    background: '#ebf4ff',
-    borderRadius: 12,
-    padding: '10px 14px 4px',
-    border: '1px solid #bee3f8',
-  },
-  sectionSujet: {
-    background: '#f0fff4',
-    borderRadius: 12,
-    padding: '10px 14px 4px',
-    border: '1px solid #c6f6d5',
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: 800,
-    color: '#2b6cb0',
-    marginBottom: 8,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
   },
   card: {
     background: '#ffffff',

@@ -1,15 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   supabase,
-  CRITERIA,
   TIMER_INDIVIDUEL,
   TIMER_COLLECTIF,
   computeTotals,
+  computeMaxTotal,
+  computeMaxByCategory,
   allCriteriaScored,
+  toCriterion,
 } from '@groupit/shared';
 import type { SessionEleveRow } from '@groupit/shared';
 import { Timer } from '../components/Timer';
 import { CriterionRow } from '../components/CriterionRow';
+import { useCriteriaConfig } from '../context/CriteriaContext';
 
 interface EvaluateScreenProps {
   eleve: SessionEleveRow;
@@ -38,14 +41,54 @@ async function withRetry(
 const STORAGE_KEY = (id: string) => `jury-scores-${id}`;
 const TIMER_KEY = (id: string) => `jury-timer-${id}`;
 
+// Mapping legacy colonnes -> criterion id
+const LEGACY_SCORE_KEYS: Record<string, string> = {
+  expression: 'score_expression',
+  diaporama: 'score_diaporama',
+  reactivite: 'score_reactivite',
+  contenu: 'score_contenu',
+  structure: 'score_structure',
+  engagement: 'score_engagement',
+};
+
+/** Extrait les scores depuis un FinalScoreRow (JSONB ou colonnes legacy) */
+function extractScores(fs: Record<string, unknown>): Record<string, number | undefined> {
+  // Priorité au JSONB
+  if (fs.scores && typeof fs.scores === 'object') {
+    const result: Record<string, number | undefined> = {};
+    for (const [k, v] of Object.entries(fs.scores as Record<string, number>)) {
+      result[k] = v;
+    }
+    return result;
+  }
+  // Fallback colonnes legacy
+  const result: Record<string, number | undefined> = {};
+  for (const [criterionId, colName] of Object.entries(LEGACY_SCORE_KEYS)) {
+    const val = fs[colName];
+    if (val != null) result[criterionId] = val as number;
+  }
+  return result;
+}
+
+// Couleurs par catégorie (rotatives)
+const CATEGORY_STYLES = [
+  { bg: '#ebf4ff', border: '#bee3f8', titleColor: '#2b6cb0' },
+  { bg: '#f0fff4', border: '#c6f6d5', titleColor: '#276749' },
+  { bg: '#faf5ff', border: '#e9d8fd', titleColor: '#6b46c1' },
+  { bg: '#fffaf0', border: '#feebc8', titleColor: '#c05621' },
+];
+
 export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: EvaluateScreenProps) {
   void _juryId;
+  const config = useCriteriaConfig();
+  const maxTotal = computeMaxTotal(config);
+  const maxByCategory = computeMaxByCategory(config);
+
   const [scores, setScores] = useState<Record<string, number | undefined>>({});
   const [pointsForts, setPointsForts] = useState('');
   const [axesAmelioration, setAxesAmelioration] = useState('');
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  // true si l'élève a déjà été noté (on revient dessus pour modifier)
   const [isRevisit, setIsRevisit] = useState(false);
   const [savedElapsed, setSavedElapsed] = useState<number | undefined>(undefined);
   const [markingAbsent, setMarkingAbsent] = useState(false);
@@ -58,10 +101,9 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
     return () => { mountedRef.current = false; };
   }, []);
 
-  // Charger les scores existants : d'abord Supabase (si validé), puis localStorage en fallback
+  // Charger les scores existants
   useEffect(() => {
     async function restore() {
-      // Vérifier si l'élève a déjà un final_score en base
       if (eleve.status === 'validated') {
         const { data: fs } = await supabase
           .from('final_scores')
@@ -70,19 +112,11 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
           .single();
 
         if (fs) {
-          setScores({
-            expression: fs.score_expression ?? undefined,
-            diaporama: fs.score_diaporama ?? undefined,
-            reactivite: fs.score_reactivite ?? undefined,
-            contenu: fs.score_contenu ?? undefined,
-            structure: fs.score_structure ?? undefined,
-            engagement: fs.score_engagement ?? undefined,
-          });
+          setScores(extractScores(fs as unknown as Record<string, unknown>));
           setPointsForts(fs.points_forts || '');
           setAxesAmelioration(fs.axes_amelioration || '');
           setIsRevisit(true);
 
-          // Restaurer le temps écoulé
           try {
             const savedTime = localStorage.getItem(TIMER_KEY(eleve.id));
             if (savedTime) setSavedElapsed(parseInt(savedTime, 10));
@@ -104,7 +138,6 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
         }
       } catch { /* ignore */ }
 
-      // Restaurer le timer même en mode non-revisit (ex: refresh en cours d'évaluation)
       try {
         const savedTime = localStorage.getItem(TIMER_KEY(eleve.id));
         if (savedTime) setSavedElapsed(parseInt(savedTime, 10));
@@ -115,7 +148,7 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
     restore();
   }, [eleve.id, eleve.status]);
 
-  // Sauvegarder dans localStorage à chaque changement
+  // Sauvegarder dans localStorage
   useEffect(() => {
     if (!restoredRef.current) return;
     try {
@@ -125,29 +158,28 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
     } catch { /* quota exceeded, ignore */ }
   }, [scores, pointsForts, axesAmelioration, eleve.id]);
 
-  // Mettre le status en in_progress (seulement si pas déjà validé)
+  // Mettre le status en in_progress
   useEffect(() => {
     if (eleve.status !== 'validated') {
       supabase.from('session_eleves').update({ status: 'in_progress' }).eq('id', eleve.id);
     }
   }, [eleve.id, eleve.status]);
 
-  // Sauvegarder le temps du timer
   const handleTimerTick = useCallback((elapsed: number) => {
     try { localStorage.setItem(TIMER_KEY(eleve.id), String(elapsed)); } catch { /* ignore */ }
   }, [eleve.id]);
 
   const isCollectif = eleve.binome_id !== null;
   const timerDuration = isCollectif ? TIMER_COLLECTIF : TIMER_INDIVIDUEL;
-  const totals = computeTotals(scores);
-  const allScored = allCriteriaScored(scores);
+  const totals = computeTotals(scores, config);
+  const allScored = allCriteriaScored(scores, config);
 
   const handleAbsent = useCallback(async () => {
     if (markingAbsent) return;
     const isCurrentlyAbsent = eleve.status === 'absent';
     const msg = isCurrentlyAbsent
-      ? 'Remettre cet élève comme "À passer" ?'
-      : 'Marquer cet élève comme absent ?';
+      ? 'Remettre cet \u00e9l\u00e8ve comme "\u00c0 passer" ?'
+      : 'Marquer cet \u00e9l\u00e8ve comme absent ?';
     if (!window.confirm(msg)) return;
 
     setMarkingAbsent(true);
@@ -160,37 +192,51 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
   const handleSubmit = useCallback(async () => {
     if (submitting) return;
 
-    // Confirmation si modification d'une note existante
     if (isRevisit) {
       const confirmed = window.confirm(
-        'Cet élève a déjà été noté. Voulez-vous écraser la note précédente ?'
+        'Cet \u00e9l\u00e8ve a d\u00e9j\u00e0 \u00e9t\u00e9 not\u00e9. Voulez-vous \u00e9craser la note pr\u00e9c\u00e9dente ?'
       );
       if (!confirmed) return;
     }
 
     setSubmitting(true);
     setSubmitError(null);
-    const { totalOral, totalSujet, total } = computeTotals(scores);
+    const { total, categoryTotals } = computeTotals(scores, config);
+
+    // Construire le JSONB scores
+    const scoresJsonb: Record<string, number> = {};
+    for (const c of config.criteria) {
+      if (scores[c.id] !== undefined) scoresJsonb[c.id] = scores[c.id]!;
+    }
+
+    // Backward-compat legacy columns (si critères par défaut)
+    const legacyEval: Record<string, unknown> = {};
+    const legacyFinal: Record<string, unknown> = {};
+    for (const [criterionId, colName] of Object.entries(LEGACY_SCORE_KEYS)) {
+      if (scores[criterionId] !== undefined) {
+        legacyEval[colName] = scores[criterionId];
+        legacyFinal[colName] = scores[criterionId]!;
+      }
+    }
+
+    const totalOral = categoryTotals['oral'] ?? 0;
+    const totalSujet = categoryTotals['sujet'] ?? 0;
 
     const { error: evalErr } = await withRetry(() => supabase.from('evaluations').upsert({
       eleve_id: eleve.id,
       juror_slot: 'A',
-      score_expression: scores.expression,
-      score_diaporama: scores.diaporama,
-      score_reactivite: scores.reactivite,
-      score_contenu: scores.contenu,
-      score_structure: scores.structure,
-      score_engagement: scores.engagement,
+      ...legacyEval,
       total_oral: totalOral,
       total_sujet: totalSujet,
       total,
+      scores: scoresJsonb,
       points_forts: pointsForts || null,
       axes_amelioration: axesAmelioration || null,
       submitted_at: new Date().toISOString(),
     }, { onConflict: 'eleve_id,juror_slot' }));
 
     if (evalErr) {
-      setSubmitError('Erreur persistante. Vérifiez votre connexion et réessayez.');
+      setSubmitError('Erreur persistante. V\u00e9rifiez votre connexion et r\u00e9essayez.');
       console.error('[EvaluateScreen] upsert evaluation:', evalErr);
       setSubmitting(false);
       return;
@@ -198,27 +244,22 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
 
     const { error: fsErr } = await withRetry(() => supabase.from('final_scores').upsert({
       eleve_id: eleve.id,
-      score_expression: scores.expression!,
-      score_diaporama: scores.diaporama!,
-      score_reactivite: scores.reactivite!,
-      score_contenu: scores.contenu!,
-      score_structure: scores.structure!,
-      score_engagement: scores.engagement!,
+      ...legacyFinal,
       total_oral: totalOral,
       total_sujet: totalSujet,
       total,
+      scores: scoresJsonb,
       points_forts: pointsForts || null,
       axes_amelioration: axesAmelioration || null,
     }, { onConflict: 'eleve_id' }));
 
     if (fsErr) {
-      setSubmitError('Erreur persistante. Vérifiez votre connexion et réessayez.');
+      setSubmitError('Erreur persistante. V\u00e9rifiez votre connexion et r\u00e9essayez.');
       console.error('[EvaluateScreen] upsert final_scores:', fsErr);
       setSubmitting(false);
       return;
     }
 
-    // Sauvegarder status + durée de passage
     let dureePassage: number | null = null;
     try {
       const t = localStorage.getItem(TIMER_KEY(eleve.id));
@@ -232,7 +273,7 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
     try { localStorage.removeItem(STORAGE_KEY(eleve.id)); } catch { /* ignore */ }
 
     if (mountedRef.current) onDone();
-  }, [scores, pointsForts, axesAmelioration, eleve.id, onDone, submitting, isRevisit]);
+  }, [scores, pointsForts, axesAmelioration, eleve.id, onDone, submitting, isRevisit, config]);
 
   return (
     <div style={styles.container}>
@@ -241,7 +282,7 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
           <button onClick={onBack} disabled={submitting} style={{
             ...styles.backBtn,
             opacity: submitting ? 0.4 : 1,
-          }}>← Retour</button>
+          }}>\u2190 Retour</button>
           <button
             onClick={handleAbsent}
             disabled={submitting || markingAbsent}
@@ -251,7 +292,7 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
               opacity: (submitting || markingAbsent) ? 0.4 : 0.7,
             }}
           >
-            {eleve.status === 'absent' ? 'Remettre présent' : 'Absent'}
+            {eleve.status === 'absent' ? 'Remettre pr\u00e9sent' : 'Absent'}
           </button>
           <div style={{
             background: 'rgba(255,255,255,0.2)',
@@ -260,15 +301,15 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
             fontSize: 22,
             fontWeight: 800,
           }}>
-            {totals.total}<span style={{ fontSize: 14, opacity: 0.7 }}>/20</span>
+            {totals.total}<span style={{ fontSize: 14, opacity: 0.7 }}>/{maxTotal}</span>
           </div>
         </div>
         <div style={{ marginTop: 8, fontSize: 18, fontWeight: 700 }}>{eleve.display_name}</div>
         <div style={{ fontSize: 12, opacity: 0.75 }}>
           {eleve.classe}
-          {eleve.parcours && ` · ${eleve.parcours}`}
-          {eleve.sujet && ` · ${eleve.sujet}`}
-          {isCollectif && ' · Collectif'}
+          {eleve.parcours && ` \u00b7 ${eleve.parcours}`}
+          {eleve.sujet && ` \u00b7 ${eleve.sujet}`}
+          {isCollectif && ' \u00b7 Collectif'}
         </div>
         {isRevisit && (
           <div style={{
@@ -286,7 +327,7 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
         )}
       </div>
 
-      {/* Timer : interactif ou lecture seule */}
+      {/* Timer */}
       <div style={{ padding: '12px 16px 0' }}>
         {isRevisit ? (
           <Timer duration={timerDuration} elapsedSeconds={savedElapsed ?? 0} />
@@ -295,45 +336,49 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
         )}
       </div>
 
-      {/* Oral */}
-      <div style={{ margin: '12px 16px 0' }}>
-        <div style={styles.sectionOral}>
-          <div style={styles.sectionTitle}>
-            <span>🗣️</span> PRÉSENTATION ORALE
-            <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, opacity: 0.7 }}>
-              {totals.totalOral}/8
-            </span>
-          </div>
-          {CRITERIA.filter(c => c.category === 'oral').map(c => (
-            <CriterionRow
-              key={c.id}
-              criterion={c}
-              selected={scores[c.id]}
-              onSelect={(val) => setScores({ ...scores, [c.id]: val })}
-            />
-          ))}
-        </div>
-      </div>
+      {/* Sections par catégorie (dynamique) */}
+      {config.categories.map((cat, catIdx) => {
+        const catCriteria = config.criteria.filter(c => c.categoryId === cat.id);
+        if (catCriteria.length === 0) return null;
+        const catStyle = CATEGORY_STYLES[catIdx % CATEGORY_STYLES.length]!;
+        const catTotal = totals.categoryTotals[cat.id] ?? 0;
+        const catMax = maxByCategory[cat.id] ?? 0;
 
-      {/* Sujet */}
-      <div style={{ margin: '12px 16px 0' }}>
-        <div style={styles.sectionSujet}>
-          <div style={{ ...styles.sectionTitle, color: '#276749' }}>
-            <span>🧠</span> MAÎTRISE DU SUJET
-            <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, opacity: 0.7 }}>
-              {totals.totalSujet}/12
-            </span>
+        return (
+          <div key={cat.id} style={{ margin: '12px 16px 0' }}>
+            <div style={{
+              background: catStyle.bg,
+              borderRadius: 12,
+              padding: '10px 14px 4px',
+              border: `1px solid ${catStyle.border}`,
+            }}>
+              <div style={{
+                fontSize: 13,
+                fontWeight: 800,
+                color: catStyle.titleColor,
+                marginBottom: 8,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}>
+                {cat.emoji && <span>{cat.emoji}</span>}
+                {cat.label.toUpperCase()}
+                <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 600, opacity: 0.7 }}>
+                  {catTotal}/{catMax}
+                </span>
+              </div>
+              {catCriteria.map(c => (
+                <CriterionRow
+                  key={c.id}
+                  criterion={toCriterion(c)}
+                  selected={scores[c.id]}
+                  onSelect={(val) => setScores({ ...scores, [c.id]: val })}
+                />
+              ))}
+            </div>
           </div>
-          {CRITERIA.filter(c => c.category === 'sujet').map(c => (
-            <CriterionRow
-              key={c.id}
-              criterion={c}
-              selected={scores[c.id]}
-              onSelect={(val) => setScores({ ...scores, [c.id]: val })}
-            />
-          ))}
-        </div>
-      </div>
+        );
+      })}
 
       {/* Commentaires */}
       <div style={styles.card}>
@@ -345,7 +390,7 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
           onChange={(e) => setPointsForts(e.target.value)}
         />
         <div style={{ marginTop: 10 }}>
-          <label style={styles.label}>Axes d'amélioration</label>
+          <label style={styles.label}>Axes d'am\u00e9lioration</label>
           <textarea
             style={styles.textarea}
             placeholder="Optionnel..."
@@ -381,9 +426,9 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
             ? 'Enregistrement...'
             : allScored
               ? isRevisit
-                ? `Modifier la note — ${totals.total}/20`
-                : `✓ Terminé — ${totals.total}/20`
-              : `Critères restants : ${CRITERIA.filter(c => scores[c.id] === undefined).length}`}
+                ? `Modifier la note \u2014 ${totals.total}/${maxTotal}`
+                : `\u2713 Termin\u00e9 \u2014 ${totals.total}/${maxTotal}`
+              : `Crit\u00e8res restants : ${config.criteria.filter(c => scores[c.id] === undefined).length}`}
         </button>
       </div>
     </div>
@@ -416,27 +461,6 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 8,
     cursor: 'pointer',
     fontWeight: 600,
-  },
-  sectionOral: {
-    background: '#ebf4ff',
-    borderRadius: 12,
-    padding: '10px 14px 4px',
-    border: '1px solid #bee3f8',
-  },
-  sectionSujet: {
-    background: '#f0fff4',
-    borderRadius: 12,
-    padding: '10px 14px 4px',
-    border: '1px solid #c6f6d5',
-  },
-  sectionTitle: {
-    fontSize: 13,
-    fontWeight: 800,
-    color: '#2b6cb0',
-    marginBottom: 8,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
   },
   card: {
     background: '#ffffff',

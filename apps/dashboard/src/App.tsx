@@ -5,23 +5,27 @@ import { StatsCards } from './components/StatsCards';
 import { DistributionChart, CritereRadarChart, JuryBarChart, ParcoursBarChart, DureeDistributionChart, DureeNoteScatterChart } from './components/Charts';
 import { JuryTable } from './components/JuryTable';
 import { ExportButton } from './components/ExportButton';
+import { CriteriaConfigModal } from './components/CriteriaConfigModal';
 
 export default function App() {
   const [sessionCode, setSessionCode] = useState('');
   const [activeCode, setActiveCode] = useState('');
+  const [showConfigModal, setShowConfigModal] = useState(false);
 
-  const { jurys, allFinalScores, scenarioName, dateOral, loading, error, refresh } = useSessionData(activeCode);
-  const { globalStats, juryStats, parcoursStats, critereStats, distribution, dureeDistribution, dureeNoteData } = useStats(jurys, allFinalScores);
+  const { jurys, allFinalScores, scenarioName, dateOral, criteriaConfig, sessionId, loading, error, refresh } = useSessionData(activeCode);
+  const { globalStats, juryStats, parcoursStats, critereStats, distribution, dureeDistribution, dureeNoteData, maxTotal, maxByCategory } = useStats(jurys, allFinalScores, criteriaConfig);
 
   const isConnected = activeCode && !error && !loading;
 
-  // Écran de connexion
+  // Nombre d'eleves deja evalues (pour l'avertissement config)
+  const evaluatedCount = allFinalScores.length;
+
   if (!activeCode) {
     return (
       <div style={styles.loginContainer}>
         <div style={styles.loginCard}>
-          <div style={styles.loginTitle}>📊 Tableau de bord — Oral DNB</div>
-          <div style={styles.loginSub}>Entrez le code de session pour suivre les notes en temps réel.</div>
+          <div style={styles.loginTitle}>\uD83D\uDCCA Tableau de bord \u2014 Oral DNB</div>
+          <div style={styles.loginSub}>Entrez le code de session pour suivre les notes en temps r\u00e9el.</div>
           <input
             style={styles.loginInput}
             placeholder="Code de session (ex: ABC123)"
@@ -39,7 +43,7 @@ export default function App() {
               opacity: sessionCode.trim() ? 1 : 0.5,
             }}
           >
-            Accéder au tableau de bord →
+            Acc\u00e9der au tableau de bord \u2192
           </button>
         </div>
       </div>
@@ -59,7 +63,7 @@ export default function App() {
       <div style={styles.loginContainer}>
         <div style={styles.loginCard}>
           <div style={{ color: '#c53030', fontWeight: 700, marginBottom: 12 }}>{error}</div>
-          <button onClick={() => setActiveCode('')} style={styles.loginBtn}>← Retour</button>
+          <button onClick={() => setActiveCode('')} style={styles.loginBtn}>\u2190 Retour</button>
         </div>
       </div>
     );
@@ -70,38 +74,57 @@ export default function App() {
       {/* Header */}
       <header style={styles.header}>
         <div>
-          <div style={styles.headerTitle}>📊 Oral DNB — {scenarioName || 'Tableau de bord'}</div>
+          <div style={styles.headerTitle}>\uD83D\uDCCA Oral DNB \u2014 {scenarioName || 'Tableau de bord'}</div>
           <div style={styles.headerSub}>
             Session : {activeCode}
-            {dateOral && ` · ${new Date(dateOral).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`}
-            {isConnected && <span style={styles.liveBadge}>● En direct</span>}
+            {dateOral && ` \u00b7 ${new Date(dateOral).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`}
+            {isConnected && <span style={styles.liveBadge}>\u25CF En direct</span>}
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <ExportButton jurys={jurys} scenarioName={scenarioName} />
-          <button onClick={refresh} style={styles.refreshBtn}>↻</button>
-          <button onClick={() => setActiveCode('')} style={styles.disconnectBtn}>Déconnexion</button>
+          <button onClick={() => setShowConfigModal(true)} style={styles.configBtn} title="Configurer la grille de crit\u00e8res">
+            \u2699\uFE0F
+          </button>
+          <ExportButton jurys={jurys} scenarioName={scenarioName} criteriaConfig={criteriaConfig} />
+          <button onClick={refresh} style={styles.refreshBtn}>\u21BB</button>
+          <button onClick={() => setActiveCode('')} style={styles.disconnectBtn}>D\u00e9connexion</button>
         </div>
       </header>
 
+      {/* Modal config criteres */}
+      {showConfigModal && (
+        <CriteriaConfigModal
+          sessionId={sessionId}
+          currentConfig={criteriaConfig}
+          evaluatedCount={evaluatedCount}
+          onClose={() => setShowConfigModal(false)}
+          onSaved={() => {
+            setShowConfigModal(false);
+            refresh();
+          }}
+        />
+      )}
+
       {/* Contenu principal */}
       <main style={styles.main}>
-        {/* Stats globales */}
         <StatsCards stats={globalStats} />
 
-        {/* Graphiques — 2 colonnes */}
         <div style={styles.chartsGrid}>
           <DistributionChart data={distribution} />
           <CritereRadarChart data={critereStats} />
-          <JuryBarChart data={juryStats} />
-          <ParcoursBarChart data={parcoursStats} />
+          <JuryBarChart data={juryStats} maxTotal={maxTotal} />
+          <ParcoursBarChart data={parcoursStats} maxTotal={maxTotal} />
           <DureeDistributionChart data={dureeDistribution} />
-          <DureeNoteScatterChart data={dureeNoteData} />
+          <DureeNoteScatterChart data={dureeNoteData} maxTotal={maxTotal} />
         </div>
 
-        {/* Tableaux détaillés par jury */}
-        <h2 style={styles.sectionTitle}>Détail par jury</h2>
-        <JuryTable jurys={jurys} />
+        <h2 style={styles.sectionTitle}>D\u00e9tail par jury</h2>
+        <JuryTable
+          jurys={jurys}
+          criteriaConfig={criteriaConfig}
+          maxTotal={maxTotal}
+          maxByCategory={maxByCategory}
+        />
       </main>
     </div>
   );
@@ -192,6 +215,18 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#059669',
     fontWeight: 700,
     fontSize: 12,
+  },
+  configBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    border: '1px solid #e2e8f0',
+    background: '#fff',
+    fontSize: 18,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   refreshBtn: {
     width: 40,
