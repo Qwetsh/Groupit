@@ -109,7 +109,7 @@ export function StepRecap({ onBack }: StepRecapProps) {
         setAffectationCount(affectationsToAdd.length);
 
         const demiJournees = scenario.parametres.oralDnb?.demiJourneesOral;
-        const effectiveDemiJournees = demiJournees && demiJournees.length > 0 ? demiJournees : ['jeudi_matin'];
+        const effectiveDemiJournees = demiJournees && demiJournees.length > 0 ? demiJournees : ['jeudi_matin', 'jeudi_aprem'];
         if (effectiveDemiJournees.length > 1) {
           setPendingAffectations(savedAffectations);
           setState('choosing_distribution');
