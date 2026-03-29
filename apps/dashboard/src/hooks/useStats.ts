@@ -1,14 +1,14 @@
 import { useMemo } from 'react';
-import { CRITERIA, MAX_TOTAL } from '@groupit/shared';
-import type { FinalScoreRow } from '@groupit/shared';
+import { computeMaxTotal, computeMaxByCategory } from '@groupit/shared';
+import type { FinalScoreRow, CriteriaConfig } from '@groupit/shared';
 import type { JuryWithEleves } from './useSessionData';
 
 export interface DureeStats {
-  moyenne: number;  // en secondes
+  moyenne: number;
   min: number;
   max: number;
   count: number;
-  nbDepassement: number;  // élèves ayant dépassé le temps alloué
+  nbDepassement: number;
 }
 
 export interface GlobalStats {
@@ -22,11 +22,13 @@ export interface GlobalStats {
   ecartType: number;
   noteMin: number;
   noteMax: number;
-  nbSousMoyenne: number;     // < 10
-  nbMoyenne: number;          // 10-13.9
-  nbBien: number;             // 14-15.9
-  nbTresBien: number;         // 16-20
+  nbSousMoyenne: number;
+  nbMoyenne: number;
+  nbBien: number;
+  nbTresBien: number;
   pourcentageSousMoyenne: number;
+  moyenneParCategorie: Record<string, number>;
+  // Backward compat
   moyenneOral: number;
   moyenneSujet: number;
   duree: DureeStats;
@@ -69,8 +71,8 @@ export interface DureeDistributionBucket {
 
 export interface DureeNotePoint {
   displayName: string;
-  duree: number;     // en secondes
-  dureeMin: string;   // formaté "M:SS"
+  duree: number;
+  dureeMin: string;
   note: number;
 }
 
@@ -87,7 +89,44 @@ function stdDev(arr: number[], avg: number): number {
   return Math.sqrt(variance);
 }
 
-export function useStats(jurys: JuryWithEleves[], allFinalScores: FinalScoreRow[]) {
+// Mapping legacy colonnes pour fallback
+const LEGACY_SCORE_KEYS: Record<string, keyof FinalScoreRow> = {
+  expression: 'score_expression',
+  diaporama: 'score_diaporama',
+  reactivite: 'score_reactivite',
+  contenu: 'score_contenu',
+  structure: 'score_structure',
+  engagement: 'score_engagement',
+};
+
+/** Extrait la valeur d'un critere depuis un FinalScoreRow (JSONB prioritaire, fallback legacy) */
+function getScoreValue(fs: FinalScoreRow, criterionId: string): number | null {
+  // JSONB d'abord
+  if (fs.scores && typeof fs.scores === 'object' && criterionId in fs.scores) {
+    return (fs.scores as Record<string, number>)[criterionId]!;
+  }
+  // Fallback colonnes legacy
+  const legacyKey = LEGACY_SCORE_KEYS[criterionId];
+  if (legacyKey) {
+    const val = fs[legacyKey];
+    return typeof val === 'number' ? val : null;
+  }
+  return null;
+}
+
+/** Extrait le total d'une categorie depuis un FinalScoreRow */
+function getCategoryTotal(fs: FinalScoreRow, categoryId: string, config: CriteriaConfig): number {
+  const catCriteria = config.criteria.filter(c => c.categoryId === categoryId);
+  return catCriteria.reduce((sum, c) => {
+    const v = getScoreValue(fs, c.id);
+    return sum + (v ?? 0);
+  }, 0);
+}
+
+export function useStats(jurys: JuryWithEleves[], allFinalScores: FinalScoreRow[], criteriaConfig: CriteriaConfig) {
+  const maxTotal = computeMaxTotal(criteriaConfig);
+  const maxByCategory = computeMaxByCategory(criteriaConfig);
+
   const globalStats = useMemo((): GlobalStats => {
     const allEleves = jurys.flatMap(j => j.eleves);
     const totalEleves = allEleves.length;
@@ -96,11 +135,10 @@ export function useStats(jurys: JuryWithEleves[], allFinalScores: FinalScoreRow[
     const totalEvalues = scores.length;
     const totalEnAttente = totalEleves - totalEvalues - totalAbsents;
 
-    // Stats de durée
     const durations = allEleves
       .map(e => e.duree_passage)
       .filter((d): d is number => d != null && d > 0);
-    const TIMER_DEFAULT = 300; // 5min individuel
+    const TIMER_DEFAULT = 300;
     const dureeStats: DureeStats = durations.length > 0
       ? {
           moyenne: Math.round(durations.reduce((a, b) => a + b, 0) / durations.length),
@@ -117,7 +155,9 @@ export function useStats(jurys: JuryWithEleves[], allFinalScores: FinalScoreRow[
         totalEleves, totalEvalues, totalAbsents, totalEnAttente, pourcentageEvalue,
         moyenne: 0, mediane: 0, ecartType: 0, noteMin: 0, noteMax: 0,
         nbSousMoyenne: 0, nbMoyenne: 0, nbBien: 0, nbTresBien: 0,
-        pourcentageSousMoyenne: 0, moyenneOral: 0, moyenneSujet: 0,
+        pourcentageSousMoyenne: 0,
+        moyenneParCategorie: {},
+        moyenneOral: 0, moyenneSujet: 0,
         duree: dureeStats,
       };
     }
@@ -128,13 +168,24 @@ export function useStats(jurys: JuryWithEleves[], allFinalScores: FinalScoreRow[
     const noteMin = Math.min(...scores);
     const noteMax = Math.max(...scores);
 
-    const nbSousMoyenne = scores.filter(s => s < 10).length;
-    const nbMoyenne = scores.filter(s => s >= 10 && s < 14).length;
-    const nbBien = scores.filter(s => s >= 14 && s < 16).length;
-    const nbTresBien = scores.filter(s => s >= 16).length;
+    // Seuils dynamiques basés sur maxTotal
+    const halfMax = maxTotal / 2;
+    const pctBien = maxTotal * 0.7;
+    const pctTB = maxTotal * 0.8;
 
-    const moyenneOral = allFinalScores.reduce((s, f) => s + f.total_oral, 0) / allFinalScores.length;
-    const moyenneSujet = allFinalScores.reduce((s, f) => s + f.total_sujet, 0) / allFinalScores.length;
+    const nbSousMoyenne = scores.filter(s => s < halfMax).length;
+    const nbMoyenne = scores.filter(s => s >= halfMax && s < pctBien).length;
+    const nbBien = scores.filter(s => s >= pctBien && s < pctTB).length;
+    const nbTresBien = scores.filter(s => s >= pctTB).length;
+
+    // Moyennes par categorie
+    const moyenneParCategorie: Record<string, number> = {};
+    for (const cat of criteriaConfig.categories) {
+      const catTotals = allFinalScores.map(fs => getCategoryTotal(fs, cat.id, criteriaConfig));
+      moyenneParCategorie[cat.id] = catTotals.length > 0
+        ? Math.round((catTotals.reduce((a, b) => a + b, 0) / catTotals.length) * 100) / 100
+        : 0;
+    }
 
     return {
       totalEleves, totalEvalues, totalAbsents, totalEnAttente, pourcentageEvalue,
@@ -144,11 +195,12 @@ export function useStats(jurys: JuryWithEleves[], allFinalScores: FinalScoreRow[
       noteMin, noteMax,
       nbSousMoyenne, nbMoyenne, nbBien, nbTresBien,
       pourcentageSousMoyenne: totalEvalues > 0 ? Math.round((nbSousMoyenne / totalEvalues) * 100) : 0,
-      moyenneOral: Math.round(moyenneOral * 100) / 100,
-      moyenneSujet: Math.round(moyenneSujet * 100) / 100,
+      moyenneParCategorie,
+      moyenneOral: moyenneParCategorie['oral'] ?? 0,
+      moyenneSujet: moyenneParCategorie['sujet'] ?? 0,
       duree: dureeStats,
     };
-  }, [jurys, allFinalScores]);
+  }, [jurys, allFinalScores, criteriaConfig, maxTotal]);
 
   const juryStats = useMemo((): JuryStats[] => {
     return jurys.map(j => {
@@ -166,11 +218,12 @@ export function useStats(jurys: JuryWithEleves[], allFinalScores: FinalScoreRow[
   }, [jurys]);
 
   const parcoursStats = useMemo((): ParcoursStats[] => {
+    const halfMax = maxTotal / 2;
     const map = new Map<string, { scores: number[]; count: number }>();
 
     for (const jury of jurys) {
       for (const eleve of jury.eleves) {
-        const parcours = eleve.parcours || 'Non défini';
+        const parcours = eleve.parcours || 'Non d\u00e9fini';
         if (!map.has(parcours)) map.set(parcours, { scores: [], count: 0 });
         const entry = map.get(parcours)!;
         entry.count++;
@@ -186,48 +239,37 @@ export function useStats(jurys: JuryWithEleves[], allFinalScores: FinalScoreRow[
       moyenne: data.scores.length > 0
         ? Math.round((data.scores.reduce((a, b) => a + b, 0) / data.scores.length) * 100) / 100
         : 0,
-      nbSousMoyenne: data.scores.filter(s => s < 10).length,
+      nbSousMoyenne: data.scores.filter(s => s < halfMax).length,
     })).sort((a, b) => b.count - a.count);
-  }, [jurys]);
+  }, [jurys, maxTotal]);
 
   const critereStats = useMemo((): CritereStats[] => {
     if (allFinalScores.length === 0) return [];
 
-    const scoreKeys: Record<string, keyof FinalScoreRow> = {
-      expression: 'score_expression',
-      diaporama: 'score_diaporama',
-      reactivite: 'score_reactivite',
-      contenu: 'score_contenu',
-      structure: 'score_structure',
-      engagement: 'score_engagement',
-    };
-
-    return CRITERIA.map(c => {
-      const key = scoreKeys[c.id]!;
-      const values = allFinalScores.map(f => f[key] as number);
-      const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    return criteriaConfig.criteria.map(c => {
+      const values = allFinalScores
+        .map(fs => getScoreValue(fs, c.id))
+        .filter((v): v is number => v !== null);
+      const avg = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
       return {
         id: c.id,
         label: c.label,
-        category: c.category,
+        category: c.categoryId,
         max: c.max,
         moyenne: Math.round(avg * 100) / 100,
-        pourcentageMoyen: Math.round((avg / c.max) * 100),
+        pourcentageMoyen: c.max > 0 ? Math.round((avg / c.max) * 100) : 0,
       };
     });
-  }, [allFinalScores]);
+  }, [allFinalScores, criteriaConfig]);
 
   const distribution = useMemo((): DistributionBucket[] => {
-    const buckets = [
-      { range: '0-4', min: 0, max: 4, count: 0 },
-      { range: '5-7', min: 5, max: 7, count: 0 },
-      { range: '8-9', min: 8, max: 9, count: 0 },
-      { range: '10-11', min: 10, max: 11, count: 0 },
-      { range: '12-13', min: 12, max: 13, count: 0 },
-      { range: '14-15', min: 14, max: 15, count: 0 },
-      { range: '16-17', min: 16, max: 17, count: 0 },
-      { range: '18-20', min: 18, max: MAX_TOTAL, count: 0 },
-    ];
+    // Construire des buckets dynamiques en fonction du maxTotal
+    const step = Math.max(1, Math.round(maxTotal / 8));
+    const buckets: { range: string; min: number; max: number; count: number }[] = [];
+    for (let i = 0; i < maxTotal; i += step) {
+      const end = Math.min(i + step - 1, maxTotal);
+      buckets.push({ range: i === end ? `${i}` : `${i}-${end}`, min: i, max: end, count: 0 });
+    }
 
     for (const fs of allFinalScores) {
       const bucket = buckets.find(b => fs.total >= b.min && fs.total <= b.max);
@@ -235,7 +277,7 @@ export function useStats(jurys: JuryWithEleves[], allFinalScores: FinalScoreRow[
     }
 
     return buckets.map(b => ({ range: b.range, count: b.count }));
-  }, [allFinalScores]);
+  }, [allFinalScores, maxTotal]);
 
   const dureeDistribution = useMemo((): DureeDistributionBucket[] => {
     const allEleves = jurys.flatMap(j => j.eleves);
@@ -284,5 +326,5 @@ export function useStats(jurys: JuryWithEleves[], allFinalScores: FinalScoreRow[
     return points;
   }, [jurys]);
 
-  return { globalStats, juryStats, parcoursStats, critereStats, distribution, dureeDistribution, dureeNoteData };
+  return { globalStats, juryStats, parcoursStats, critereStats, distribution, dureeDistribution, dureeNoteData, maxTotal, maxByCategory };
 }

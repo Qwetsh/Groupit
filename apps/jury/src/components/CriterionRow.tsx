@@ -1,5 +1,4 @@
 import type { Criterion } from '@groupit/shared';
-import { LEVEL_SHORT } from '@groupit/shared';
 
 const LEVEL_COLORS = [
   { bg: '#fde8e8', border: '#e53e3e', text: '#9b2c2c' },
@@ -17,7 +16,7 @@ interface CriterionRowProps {
 
 export function CriterionRow({ criterion, selected, onSelect, disabled }: CriterionRowProps) {
   const selectedIdx = criterion.levels.findIndex(l => l.value === selected);
-  const borderColor = selectedIdx >= 0 ? LEVEL_COLORS[selectedIdx]!.border : '#d2dce6';
+  const borderColor = selectedIdx >= 0 ? LEVEL_COLORS[selectedIdx % LEVEL_COLORS.length]!.border : '#d2dce6';
 
   return (
     <div style={{
@@ -41,13 +40,16 @@ export function CriterionRow({ criterion, selected, onSelect, disabled }: Criter
           minWidth: 36,
           textAlign: 'right' as const,
         }}>
-          {selected !== undefined ? `${selected}` : '—'}/{criterion.max}
+          {selected !== undefined ? `${selected}` : '\u2014'}/{criterion.max}
         </div>
       </div>
       <div style={{ display: 'flex', gap: 5 }}>
         {criterion.levels.map((level, idx) => {
           const isSelected = selected === level.value;
-          const col = LEVEL_COLORS[idx]!;
+          const col = LEVEL_COLORS[idx % LEVEL_COLORS.length]!;
+          const shortLabel = (level as { shortLabel?: string }).shortLabel
+            || ['TI', 'I', 'S', 'TS'][idx]
+            || `N${idx + 1}`;
           return (
             <button
               key={idx}
@@ -69,7 +71,7 @@ export function CriterionRow({ criterion, selected, onSelect, disabled }: Criter
                 transform: isSelected ? 'scale(1.03)' : 'scale(1)',
               }}
             >
-              <div style={{ fontSize: 11, fontWeight: 700 }}>{LEVEL_SHORT[idx]}</div>
+              <div style={{ fontSize: 11, fontWeight: 700 }}>{shortLabel}</div>
               <div style={{ fontSize: 13, fontWeight: 800, marginTop: 2 }}>{level.value}</div>
             </button>
           );

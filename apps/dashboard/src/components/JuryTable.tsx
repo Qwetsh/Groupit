@@ -1,9 +1,8 @@
-import { CRITERIA } from '@groupit/shared';
-import type { FinalScoreRow } from '@groupit/shared';
+import type { FinalScoreRow, CriteriaConfig } from '@groupit/shared';
 import type { JuryWithEleves } from '../hooks/useSessionData';
 
 function formatDuration(seconds: number | null | undefined): string {
-  if (!seconds) return '—';
+  if (!seconds) return '\u2014';
   const m = Math.floor(seconds / 60);
   const s = seconds % 60;
   return `${m}:${String(s).padStart(2, '0')}`;
@@ -11,34 +10,13 @@ function formatDuration(seconds: number | null | undefined): string {
 
 interface JuryTableProps {
   jurys: JuryWithEleves[];
+  criteriaConfig: CriteriaConfig;
+  maxTotal: number;
+  maxByCategory: Record<string, number>;
 }
 
-function getScoreColor(total: number): string {
-  if (total >= 16) return '#276749';
-  if (total >= 14) return '#2c7a7b';
-  if (total >= 10) return '#2b6cb0';
-  return '#c53030';
-}
-
-function getScoreBg(total: number): string {
-  if (total >= 16) return '#c6f6d5';
-  if (total >= 14) return '#b2f5ea';
-  if (total >= 10) return '#ebf4ff';
-  return '#fed7d7';
-}
-
-function getStatusBadge(status: string) {
-  switch (status) {
-    case 'validated': return { label: '✓', bg: '#c6f6d5', color: '#276749' };
-    case 'scored': return { label: '⏳', bg: '#fefcbf', color: '#975a16' };
-    case 'in_progress': return { label: '🎤', bg: '#bee3f8', color: '#2b6cb0' };
-    case 'absent': return { label: 'ABS', bg: '#fed7d7', color: '#9b2c2c' };
-    case 'lobby': return { label: '…', bg: '#e9d8fd', color: '#6b46c1' };
-    default: return { label: '—', bg: '#f1f5f9', color: '#94a3b8' };
-  }
-}
-
-const scoreKey: Record<string, keyof FinalScoreRow> = {
+// Mapping legacy colonnes pour fallback
+const LEGACY_SCORE_KEYS: Record<string, keyof FinalScoreRow> = {
   expression: 'score_expression',
   diaporama: 'score_diaporama',
   reactivite: 'score_reactivite',
@@ -47,7 +25,52 @@ const scoreKey: Record<string, keyof FinalScoreRow> = {
   engagement: 'score_engagement',
 };
 
-export function JuryTable({ jurys }: JuryTableProps) {
+function getScoreValue(fs: FinalScoreRow, criterionId: string): number | null {
+  if (fs.scores && typeof fs.scores === 'object' && criterionId in fs.scores) {
+    return (fs.scores as Record<string, number>)[criterionId]!;
+  }
+  const legacyKey = LEGACY_SCORE_KEYS[criterionId];
+  if (legacyKey) {
+    const val = fs[legacyKey];
+    return typeof val === 'number' ? val : null;
+  }
+  return null;
+}
+
+function getCategoryTotal(fs: FinalScoreRow, categoryId: string, config: CriteriaConfig): number {
+  return config.criteria
+    .filter(c => c.categoryId === categoryId)
+    .reduce((sum, c) => sum + (getScoreValue(fs, c.id) ?? 0), 0);
+}
+
+function getScoreColor(total: number, maxTotal: number): string {
+  const pct = total / maxTotal;
+  if (pct >= 0.8) return '#276749';
+  if (pct >= 0.7) return '#2c7a7b';
+  if (pct >= 0.5) return '#2b6cb0';
+  return '#c53030';
+}
+
+function getScoreBg(total: number, maxTotal: number): string {
+  const pct = total / maxTotal;
+  if (pct >= 0.8) return '#c6f6d5';
+  if (pct >= 0.7) return '#b2f5ea';
+  if (pct >= 0.5) return '#ebf4ff';
+  return '#fed7d7';
+}
+
+function getStatusBadge(status: string) {
+  switch (status) {
+    case 'validated': return { label: '\u2713', bg: '#c6f6d5', color: '#276749' };
+    case 'scored': return { label: '\u23F3', bg: '#fefcbf', color: '#975a16' };
+    case 'in_progress': return { label: '\uD83C\uDFA4', bg: '#bee3f8', color: '#2b6cb0' };
+    case 'absent': return { label: 'ABS', bg: '#fed7d7', color: '#9b2c2c' };
+    case 'lobby': return { label: '\u2026', bg: '#e9d8fd', color: '#6b46c1' };
+    default: return { label: '\u2014', bg: '#f1f5f9', color: '#94a3b8' };
+  }
+}
+
+export function JuryTable({ jurys, criteriaConfig, maxTotal, maxByCategory }: JuryTableProps) {
   return (
     <div>
       {jurys.map(jury => {
@@ -68,10 +91,10 @@ export function JuryTable({ jurys }: JuryTableProps) {
                   background: jury.connected ? '#c6f6d5' : '#f1f5f9',
                   color: jury.connected ? '#276749' : '#94a3b8',
                 }}>
-                  {jury.connected ? '● Connecté' : '○ Hors ligne'}
+                  {jury.connected ? '\u25CF Connect\u00e9' : '\u25CB Hors ligne'}
                 </span>
                 <span style={{ fontSize: 13, color: '#64748b' }}>
-                  {evalues}/{jury.eleves.length} évalué{evalues > 1 ? 's' : ''}
+                  {evalues}/{jury.eleves.length} \u00e9valu\u00e9{evalues > 1 ? 's' : ''}
                 </span>
               </div>
             </div>
@@ -79,19 +102,22 @@ export function JuryTable({ jurys }: JuryTableProps) {
             <table style={styles.table}>
               <thead>
                 <tr>
-                  <th style={styles.th}>Élève</th>
+                  <th style={styles.th}>\u00c9l\u00e8ve</th>
                   <th style={styles.th}>Classe</th>
                   <th style={styles.th}>Parcours</th>
                   <th style={styles.th}>Statut</th>
-                  {CRITERIA.map(c => (
+                  {criteriaConfig.criteria.map(c => (
                     <th key={c.id} style={{ ...styles.th, ...styles.thSmall }} title={c.label}>
                       {c.label.split(' ')[0]?.slice(0, 4)}
                     </th>
                   ))}
-                  <th style={{ ...styles.th, textAlign: 'center' as const }}>Oral</th>
-                  <th style={{ ...styles.th, textAlign: 'center' as const }}>Sujet</th>
+                  {criteriaConfig.categories.map(cat => (
+                    <th key={cat.id} style={{ ...styles.th, textAlign: 'center' as const }}>
+                      {cat.emoji || ''} /{maxByCategory[cat.id] ?? 0}
+                    </th>
+                  ))}
                   <th style={{ ...styles.th, textAlign: 'center' as const, fontWeight: 800 }}>Total</th>
-                  <th style={{ ...styles.th, textAlign: 'center' as const }}>Durée</th>
+                  <th style={{ ...styles.th, textAlign: 'center' as const }}>Dur\u00e9e</th>
                 </tr>
               </thead>
               <tbody>
@@ -106,11 +132,11 @@ export function JuryTable({ jurys }: JuryTableProps) {
                     }}>
                       <td style={styles.td}>
                         <span style={{ fontWeight: 600 }}>{eleve.display_name}</span>
-                        {hasBinome && <span style={styles.binomeBadge}>Binôme</span>}
+                        {hasBinome && <span style={styles.binomeBadge}>Bin\u00f4me</span>}
                       </td>
                       <td style={styles.td}>{eleve.classe}</td>
                       <td style={styles.td}>
-                        <span style={styles.parcoursBadge}>{eleve.parcours || '—'}</span>
+                        <span style={styles.parcoursBadge}>{eleve.parcours || '\u2014'}</span>
                       </td>
                       <td style={styles.td}>
                         <span style={{
@@ -124,27 +150,26 @@ export function JuryTable({ jurys }: JuryTableProps) {
                           {badge.label}
                         </span>
                       </td>
-                      {CRITERIA.map(c => (
+                      {criteriaConfig.criteria.map(c => (
                         <td key={c.id} style={{ ...styles.td, textAlign: 'center' as const, fontSize: 12 }}>
-                          {fs ? `${fs[scoreKey[c.id]!]}` : '—'}
+                          {fs ? `${getScoreValue(fs, c.id) ?? '\u2014'}` : '\u2014'}
                         </td>
                       ))}
-                      <td style={{ ...styles.td, textAlign: 'center' as const, fontWeight: 600, color: '#2b6cb0' }}>
-                        {fs ? `${fs.total_oral}` : '—'}
-                      </td>
-                      <td style={{ ...styles.td, textAlign: 'center' as const, fontWeight: 600, color: '#276749' }}>
-                        {fs ? `${fs.total_sujet}` : '—'}
-                      </td>
+                      {criteriaConfig.categories.map(cat => (
+                        <td key={cat.id} style={{ ...styles.td, textAlign: 'center' as const, fontWeight: 600, color: '#2b6cb0' }}>
+                          {fs ? `${getCategoryTotal(fs, cat.id, criteriaConfig)}` : '\u2014'}
+                        </td>
+                      ))}
                       <td style={{
                         ...styles.td,
                         textAlign: 'center' as const,
                         fontWeight: 800,
                         fontSize: 15,
-                        color: fs ? getScoreColor(fs.total) : '#94a3b8',
-                        background: fs ? getScoreBg(fs.total) : 'transparent',
+                        color: fs ? getScoreColor(fs.total, maxTotal) : '#94a3b8',
+                        background: fs ? getScoreBg(fs.total, maxTotal) : 'transparent',
                         borderRadius: 6,
                       }}>
-                        {fs ? `${fs.total}` : '—'}
+                        {fs ? `${fs.total}` : '\u2014'}
                       </td>
                       <td style={{ ...styles.td, textAlign: 'center' as const, fontSize: 12, color: '#64748b' }}>
                         {formatDuration(eleve.duree_passage)}
@@ -155,21 +180,21 @@ export function JuryTable({ jurys }: JuryTableProps) {
               </tbody>
             </table>
 
-            {/* Points forts / axes si disponibles */}
+            {/* Observations */}
             {jury.eleves.some(e => {
               const fs = jury.finalScores.get(e.id);
               return fs && (fs.points_forts || fs.axes_amelioration);
             }) && (
               <details style={styles.details}>
-                <summary style={styles.summary}>Observations détaillées</summary>
+                <summary style={styles.summary}>Observations d\u00e9taill\u00e9es</summary>
                 {jury.eleves.map(eleve => {
                   const fs = jury.finalScores.get(eleve.id);
                   if (!fs || (!fs.points_forts && !fs.axes_amelioration)) return null;
                   return (
                     <div key={eleve.id} style={styles.observation}>
                       <span style={{ fontWeight: 600 }}>{eleve.display_name}</span>
-                      {fs.points_forts && <span style={styles.obsPF}>✅ {fs.points_forts}</span>}
-                      {fs.axes_amelioration && <span style={styles.obsAA}>📌 {fs.axes_amelioration}</span>}
+                      {fs.points_forts && <span style={styles.obsPF}>\u2705 {fs.points_forts}</span>}
+                      {fs.axes_amelioration && <span style={styles.obsAA}>\uD83D\uDCCC {fs.axes_amelioration}</span>}
                     </div>
                   );
                 })}

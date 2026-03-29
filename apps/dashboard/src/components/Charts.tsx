@@ -60,9 +60,10 @@ export function CritereRadarChart({ data }: CritereRadarChartProps) {
 
 interface JuryBarChartProps {
   data: JuryStats[];
+  maxTotal?: number;
 }
 
-export function JuryBarChart({ data }: JuryBarChartProps) {
+export function JuryBarChart({ data, maxTotal = 20 }: JuryBarChartProps) {
   const chartData = data.map(d => ({
     jury: d.juryName,
     moyenne: d.moyenne,
@@ -77,12 +78,12 @@ export function JuryBarChart({ data }: JuryBarChartProps) {
         <BarChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis dataKey="jury" fontSize={11} />
-          <YAxis domain={[0, 20]} fontSize={12} />
+          <YAxis domain={[0, maxTotal]} fontSize={12} />
           <Tooltip
             contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0' }}
             formatter={(value: number, name: string) => [
-              name === 'moyenne' ? `${value}/20` : value,
-              name === 'moyenne' ? 'Moyenne' : 'Évalués',
+              name === 'moyenne' ? `${value}/${maxTotal}` : value,
+              name === 'moyenne' ? 'Moyenne' : '\u00c9valu\u00e9s',
             ]}
           />
           <Bar dataKey="moyenne" fill="#059669" radius={[4, 4, 0, 0]} />
@@ -94,9 +95,10 @@ export function JuryBarChart({ data }: JuryBarChartProps) {
 
 interface ParcoursBarChartProps {
   data: ParcoursStats[];
+  maxTotal?: number;
 }
 
-export function ParcoursBarChart({ data }: ParcoursBarChartProps) {
+export function ParcoursBarChart({ data, maxTotal = 20 }: ParcoursBarChartProps) {
   const chartData = data.map(d => ({
     parcours: d.parcours.length > 15 ? d.parcours.slice(0, 15) + '…' : d.parcours,
     moyenne: d.moyenne,
@@ -110,7 +112,7 @@ export function ParcoursBarChart({ data }: ParcoursBarChartProps) {
         <BarChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis dataKey="parcours" fontSize={11} />
-          <YAxis domain={[0, 20]} fontSize={12} />
+          <YAxis domain={[0, maxTotal]} fontSize={12} />
           <Tooltip
             contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0' }}
             formatter={(value: number, name: string) => [
@@ -150,33 +152,35 @@ export function DureeDistributionChart({ data }: DureeDistributionChartProps) {
   );
 }
 
-function getScatterColor(note: number): string {
-  if (note >= 16) return '#276749';
-  if (note >= 14) return '#2c7a7b';
-  if (note >= 10) return '#2b6cb0';
+function getScatterColor(note: number, maxTotal = 20): string {
+  const pct = note / maxTotal;
+  if (pct >= 0.8) return '#276749';
+  if (pct >= 0.7) return '#2c7a7b';
+  if (pct >= 0.5) return '#2b6cb0';
   return '#c53030';
 }
 
 interface DureeNoteScatterChartProps {
   data: DureeNotePoint[];
+  maxTotal?: number;
 }
 
-export function DureeNoteScatterChart({ data }: DureeNoteScatterChartProps) {
+export function DureeNoteScatterChart({ data, maxTotal = 20 }: DureeNoteScatterChartProps) {
   if (data.length === 0) return null;
   const chartData = data.map(d => ({
     ...d,
-    dureeMinutes: Math.round(d.duree / 6) / 10, // arrondi 0.1 min
+    dureeMinutes: Math.round(d.duree / 6) / 10,
   }));
 
   return (
     <div style={styles.chartCard}>
-      <h3 style={styles.chartTitle}>Durée de passage vs Note</h3>
+      <h3 style={styles.chartTitle}>Dur\u00e9e de passage vs Note</h3>
       <ResponsiveContainer width="100%" height={280}>
         <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis
             dataKey="dureeMinutes"
-            name="Durée"
+            name="Dur\u00e9e"
             unit=" min"
             fontSize={12}
             type="number"
@@ -184,8 +188,8 @@ export function DureeNoteScatterChart({ data }: DureeNoteScatterChartProps) {
           <YAxis
             dataKey="note"
             name="Note"
-            unit="/20"
-            domain={[0, 20]}
+            unit={`/${maxTotal}`}
+            domain={[0, maxTotal]}
             fontSize={12}
             type="number"
           />
@@ -193,8 +197,8 @@ export function DureeNoteScatterChart({ data }: DureeNoteScatterChartProps) {
           <Tooltip
             contentStyle={{ borderRadius: 8, border: '1px solid #e2e8f0' }}
             formatter={(value: number, name: string) => {
-              if (name === 'Durée') return [`${value} min`, name];
-              return [`${value}/20`, name];
+              if (name === 'Dur\u00e9e') return [`${value} min`, name];
+              return [`${value}/${maxTotal}`, name];
             }}
             labelFormatter={(_: unknown, payload: Array<{ payload?: DureeNotePoint }>) => {
               const p = payload?.[0]?.payload;
@@ -203,7 +207,7 @@ export function DureeNoteScatterChart({ data }: DureeNoteScatterChartProps) {
           />
           <Scatter data={chartData}>
             {chartData.map((entry, i) => (
-              <Cell key={i} fill={getScatterColor(entry.note)} />
+              <Cell key={i} fill={getScatterColor(entry.note, maxTotal)} />
             ))}
           </Scatter>
         </ScatterChart>

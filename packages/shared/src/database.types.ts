@@ -57,6 +57,7 @@ export interface ExamSessionRow {
   date_oral: string | null;
   created_at: string;
   expires_at: string;
+  criteria_config: import('./criteria').CriteriaConfig | null;
 }
 export interface ExamSessionInsert {
   id?: string;
@@ -65,6 +66,7 @@ export interface ExamSessionInsert {
   date_oral?: string | null;
   created_at?: string;
   expires_at: string;
+  criteria_config?: import('./criteria').CriteriaConfig | null;
 }
 
 // === session_jurys ===
@@ -145,6 +147,7 @@ export interface EvaluationRow {
   total_oral: number | null;
   total_sujet: number | null;
   total: number | null;
+  scores: Record<string, number> | null;
   points_forts: string | null;
   axes_amelioration: string | null;
   submitted_at: string | null;
@@ -162,6 +165,7 @@ export interface EvaluationInsert {
   total_oral?: number | null;
   total_sujet?: number | null;
   total?: number | null;
+  scores?: Record<string, number> | null;
   points_forts?: string | null;
   axes_amelioration?: string | null;
   submitted_at?: string | null;
@@ -180,6 +184,7 @@ export interface FinalScoreRow {
   total_oral: number;
   total_sujet: number;
   total: number;
+  scores: Record<string, number> | null;
   points_forts: string | null;
   axes_amelioration: string | null;
   validated_at: string;
@@ -187,15 +192,16 @@ export interface FinalScoreRow {
 export interface FinalScoreInsert {
   id?: string;
   eleve_id: string;
-  score_expression: number;
-  score_diaporama: number;
-  score_reactivite: number;
-  score_contenu: number;
-  score_structure: number;
-  score_engagement: number;
-  total_oral: number;
-  total_sujet: number;
+  score_expression?: number;
+  score_diaporama?: number;
+  score_reactivite?: number;
+  score_contenu?: number;
+  score_structure?: number;
+  score_engagement?: number;
+  total_oral?: number;
+  total_sujet?: number;
   total: number;
+  scores?: Record<string, number> | null;
   points_forts?: string | null;
   axes_amelioration?: string | null;
   validated_at?: string;

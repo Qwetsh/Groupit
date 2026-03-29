@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@groupit/shared';
+import { supabase, DEFAULT_CRITERIA_CONFIG } from '@groupit/shared';
 import type {
   SessionJuryRow,
   SessionEleveRow,
   EvaluationRow,
   FinalScoreRow,
+  CriteriaConfig,
 } from '@groupit/shared';
 
 export interface JuryWithEleves extends SessionJuryRow {
@@ -18,6 +19,7 @@ export interface SessionData {
   sessionId: string;
   scenarioName: string;
   dateOral: string | null;
+  criteriaConfig: CriteriaConfig;
   jurys: JuryWithEleves[];
   allFinalScores: FinalScoreRow[];
   loading: boolean;
@@ -28,6 +30,7 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
   const [sessionId, setSessionId] = useState('');
   const [scenarioName, setScenarioName] = useState('');
   const [dateOral, setDateOral] = useState<string | null>(null);
+  const [criteriaConfig, setCriteriaConfig] = useState<CriteriaConfig>(DEFAULT_CRITERIA_CONFIG);
   const [jurys, setJurys] = useState<JuryWithEleves[]>([]);
   const [allFinalScores, setAllFinalScores] = useState<FinalScoreRow[]>([]);
   const connectedJuryIdsRef = useRef<Set<string>>(new Set());
@@ -44,7 +47,7 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
         await supabase.auth.signInAnonymously();
       }
 
-      // 2. Trouver la session
+      // 2. Trouver la session (inclut criteria_config)
       const { data: session, error: sessErr } = await supabase
         .from('exam_sessions')
         .select('*')
@@ -61,6 +64,10 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
       setScenarioName(session.scenario_name || '');
       setDateOral(session.date_oral);
 
+      // Extraire criteria_config
+      const rawConfig = (session as Record<string, unknown>).criteria_config as CriteriaConfig | null;
+      setCriteriaConfig(rawConfig ?? DEFAULT_CRITERIA_CONFIG);
+
       // 3. Charger les jurys
       const { data: juryRows } = await supabase
         .from('session_jurys')
@@ -70,7 +77,7 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
 
       if (!juryRows) { setLoading(false); return; }
 
-      // 4. Pour chaque jury : élèves, évaluations, scores finaux
+      // 4. Pour chaque jury : eleves, evaluations, scores finaux
       const jurysWithData: JuryWithEleves[] = await Promise.all(
         juryRows.map(async (jury) => {
           const { data: eleves } = await supabase
@@ -107,7 +114,7 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
 
       setJurys(jurysWithData);
 
-      // 5. Tous les scores finaux (pour les stats globales)
+      // 5. Tous les scores finaux
       const allScores = jurysWithData.flatMap(j => Array.from(j.finalScores.values()));
       setAllFinalScores(allScores);
 
@@ -119,32 +126,28 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
     }
   }, [sessionCode]);
 
-  // Chargement initial
   useEffect(() => { loadData(); }, [loadData]);
 
-  // Debounced reload pour le realtime (évite thundering herd)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const debouncedReload = useCallback(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => { loadData(); }, 500);
   }, [loadData]);
 
-  // Cleanup debounce on unmount
   useEffect(() => {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, []);
 
-  // Clear stale data when session code changes
   useEffect(() => {
     setJurys([]);
     setAllFinalScores([]);
     setScenarioName('');
     setSessionId('');
+    setCriteriaConfig(DEFAULT_CRITERIA_CONFIG);
     setError(null);
     setLoading(true);
   }, [sessionCode]);
 
-  // Realtime : écouter les changements scoped à cette session
   useEffect(() => {
     if (!sessionId) return;
 
@@ -165,7 +168,6 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
     return () => { supabase.removeChannel(channel); };
   }, [sessionId, debouncedReload]);
 
-  // Presence : écouter les jurys connectés en temps réel
   useEffect(() => {
     if (!sessionId) return;
 
@@ -176,7 +178,6 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
         const state = channel.presenceState();
         const ids = new Set<string>(Object.keys(state));
         connectedJuryIdsRef.current = ids;
-        // Mettre à jour les jurys existants sans reload complet
         setJurys(prev => prev.map(j => ({ ...j, connected: ids.has(j.id) })));
       })
       .subscribe();
@@ -188,6 +189,7 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
     sessionId,
     scenarioName,
     dateOral,
+    criteriaConfig,
     jurys,
     allFinalScores,
     loading,
