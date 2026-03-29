@@ -41,7 +41,7 @@ export function CriteriaConfigModal({ sessionId, currentConfig, evaluatedCount, 
     const id = genId('cat');
     setConfig(prev => ({
       ...prev,
-      categories: [...prev.categories, { id, label: 'Nouvelle cat\u00e9gorie' }],
+      categories: [...prev.categories, { id, label: 'Nouvelle catégorie' }],
     }));
   }
 
@@ -49,7 +49,7 @@ export function CriteriaConfigModal({ sessionId, currentConfig, evaluatedCount, 
     const catId = config.categories[idx]!.id;
     const hasCriteria = config.criteria.some(c => c.categoryId === catId);
     if (hasCriteria) {
-      setError('Supprimez d\'abord les crit\u00e8res de cette cat\u00e9gorie.');
+      setError('Supprimez d\'abord les critères de cette catégorie.');
       return;
     }
     setConfig(prev => ({
@@ -68,7 +68,7 @@ export function CriteriaConfigModal({ sessionId, currentConfig, evaluatedCount, 
 
   function addCriterion(categoryId: string) {
     if (config.criteria.length >= 8) {
-      setError('Maximum 8 crit\u00e8res.');
+      setError('Maximum 8 critères.');
       return;
     }
     const id = genId('crit');
@@ -76,14 +76,14 @@ export function CriteriaConfigModal({ sessionId, currentConfig, evaluatedCount, 
       ...prev,
       criteria: [...prev.criteria, {
         id,
-        label: 'Nouveau crit\u00e8re',
+        label: 'Nouveau critère',
         desc: '',
         categoryId,
         levels: [
-          { label: 'Tr\u00e8s insuffisant', shortLabel: 'TI', value: 1 },
+          { label: 'Très insuffisant', shortLabel: 'TI', value: 1 },
           { label: 'Insuffisant', shortLabel: 'I', value: 2 },
           { label: 'Satisfaisant', shortLabel: 'S', value: 3 },
-          { label: 'Tr\u00e8s satisfaisant', shortLabel: 'TS', value: 4 },
+          { label: 'Très satisfaisant', shortLabel: 'TS', value: 4 },
         ],
         max: 4,
       }],
@@ -92,7 +92,7 @@ export function CriteriaConfigModal({ sessionId, currentConfig, evaluatedCount, 
 
   function removeCriterion(idx: number) {
     if (config.criteria.length <= 3) {
-      setError('Minimum 3 crit\u00e8res.');
+      setError('Minimum 3 critères.');
       return;
     }
     setConfig(prev => ({
@@ -149,7 +149,7 @@ export function CriteriaConfigModal({ sessionId, currentConfig, evaluatedCount, 
   }
 
   function handleReset() {
-    if (!window.confirm('R\u00e9initialiser avec la grille par d\u00e9faut ?')) return;
+    if (!window.confirm('Réinitialiser avec la grille par défaut ?')) return;
     setConfig(JSON.parse(JSON.stringify(DEFAULT_CRITERIA_CONFIG)));
   }
 
@@ -179,22 +179,22 @@ export function CriteriaConfigModal({ sessionId, currentConfig, evaluatedCount, 
     <div style={modalStyles.overlay} onClick={onClose}>
       <div style={modalStyles.modal} onClick={e => e.stopPropagation()}>
         <div style={modalStyles.header}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Configuration des crit\u00e8res</h2>
-          <button onClick={onClose} style={modalStyles.closeBtn}>\u00d7</button>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Configuration des critères</h2>
+          <button onClick={onClose} style={modalStyles.closeBtn}>×</button>
         </div>
 
         {evaluatedCount > 0 && (
           <div style={modalStyles.warning}>
-            \u26A0\uFE0F {evaluatedCount} \u00e9l\u00e8ve(s) d\u00e9j\u00e0 \u00e9valu\u00e9(s). Modifier la grille peut rendre les anciennes notes incoh\u00e9rentes.
+            ⚠️ {evaluatedCount} élève(s) déjà évalué(s). Modifier la grille peut rendre les anciennes notes incohérentes.
           </div>
         )}
 
         <div style={modalStyles.content}>
-          {/* Cat\u00e9gories */}
+          {/* Catégories */}
           <div style={modalStyles.section}>
             <div style={modalStyles.sectionHeader}>
-              <h3 style={modalStyles.sectionTitle}>Cat\u00e9gories</h3>
-              <button onClick={addCategory} style={modalStyles.addBtn}>+ Cat\u00e9gorie</button>
+              <h3 style={modalStyles.sectionTitle}>Catégories</h3>
+              <button onClick={addCategory} style={modalStyles.addBtn}>+ Catégorie</button>
             </div>
             {config.categories.map((cat, catIdx) => (
               <div key={cat.id} style={modalStyles.catRow}>
@@ -209,15 +209,15 @@ export function CriteriaConfigModal({ sessionId, currentConfig, evaluatedCount, 
                   style={{ ...modalStyles.input, flex: 1 }}
                   value={cat.label}
                   onChange={e => updateCategory(catIdx, { label: e.target.value })}
-                  placeholder="Nom de la cat\u00e9gorie"
+                  placeholder="Nom de la catégorie"
                 />
                 <span style={modalStyles.maxBadge}>/{maxByCat[cat.id] ?? 0}</span>
-                <button onClick={() => removeCategory(catIdx)} style={modalStyles.deleteBtn}>\u2715</button>
+                <button onClick={() => removeCategory(catIdx)} style={modalStyles.deleteBtn}>✕</button>
               </div>
             ))}
           </div>
 
-          {/* Crit\u00e8res par cat\u00e9gorie */}
+          {/* Critères par catégorie */}
           {config.categories.map(cat => {
             const catCriteria = config.criteria
               .map((c, idx) => ({ ...c, _idx: idx }))
@@ -227,14 +227,14 @@ export function CriteriaConfigModal({ sessionId, currentConfig, evaluatedCount, 
               <div key={cat.id} style={modalStyles.section}>
                 <div style={modalStyles.sectionHeader}>
                   <h3 style={modalStyles.sectionTitle}>{cat.emoji || ''} {cat.label}</h3>
-                  <button onClick={() => addCriterion(cat.id)} style={modalStyles.addBtn}>+ Crit\u00e8re</button>
+                  <button onClick={() => addCriterion(cat.id)} style={modalStyles.addBtn}>+ Critère</button>
                 </div>
 
                 {catCriteria.map(c => (
                   <div key={c.id} style={modalStyles.criterionCard}>
                     <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
-                      <button onClick={() => moveCriterion(c._idx, -1)} style={modalStyles.moveBtn}>\u25B2</button>
-                      <button onClick={() => moveCriterion(c._idx, 1)} style={modalStyles.moveBtn}>\u25BC</button>
+                      <button onClick={() => moveCriterion(c._idx, -1)} style={modalStyles.moveBtn}>▲</button>
+                      <button onClick={() => moveCriterion(c._idx, 1)} style={modalStyles.moveBtn}>▼</button>
                       <input
                         style={{ ...modalStyles.input, flex: 1, fontWeight: 700 }}
                         value={c.label}
@@ -242,7 +242,7 @@ export function CriteriaConfigModal({ sessionId, currentConfig, evaluatedCount, 
                         placeholder="Label"
                       />
                       <span style={modalStyles.maxBadge}>max: {c.max}</span>
-                      <button onClick={() => removeCriterion(c._idx)} style={modalStyles.deleteBtn}>\u2715</button>
+                      <button onClick={() => removeCriterion(c._idx)} style={modalStyles.deleteBtn}>✕</button>
                     </div>
                     <input
                       style={{ ...modalStyles.input, width: '100%', marginBottom: 6, fontSize: 12 }}
@@ -268,7 +268,7 @@ export function CriteriaConfigModal({ sessionId, currentConfig, evaluatedCount, 
                             onChange={e => updateLevel(c._idx, lIdx, { value: parseFloat(e.target.value) || 0 })}
                             title="Valeur"
                           />
-                          <button onClick={() => removeLevel(c._idx, lIdx)} style={modalStyles.levelDel}>\u00d7</button>
+                          <button onClick={() => removeLevel(c._idx, lIdx)} style={modalStyles.levelDel}>×</button>
                         </div>
                       ))}
                       <button onClick={() => addLevel(c._idx)} style={modalStyles.addLevelBtn}>+</button>
@@ -279,7 +279,7 @@ export function CriteriaConfigModal({ sessionId, currentConfig, evaluatedCount, 
             );
           })}
 
-          {/* Aper\u00e7u */}
+          {/* Aperçu */}
           <div style={modalStyles.preview}>
             Total max : <strong>{maxTotal}</strong> points
             {config.categories.map(cat => (
@@ -295,7 +295,7 @@ export function CriteriaConfigModal({ sessionId, currentConfig, evaluatedCount, 
         )}
 
         <div style={modalStyles.footer}>
-          <button onClick={handleReset} style={modalStyles.resetBtn}>R\u00e9initialiser (grille par d\u00e9faut)</button>
+          <button onClick={handleReset} style={modalStyles.resetBtn}>Réinitialiser (grille par défaut)</button>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={onClose} style={modalStyles.cancelBtn}>Annuler</button>
             <button onClick={handleSave} disabled={saving} style={{

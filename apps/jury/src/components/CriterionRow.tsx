@@ -40,7 +40,7 @@ export function CriterionRow({ criterion, selected, onSelect, disabled }: Criter
           minWidth: 36,
           textAlign: 'right' as const,
         }}>
-          {selected !== undefined ? `${selected}` : '\u2014'}/{criterion.max}
+          {selected !== undefined ? `${selected}` : '—'}/{criterion.max}
         </div>
       </div>
       <div style={{ display: 'flex', gap: 5 }}>
