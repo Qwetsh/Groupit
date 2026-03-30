@@ -107,8 +107,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, mobileOpen =
       <div className="sidebar-header">
         {!isCollapsed && (
           <div className="logo">
-            <span className="logo-icon">G</span>
-            <span className="logo-text">Groupit</span>
+            <span className="logo-icon">L</span>
+            <span className="logo-text">Locanda</span>
           </div>
         )}
         <Tooltip content={isCollapsed ? 'Développer' : 'Réduire'} position="right" delay={200}>

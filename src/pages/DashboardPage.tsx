@@ -168,8 +168,8 @@ export const DashboardPage: React.FC = () => {
       <div className="dashboard-hero">
         <div className="hero-content">
           <h1>
-            <span className="hero-logo">G</span>
-            Groupit
+            <span className="hero-logo">L</span>
+            Locanda
           </h1>
           <p>Organisez vos affectations en quelques clics</p>
         </div>

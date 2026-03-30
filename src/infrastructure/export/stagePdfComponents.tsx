@@ -827,9 +827,9 @@ export const StageExportDocument: React.FC<StageExportDocumentProps> = ({
 }) => (
   <Document
     title={`Suivi de Stage - ${data.scenarioName}`}
-    author="Groupit"
+    author="Locanda"
     subject="Export Suivi de Stage"
-    creator="Groupit Application"
+    creator="Locanda"
   >
     {/* Page récapitulative (optionnelle) */}
     {options.includeSummaryPage && (

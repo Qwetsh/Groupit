@@ -57,6 +57,9 @@ export const MainLayout: React.FC = () => {
         <main className="page-content">
           <Outlet />
         </main>
+        <footer className="app-footer">
+          © {new Date().getFullYear()} Locanda — Tous droits réservés. Usage soumis à autorisation.
+        </footer>
       </div>
 
       <KeyboardShortcutsHelp />
