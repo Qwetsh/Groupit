@@ -40,8 +40,10 @@ function minutesToTimeStr(totalMinutes: number): string {
 /**
  * Génère les créneaux horaires pour une demi-journée (matin ou après-midi).
  * Insère une pause de 10 min au milieu de la plage.
+ * Si minSlots est fourni et dépasse la capacité de la plage, génère des
+ * créneaux supplémentaires au-delà de l'heure de fin prévue.
  */
-function generateSlotsForPeriod(type: 'matin' | 'aprem'): string[] {
+function generateSlotsForPeriod(type: 'matin' | 'aprem', minSlots?: number): string[] {
   const start = type === 'matin' ? MATIN_START : APREM_START;
   const end = type === 'matin' ? MATIN_END : APREM_END;
 
@@ -49,22 +51,23 @@ function generateSlotsForPeriod(type: 'matin' | 'aprem'): string[] {
   const endMin = timeToMinutes(end.h, end.m);
   const totalAvailable = endMin - startMin;
 
-  // Nombre de créneaux sans pause
+  // Nombre de créneaux sans pause (dans la plage nominale)
   const slotsWithoutBreak = Math.floor(totalAvailable / DUREE_PASSAGE_MIN);
 
-  // Point milieu pour la pause (après la moitié des créneaux)
+  // Si on demande plus de créneaux que la plage ne le permet, on dépasse
+  const targetSlots = minSlots ? Math.max(slotsWithoutBreak, minSlots) : slotsWithoutBreak;
+
+  // Point milieu pour la pause (après la moitié des créneaux nominaux)
   const halfSlots = Math.floor(slotsWithoutBreak / 2);
 
   const slots: string[] = [];
   let currentMin = startMin;
 
-  for (let i = 0; i < slotsWithoutBreak; i++) {
-    if (currentMin + DUREE_PASSAGE_MIN > endMin) break;
-
+  for (let i = 0; i < targetSlots; i++) {
     slots.push(minutesToTimeStr(currentMin));
     currentMin += DUREE_PASSAGE_MIN;
 
-    // Insérer la pause après la moitié des créneaux
+    // Insérer la pause après la moitié des créneaux nominaux
     if (i === halfSlots - 1) {
       currentMin += 10; // 10 min de pause
     }
@@ -120,16 +123,23 @@ export function assignTimeSlots(
 
   if (demiJournees.length === 0 || jurys.length === 0) return updates;
 
-  // Pré-calculer les créneaux pour chaque demi-journée
+  // Estimer le nombre max d'élèves par jury pour dimensionner les créneaux
+  const elevesById = new Map(eleves.map(e => [e.id, e]));
+  let maxElevesPerJury = 0;
+  for (const jury of jurys) {
+    const count = affectations.filter(a => a.juryId === jury.id).length;
+    if (count > maxElevesPerJury) maxElevesPerJury = count;
+  }
+  // En fill_first, tous les élèves pourraient finir dans la 1ère demi-journée
+  const slotsNeededPerDj = mode === 'fill_first' ? maxElevesPerJury : Math.ceil(maxElevesPerJury / Math.max(demiJournees.length, 1));
+
+  // Pré-calculer les créneaux pour chaque demi-journée (avec overflow si nécessaire)
   const slotsByDemiJournee = new Map<string, TimeSlot[]>();
   for (const dj of demiJournees) {
     const periodType = getPeriodType(dj);
-    const heures = generateSlotsForPeriod(periodType);
+    const heures = generateSlotsForPeriod(periodType, slotsNeededPerDj);
     slotsByDemiJournee.set(dj, heures.map(h => ({ heure: h, demiJournee: dj })));
   }
-
-  // Map élèves par ID pour tri alphabétique
-  const elevesById = new Map(eleves.map(e => [e.id, e]));
 
   // Pour chaque jury, assigner les créneaux
   for (const jury of jurys) {
