@@ -3,7 +3,9 @@
 // ============================================================
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { ChevronRight, Check, GraduationCap, AlertTriangle, Shuffle, GripVertical, Filter, Clock, ShieldCheck, Calendar, CalendarOff } from 'lucide-react';
+import { ChevronRight, Check, GraduationCap, AlertTriangle, Shuffle, GripVertical, Filter, Clock, ShieldCheck, Calendar, CalendarOff, MapPin } from 'lucide-react';
+import { calculateDistance } from '../../../algorithms';
+import { COLLEGE_GEO } from '../../board/StageAssignmentMapDrawer';
 import { DndContext, DragOverlay, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import clsx from 'clsx';
@@ -202,6 +204,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
   const [demiJourneesOral, setDemiJourneesOral] = useState<string[]>(['mercredi_matin']);
   const [filterNiveaux, setFilterNiveaux] = useState<Set<string>>(new Set());
   const [filterMatieres, setFilterMatieres] = useState<Set<string>>(new Set());
+  const [filterDistanceMax, setFilterDistanceMax] = useState<number>(0); // 0 = no filter
 
   // Stage-specific state
   const [distanceMaxKm, setDistanceMaxKm] = useState(20);
@@ -268,6 +271,24 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
     return Array.from(mats).sort();
   }, [enseignants]);
 
+  // Distance au collège pour chaque enseignant géocodé
+  const distancesAuCollege = useMemo(() => {
+    const map = new Map<string, number>();
+    enseignants.forEach(e => {
+      if (e.lat && e.lon) {
+        map.set(e.id!, calculateDistance(e.lat, e.lon, COLLEGE_GEO.lat, COLLEGE_GEO.lon));
+      }
+    });
+    return map;
+  }, [enseignants]);
+
+  // Max distance parmi les enseignants géocodés (pour le slider)
+  const maxDistanceCollege = useMemo(() => {
+    let max = 0;
+    distancesAuCollege.forEach(d => { if (d > max) max = d; });
+    return Math.ceil(max);
+  }, [distancesAuCollege]);
+
   // Toggle filter helpers
   const toggleFilterNiveau = useCallback((niveau: string) => {
     setFilterNiveaux(prev => {
@@ -287,11 +308,12 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
     });
   }, []);
 
-  const hasActiveFilters = filterNiveaux.size > 0 || filterMatieres.size > 0;
+  const hasActiveFilters = filterNiveaux.size > 0 || filterMatieres.size > 0 || filterDistanceMax > 0;
 
   const clearFilters = useCallback(() => {
     setFilterNiveaux(new Set());
     setFilterMatieres(new Set());
+    setFilterDistanceMax(0);
   }, []);
 
   // Filtered enseignants for display
@@ -308,8 +330,16 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
     if (filterMatieres.size > 0) {
       list = list.filter(e => e.matierePrincipale && filterMatieres.has(e.matierePrincipale));
     }
+    if (filterDistanceMax > 0) {
+      list = list.filter(e => {
+        const dist = distancesAuCollege.get(e.id!);
+        // Garder les enseignants non géocodés (on ne peut pas les filtrer)
+        if (dist === undefined) return true;
+        return dist <= filterDistanceMax;
+      });
+    }
     return list;
-  }, [enseignants, filterNiveaux, filterMatieres]);
+  }, [enseignants, filterNiveaux, filterMatieres, filterDistanceMax, distancesAuCollege]);
 
   // Select filtered enseignants
   const selectFilteredEnseignants = useCallback(() => {
@@ -602,25 +632,27 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
               Regenerer les jurys
             </button>
 
-            {/* Jury grid */}
-            <div className="jury-grid">
-              {scenarioJurys.map(jury => (
-                <DroppableJury
-                  key={jury.id}
-                  jury={jury}
-                  enseignants={enseignants}
-                  onCapacityChange={(cap) => handleJuryCapacityChange(jury.id!, cap)}
+            {/* Jury grid + unassigned sidebar */}
+            <div className="jury-editor-layout">
+              <div className="jury-editor-sidebar">
+                <DroppableUnassigned
+                  enseignants={unassignedSelectedEnseignants}
+                  selectedIds={selectedEnseignantIds}
                   demiJourneesOral={demiJourneesOral}
                 />
-              ))}
+              </div>
+              <div className="jury-grid">
+                {scenarioJurys.map(jury => (
+                  <DroppableJury
+                    key={jury.id}
+                    jury={jury}
+                    enseignants={enseignants}
+                    onCapacityChange={(cap) => handleJuryCapacityChange(jury.id!, cap)}
+                    demiJourneesOral={demiJourneesOral}
+                  />
+                ))}
+              </div>
             </div>
-
-            {/* Unassigned zone — toujours visible pour pouvoir y déposer des enseignants */}
-            <DroppableUnassigned
-              enseignants={unassignedSelectedEnseignants}
-              selectedIds={selectedEnseignantIds}
-              demiJourneesOral={demiJourneesOral}
-            />
           </div>
 
           {/* Actions — fixed at bottom */}
@@ -1074,6 +1106,29 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
                   </div>
                 </div>
 
+                {maxDistanceCollege > 0 && (
+                  <div className="ens-filter-group">
+                    <span className="ens-filter-label">
+                      <MapPin size={14} />
+                      Distance max au college
+                    </span>
+                    <div className="ens-filter-slider">
+                      <input
+                        type="range"
+                        min={0}
+                        max={maxDistanceCollege}
+                        step={1}
+                        value={filterDistanceMax}
+                        onChange={(e) => setFilterDistanceMax(parseInt(e.target.value))}
+                        className="distance-slider"
+                      />
+                      <span className="slider-value">
+                        {filterDistanceMax > 0 ? `≤ ${filterDistanceMax} km` : 'Tous'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <div className="ens-filter-actions">
                   {hasActiveFilters && (
                     <>
@@ -1097,6 +1152,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
               <div className="enseignant-grid compact">
                 {filteredEnseignants.map(ens => {
                   const isIndispo = demiJourneesOral.length > 0 && ens.indisponibilites?.some(d => demiJourneesOral.includes(d));
+                  const distKm = distancesAuCollege.get(ens.id!);
                   return (
                     <button
                       key={ens.id}
@@ -1106,12 +1162,13 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
                         isIndispo && 'indisponible'
                       )}
                       onClick={() => toggleEnseignant(ens.id!)}
-                      title={isIndispo ? 'Indisponible le jour de l\'oral' : undefined}
+                      title={isIndispo ? 'Indisponible le jour de l\'oral' : distKm !== undefined ? `${distKm.toFixed(1)} km du collège` : undefined}
                     >
                       {selectedEnseignantIds.has(ens.id!) && <Check size={12} />}
                       {isIndispo && <CalendarOff size={12} className="indispo-icon" />}
                       <span className="ens-name">{ens.nom} {ens.prenom}</span>
                       <span className="ens-matiere">{ens.matierePrincipale || '-'}</span>
+                      {distKm !== undefined && <span className="ens-distance">{distKm.toFixed(0)}km</span>}
                     </button>
                   );
                 })}

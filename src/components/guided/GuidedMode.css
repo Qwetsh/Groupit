@@ -1492,6 +1492,62 @@
   white-space: nowrap;
 }
 
+/* Distance slider filter */
+.ens-filter-slider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.distance-slider {
+  flex: 1;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+
+.distance-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid #1e293b;
+}
+
+.distance-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #3b82f6;
+  cursor: pointer;
+  border: 2px solid #1e293b;
+}
+
+.slider-value {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  min-width: 60px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Distance badge on enseignant chip */
+.ens-distance {
+  font-size: 0.625rem;
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 6px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
 /* Enseignant grid */
 .enseignant-grid {
   display: grid;
@@ -1581,7 +1637,7 @@
    ============================================================ */
 
 .jury-editor {
-  max-width: 1000px;
+  max-width: 1200px;
 }
 
 .jury-editor-scroll {
@@ -1633,11 +1689,34 @@
   margin: 0 auto 1.5rem;
 }
 
+/* Layout side-by-side : sidebar enseignants + jury grid */
+.jury-editor-layout {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.jury-editor-sidebar {
+  width: 260px;
+  min-width: 260px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+}
+
+.jury-editor-sidebar .unassigned-zone {
+  margin-bottom: 0;
+}
+
+.jury-editor-sidebar .unassigned-list {
+  grid-template-columns: 1fr;
+}
+
 .jury-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1rem;
-  margin-bottom: 1.5rem;
+  flex: 1;
 }
 
 .jury-card-guided {
@@ -2641,6 +2720,20 @@
 
   .welcome-choice .choice-icon {
     margin: 0 auto;
+  }
+
+  .jury-editor-layout {
+    flex-direction: column;
+  }
+
+  .jury-editor-sidebar {
+    width: 100%;
+    min-width: 100%;
+    position: static;
+  }
+
+  .jury-editor-sidebar .unassigned-list {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
 
   .jury-grid {
