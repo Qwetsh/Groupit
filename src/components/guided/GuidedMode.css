@@ -1955,9 +1955,20 @@
 .running-progress {
   max-width: 400px;
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.progress-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
 }
 
 .progress-bar {
+  width: 100%;
   height: 8px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
