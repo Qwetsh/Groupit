@@ -19,11 +19,8 @@ import {
   Briefcase,
   Sliders,
   MousePointerClick,
-  Users,
-  GraduationCap,
   Lock,
   FolderOpen,
-  ClipboardList,
   Play,
   RotateCcw,
 } from 'lucide-react';
@@ -253,32 +250,16 @@ export const DashboardPage: React.FC = () => {
           <h3>Mode Libre</h3>
           <p>Glisser-deposer manuel et configuration libre des groupes.</p>
         </button>
-      </div>
 
-      {/* Data summary + quick actions */}
-      <div className="dashboard-summary">
-        <div className="summary-stats">
-          <div className="summary-stat">
-            <Users size={18} />
-            <span className="stat-value">{eleves.length}</span>
-            <span className="stat-label">eleves</span>
+        <button className="mode-card active" onClick={() => setShowImportSessionModal(true)}>
+          <div className="mode-icon import">
+            <FolderOpen size={32} />
           </div>
-          <div className="summary-stat">
-            <GraduationCap size={18} />
-            <span className="stat-value">{enseignants.length}</span>
-            <span className="stat-label">enseignants</span>
-          </div>
-          <div className="summary-stat">
-            <ClipboardList size={18} />
-            <span className="stat-value">{scenarios.length}</span>
-            <span className="stat-label">configurations</span>
-          </div>
-        </div>
-        <button className="btn-secondary" onClick={() => setShowImportSessionModal(true)}>
-          <FolderOpen size={18} />
-          Reprendre une session
+          <h3>Reprendre une session</h3>
+          <p>Importez une session sauvegardee pour reprendre le travail.</p>
         </button>
       </div>
+
 
       {/* Archives / history */}
       {archives.length > 0 && (
