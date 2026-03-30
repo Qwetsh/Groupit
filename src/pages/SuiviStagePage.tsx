@@ -756,6 +756,8 @@ export function SuiviStagePage() {
         distanceMaxKm: 50,
         useLocalSearch: true,
         maxIterations: 500,
+        clusterDistanceKm: 1,
+        verbose: true,
       });
       
       setMatchingResult(result);
