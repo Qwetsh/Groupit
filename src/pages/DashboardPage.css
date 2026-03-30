@@ -1054,6 +1054,11 @@
   color: #16a34a;
 }
 
+.mode-icon.import {
+  background: linear-gradient(135deg, #f3e8ff, #e9d5ff);
+  color: #7c3aed;
+}
+
 .mode-card h3 {
   margin: 0 0 8px;
   font-size: 16px;
