@@ -81,7 +81,7 @@ function App() {
     return (
       <div className="loading-screen">
         <div className="loading-spinner" />
-        <p>Chargement de Groupit...</p>
+        <p>Chargement de Locanda...</p>
       </div>
     );
   }

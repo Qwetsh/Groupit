@@ -23,6 +23,17 @@
   background: #f1f5f9;
 }
 
+/* App footer */
+.app-footer {
+  padding: 8px 24px;
+  text-align: center;
+  font-size: 11px;
+  color: #94a3b8;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
 /* Mobile sidebar overlay */
 .sidebar-overlay {
   display: none;

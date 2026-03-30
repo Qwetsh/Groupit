@@ -508,7 +508,7 @@ export const AidePage: React.FC = () => {
     <div className="aide-page">
       <h1>Aide</h1>
       <p className="lead">
-        Guides et ressources pour prendre en main Groupit et optimiser vos affectations.
+        Guides et ressources pour prendre en main Locanda et optimiser vos affectations.
       </p>
 
       {/* Guide de démarrage */}
@@ -629,7 +629,7 @@ export const AidePage: React.FC = () => {
           />
           <FAQItem
             question="Mes données sont-elles stockées en ligne ?"
-            answer="Non, Groupit fonctionne 100% en local. Toutes vos données restent sur votre
+            answer="Non, Locanda fonctionne 100% en local. Toutes vos données restent sur votre
             ordinateur dans le stockage de votre navigateur. Aucune donnée n'est envoyée vers un serveur externe."
           />
           <FAQItem
