@@ -43,6 +43,7 @@ export function StepRecap({ onBack }: StepRecapProps) {
   const [state, setState] = useState<RecapState>('ready');
   const [error, setError] = useState<string | null>(null);
   const [progressMessage, setProgressMessage] = useState<string | null>(null);
+  const [progressPercent, setProgressPercent] = useState(0);
   const [affectationCount, setAffectationCount] = useState(0);
   const [pendingAffectations, setPendingAffectations] = useState<Awaited<ReturnType<typeof addAffectations>> | null>(null);
 
@@ -79,6 +80,7 @@ export function StepRecap({ onBack }: StepRecapProps) {
     setState('running');
     setError(null);
     setProgressMessage(null);
+    setProgressPercent(0);
 
     try {
       // Small delay for visual effect
@@ -147,6 +149,7 @@ export function StepRecap({ onBack }: StepRecapProps) {
         if (totalToGeocode > 0) {
           let geocoded = 0;
           setProgressMessage(`Geocodage des adresses (0/${totalToGeocode})...`);
+          setProgressPercent(0);
 
           // Geocode stages
           for (const stage of stagesToGeocode) {
@@ -161,6 +164,7 @@ export function StepRecap({ onBack }: StepRecapProps) {
             }
             geocoded++;
             setProgressMessage(`Geocodage des adresses (${geocoded}/${totalToGeocode})...`);
+            setProgressPercent(Math.round((geocoded / totalToGeocode) * 30));
             await new Promise(r => setTimeout(r, 100));
           }
 
@@ -176,6 +180,7 @@ export function StepRecap({ onBack }: StepRecapProps) {
             }
             geocoded++;
             setProgressMessage(`Geocodage des adresses (${geocoded}/${totalToGeocode})...`);
+            setProgressPercent(Math.round((geocoded / totalToGeocode) * 30));
             await new Promise(r => setTimeout(r, 100));
           }
 
@@ -224,17 +229,20 @@ export function StepRecap({ onBack }: StepRecapProps) {
 
         // Compute route pairs
         setProgressMessage('Calcul des itineraires (preparation)...');
+        setProgressPercent(30);
         const routeResult = await computeRoutePairs(stageGeoInfos, ensGeoInfos, {
           maxDistanceKm: scenario.parametres.suiviStage?.distanceMaxKm || 20,
           onProgress: (geoState) => {
             if (geoState.total > 0) {
               setProgressMessage(`Calcul des itineraires (${geoState.current}/${geoState.total})...`);
+              setProgressPercent(30 + Math.round((geoState.current / geoState.total) * 60));
             }
           },
         });
 
         // === Phase 3: Run the solver ===
         setProgressMessage('Optimisation des affectations...');
+        setProgressPercent(90);
         const stageParams = scenario.parametres.suiviStage;
         const matchingResult = solveStageMatching(stageGeoInfos, ensGeoInfos, routeResult.pairs, {
           distanceMaxKm: stageParams?.distanceMaxKm || 20,
@@ -266,6 +274,7 @@ export function StepRecap({ onBack }: StepRecapProps) {
 
         await addAffectations(affectationsToAdd);
         setAffectationCount(affectationsToAdd.length);
+        setProgressPercent(100);
 
         // No time slots for stages
         setState('success');
@@ -384,8 +393,12 @@ export function StepRecap({ onBack }: StepRecapProps) {
         </p>
         <div className="running-progress">
           <div className="progress-bar">
-            <div className="progress-fill animated"></div>
+            <div
+              className="progress-fill"
+              style={{ width: `${progressPercent}%`, transition: 'width 0.3s ease' }}
+            />
           </div>
+          <span className="progress-label">{progressPercent}%</span>
         </div>
       </div>
     );
