@@ -192,6 +192,9 @@ export interface EnseignantGeoInfo {
   homeGeoErrorMessage?: string;
   capacityMax: number;
   classesEnCharge?: string[];     // Classes de l'enseignant (pour critère "élèves en cours")
+  estProfPrincipal?: boolean;     // Est-ce un professeur principal ?
+  classePP?: string;              // Classe dont il est PP
+  heures3e?: number;              // Heures avec les 3èmes (pour équilibrage pondéré)
   exclusions?: StageExclusion[];
 }
 
@@ -279,10 +282,17 @@ export interface StageMatchingOptions {
   poidsDistance: number;          // Poids de la distance
   poidsEquilibrage: number;       // Poids de l'équilibrage de charge
   poidsElevesEnCours?: number;    // Poids du critère "élèves en cours"
+  poidsProfPrincipal?: number;    // Poids du critère "professeur principal"
 
   // Contraintes
   dureeMaxMin?: number;           // Durée max acceptée (minutes)
   distanceMaxKm?: number;         // Distance max acceptée (km)
+
+  // Clustering
+  clusterDistanceKm?: number;     // Distance max pour regrouper les stages (défaut: 1km)
+
+  // Équilibrage pondéré par heures
+  equilibrageWeightByHours?: boolean; // Pondérer l'équilibrage par les heures 3e
 
   // Optimisation
   maxCandidatsParStage?: number;  // Limiter les candidats par stage (perf)
@@ -303,15 +313,17 @@ export const DEFAULT_STAGE_MATCHING_OPTIONS: StageMatchingOptions = {
   poidsDistance: 20,
   poidsEquilibrage: 20,
   poidsElevesEnCours: 0,          // Désactivé par défaut
+  poidsProfPrincipal: 0,          // Désactivé par défaut
   dureeMaxMin: 60,
   distanceMaxKm: 50,
+  clusterDistanceKm: 1,           // Regrouper les stages à moins de 1km
+  equilibrageWeightByHours: false, // Équilibrage simple par défaut
   maxCandidatsParStage: 10,
   useLocalSearch: true,
-  maxIterations: 50, // Réduit de 100 à 50 pour meilleures performances
-  localSearchTimeoutMs: 3000, // 3 secondes max
-  // Fallback pour enseignants éloignés
-  fallbackCollegeActif: true,     // Actif par défaut si collegeGeo fourni
-  fallbackAngleMaxDeg: 45,        // Cône de 90° (±45°)
+  maxIterations: 50,
+  localSearchTimeoutMs: 3000,
+  fallbackCollegeActif: true,
+  fallbackAngleMaxDeg: 45,
   verbose: false,
 };
 

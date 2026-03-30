@@ -241,6 +241,7 @@ export function StepRecap({ onBack }: StepRecapProps) {
           dureeMaxMin: stageParams?.dureeMaxMin || 45,
           useLocalSearch: true,
           verbose: true,
+          clusterDistanceKm: 1,
         });
 
         // Convert to affectations and save

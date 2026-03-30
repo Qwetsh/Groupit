@@ -199,6 +199,12 @@ function isEleveOptionCompatible(
 // SCORING
 // ============================================================
 
+interface ScoringContext {
+  isEleveEnCours?: boolean;
+  isProfPrincipal?: boolean;
+  targetLoad?: number; // Charge cible pondérée par heures (si activé)
+}
+
 /**
  * Calcule le score d'un candidat (plus petit = meilleur)
  */
@@ -207,19 +213,21 @@ function computeCandidateScore(
   currentLoad: number,
   avgLoad: number,
   options: StageMatchingOptions,
-  isEleveEnCours?: boolean
+  ctx: ScoringContext = {}
 ): number {
-  const { poidsDuree, poidsDistance, poidsEquilibrage, poidsElevesEnCours = 0 } = options;
-  const totalPoids = poidsDuree + poidsDistance + poidsEquilibrage + poidsElevesEnCours;
+  const {
+    poidsDuree, poidsDistance, poidsEquilibrage,
+    poidsElevesEnCours = 0, poidsProfPrincipal = 0,
+  } = options;
+  const totalPoids = poidsDuree + poidsDistance + poidsEquilibrage + poidsElevesEnCours + poidsProfPrincipal;
 
-  // Éviter division par zéro
   if (totalPoids === 0) return 0;
 
-  // Normalisation des poids
   const wDuree = poidsDuree / totalPoids;
   const wDistance = poidsDistance / totalPoids;
   const wEquilibrage = poidsEquilibrage / totalPoids;
   const wElevesEnCours = poidsElevesEnCours / totalPoids;
+  const wPP = poidsProfPrincipal / totalPoids;
 
   // Score durée (normalisé sur 60 min max)
   const scoreDuree = Math.min(pair.durationMin / 60, 1) * 100;
@@ -227,15 +235,28 @@ function computeCandidateScore(
   // Score distance (normalisé sur 50 km max)
   const scoreDistance = Math.min(pair.distanceKm / 50, 1) * 100;
 
-  // Score équilibrage (pénalité si au-dessus de la moyenne)
-  const loadDiff = Math.max(0, currentLoad - avgLoad);
-  const scoreEquilibrage = loadDiff * 20; // 20 points par stage au-dessus de la moyenne
+  // Score équilibrage — pondéré par heures si activé
+  let scoreEquilibrage: number;
+  if (ctx.targetLoad && ctx.targetLoad > 0) {
+    // Charge relative : currentLoad / targetLoad (1.0 = parfait)
+    const relativeLoad = currentLoad / ctx.targetLoad;
+    scoreEquilibrage = Math.max(0, relativeLoad - 1) * 50;
+  } else {
+    const loadDiff = Math.max(0, currentLoad - avgLoad);
+    scoreEquilibrage = loadDiff * 20;
+  }
 
-  // Score élèves en cours (bonus si l'enseignant a l'élève dans ses classes)
-  // Attention: score bas = meilleur, donc on met 0 si élève en cours, 100 sinon
-  const scoreElevesEnCours = isEleveEnCours ? 0 : 100;
+  // Score élèves en cours (0 = bonus, 100 = neutre)
+  const scoreElevesEnCours = ctx.isEleveEnCours ? 0 : 100;
 
-  return wDuree * scoreDuree + wDistance * scoreDistance + wEquilibrage * scoreEquilibrage + wElevesEnCours * scoreElevesEnCours;
+  // Score prof principal (0 = bonus PP de l'élève, 100 = neutre)
+  const scorePP = ctx.isProfPrincipal ? 0 : 100;
+
+  return wDuree * scoreDuree
+    + wDistance * scoreDistance
+    + wEquilibrage * scoreEquilibrage
+    + wElevesEnCours * scoreElevesEnCours
+    + wPP * scorePP;
 }
 
 /**
@@ -291,11 +312,109 @@ function checkHardConstraints(
 }
 
 // ============================================================
-// ALGORITHME GLOUTON
+// CLUSTERING - Regrouper les stages proches (<1km)
+// ============================================================
+
+interface StageCluster {
+  id: string;            // ID du cluster (= stageId du représentant)
+  stages: StageGeoInfo[];
+  representative: StageGeoInfo; // Stage utilisé pour le scoring
+}
+
+/**
+ * Regroupe les stages géographiquement proches (< clusterDistanceKm).
+ * Les stages d'un même cluster seront affectés au même enseignant.
+ */
+function buildClusters(stages: StageGeoInfo[], maxDistanceKm: number): StageCluster[] {
+  const clusters: StageCluster[] = [];
+  const assigned = new Set<string>();
+
+  for (const stage of stages) {
+    if (assigned.has(stage.stageId)) continue;
+
+    const cluster: StageGeoInfo[] = [stage];
+    assigned.add(stage.stageId);
+
+    // Chercher les stages proches pas encore assignés
+    if (stage.geo) {
+      for (const other of stages) {
+        if (assigned.has(other.stageId) || !other.geo) continue;
+        const dist = calculateDistanceKm(
+          stage.geo.lat, stage.geo.lon,
+          other.geo.lat, other.geo.lon
+        );
+        if (dist <= maxDistanceKm) {
+          cluster.push(other);
+          assigned.add(other.stageId);
+        }
+      }
+    }
+
+    clusters.push({
+      id: stage.stageId,
+      stages: cluster,
+      representative: stage,
+    });
+  }
+
+  return clusters;
+}
+
+// ============================================================
+// CHARGES CIBLES PONDÉRÉES PAR HEURES
 // ============================================================
 
 /**
- * Affectation gloutonne: pour chaque stage, choisir le meilleur enseignant disponible
+ * Calcule la charge cible par enseignant en fonction de leurs heures 3e.
+ * Si un prof a 4h et un autre 2h, le premier aura 2x plus de stages.
+ */
+function computeTargetLoads(
+  enseignants: EnseignantGeoInfo[],
+  totalStages: number,
+  weightByHours: boolean
+): Map<string, number> {
+  const targets = new Map<string, number>();
+
+  if (!weightByHours) {
+    const avg = enseignants.length > 0 ? totalStages / enseignants.length : 0;
+    for (const e of enseignants) targets.set(e.enseignantId, avg);
+    return targets;
+  }
+
+  // Heures totales
+  const totalHours = enseignants.reduce((sum, e) => sum + (e.heures3e || 1), 0);
+  for (const e of enseignants) {
+    const hours = e.heures3e || 1;
+    const target = (hours / totalHours) * totalStages;
+    targets.set(e.enseignantId, target);
+  }
+  return targets;
+}
+
+// ============================================================
+// ALGORITHME GLOUTON (avec clustering)
+// ============================================================
+
+/**
+ * Construit le contexte de scoring pour un enseignant/stage donné
+ */
+function buildScoringCtx(
+  stage: StageGeoInfo,
+  ens: EnseignantGeoInfo,
+  targetLoads: Map<string, number>,
+  options: StageMatchingOptions
+): ScoringContext {
+  const isEleveEnCours = isEleveEnCoursForEnseignant(stage.eleveClasse, ens.classesEnCharge);
+  const isProfPrincipal = !!(ens.estProfPrincipal && ens.classePP && stage.eleveClasse === ens.classePP);
+  return {
+    isEleveEnCours,
+    isProfPrincipal,
+    targetLoad: options.equilibrageWeightByHours ? targetLoads.get(ens.enseignantId) : undefined,
+  };
+}
+
+/**
+ * Affectation gloutonne par clusters: chaque cluster est affecté au même enseignant
  */
 function greedyAssignment(
   stages: StageGeoInfo[],
@@ -309,52 +428,67 @@ function greedyAssignment(
     totalCost: 0,
   };
 
-  // Initialiser les charges
   for (const ens of enseignants) {
     state.loads.set(ens.enseignantId, 0);
   }
 
-  // Calculer la charge moyenne cible (éviter division par zéro)
   const avgLoad = enseignants.length > 0 ? stages.length / enseignants.length : 0;
-  
-  // Pré-calculer le nombre de candidats par stage (éviter O(n²) dans le sort)
-  const candidateCountByStage = new Map<string, number>();
-  for (const stage of stages) {
-    let count = 0;
-    for (const ens of enseignants) {
-      if (pairsMap.has(`${stage.stageId}:${ens.enseignantId}`)) count++;
-    }
-    candidateCountByStage.set(stage.stageId, count);
+  const targetLoads = computeTargetLoads(enseignants, stages.length, !!options.equilibrageWeightByHours);
+  const clusterDist = options.clusterDistanceKm ?? 1;
+
+  // Construire les clusters
+  const clusters = buildClusters(stages, clusterDist);
+
+  if (options.verbose && clusters.length < stages.length) {
+    console.log(`[StageSolver] Clustering: ${stages.length} stages → ${clusters.length} clusters (distance < ${clusterDist}km)`);
   }
 
-  // Trier les stages par nombre de candidats valides (les plus contraints d'abord)
-  const sortedStages = [...stages].sort((a, b) => {
-    return (candidateCountByStage.get(a.stageId) || 0) - (candidateCountByStage.get(b.stageId) || 0);
-  });
-  
-  for (const stage of sortedStages) {
-    let bestCandidate: CandidateScore | null = null;
-    
+  // Pré-calculer le nombre de candidats par cluster (basé sur le représentant)
+  const candidateCountByCluster = new Map<string, number>();
+  for (const cluster of clusters) {
+    let count = 0;
     for (const ens of enseignants) {
-      const pair = getRoutePair(pairsMap, stage.stageId, ens.enseignantId);
+      if (pairsMap.has(`${cluster.representative.stageId}:${ens.enseignantId}`)) count++;
+    }
+    candidateCountByCluster.set(cluster.id, count);
+  }
+
+  // Trier par contrainte (clusters les plus contraints d'abord)
+  const sortedClusters = [...clusters].sort((a, b) => {
+    return (candidateCountByCluster.get(a.id) || 0) - (candidateCountByCluster.get(b.id) || 0);
+  });
+
+  for (const cluster of sortedClusters) {
+    const rep = cluster.representative;
+    let bestCandidate: CandidateScore | null = null;
+
+    for (const ens of enseignants) {
+      const pair = getRoutePair(pairsMap, rep.stageId, ens.enseignantId);
       if (!pair) continue;
-      
+
       const currentLoad = state.loads.get(ens.enseignantId) || 0;
-      
-      // Vérifier contraintes dures
-      const constraints = checkHardConstraints(ens, stage, pair, currentLoad, options);
+
+      // Vérifier que l'enseignant a la capacité pour TOUT le cluster
+      if (currentLoad + cluster.stages.length > ens.capacityMax) continue;
+
+      // Vérifier contraintes dures sur le représentant
+      const constraints = checkHardConstraints(ens, rep, pair, currentLoad, options);
       if (!constraints.valid) continue;
 
-      // Vérifier si l'élève est dans les classes de l'enseignant
-      const isEleveEnCours = isEleveEnCoursForEnseignant(stage.eleveClasse, ens.classesEnCharge);
+      // Vérifier compatibilité options pour tous les stages du cluster
+      const allCompatible = cluster.stages.every(s => {
+        const optCheck = isEleveOptionCompatible(s.eleveOptions, ens.matierePrincipale);
+        return optCheck.compatible;
+      });
+      if (!allCompatible) continue;
 
-      // Calculer le score
-      const score = computeCandidateScore(pair, currentLoad, avgLoad, options, isEleveEnCours);
-      
+      const ctx = buildScoringCtx(rep, ens, targetLoads, options);
+      const score = computeCandidateScore(pair, currentLoad, avgLoad, options, ctx);
+
       if (!bestCandidate || score < bestCandidate.totalScore) {
         bestCandidate = {
           enseignantId: ens.enseignantId,
-          stageId: stage.stageId,
+          stageId: rep.stageId,
           durationMin: pair.durationMin,
           distanceKm: pair.distanceKm,
           loadPenalty: 0,
@@ -363,17 +497,20 @@ function greedyAssignment(
         };
       }
     }
-    
+
     if (bestCandidate) {
-      state.affectations.set(stage.stageId, bestCandidate.enseignantId);
+      // Affecter TOUS les stages du cluster au même enseignant
+      for (const s of cluster.stages) {
+        state.affectations.set(s.stageId, bestCandidate.enseignantId);
+      }
       state.loads.set(
-        bestCandidate.enseignantId, 
-        (state.loads.get(bestCandidate.enseignantId) || 0) + 1
+        bestCandidate.enseignantId,
+        (state.loads.get(bestCandidate.enseignantId) || 0) + cluster.stages.length
       );
-      state.totalCost += bestCandidate.totalScore;
+      state.totalCost += bestCandidate.totalScore * cluster.stages.length;
     }
   }
-  
+
   return state;
 }
 
@@ -397,11 +534,11 @@ function localSearch(
   let improved = true;
   let iterations = 0;
 
-  // Éviter division par zéro
   const avgLoad = enseignants.length > 0 ? stages.length / enseignants.length : 0;
+  const targetLoads = computeTargetLoads(enseignants, stages.length, !!options.equilibrageWeightByHours);
+  const ensMap = new Map(enseignants.map(e => [e.enseignantId, e]));
 
   while (improved && iterations < maxIterations) {
-    // Vérifier timeout pour éviter freeze UI
     if (performance.now() - startTime > timeoutMs) {
       if (options.verbose) {
         console.log(`[StageSolver] Local search timeout après ${iterations} itérations`);
@@ -411,23 +548,21 @@ function localSearch(
 
     improved = false;
     iterations++;
-    
-    // Essayer de réaffecter chaque stage à un meilleur enseignant
+
     for (const stage of stages) {
       const currentEnsId = state.affectations.get(stage.stageId);
       if (!currentEnsId) continue;
-      
+
       const currentPair = getRoutePair(pairsMap, stage.stageId, currentEnsId);
       if (!currentPair) continue;
-      
-      const currentEns = enseignants.find(e => e.enseignantId === currentEnsId);
+
+      const currentEns = ensMap.get(currentEnsId);
       if (!currentEns) continue;
 
       const currentLoad = state.loads.get(currentEnsId) || 0;
-      const isCurrentEleveEnCours = isEleveEnCoursForEnseignant(stage.eleveClasse, currentEns.classesEnCharge);
-      const currentScore = computeCandidateScore(currentPair, currentLoad - 1, avgLoad, options, isCurrentEleveEnCours);
+      const currentCtx = buildScoringCtx(stage, currentEns, targetLoads, options);
+      const currentScore = computeCandidateScore(currentPair, currentLoad - 1, avgLoad, options, currentCtx);
 
-      // Chercher un meilleur candidat
       for (const ens of enseignants) {
         if (ens.enseignantId === currentEnsId) continue;
 
@@ -436,16 +571,13 @@ function localSearch(
 
         const newLoad = state.loads.get(ens.enseignantId) || 0;
 
-        // Vérifier contraintes
         const constraints = checkHardConstraints(ens, stage, pair, newLoad, options);
         if (!constraints.valid) continue;
 
-        const isNewEleveEnCours = isEleveEnCoursForEnseignant(stage.eleveClasse, ens.classesEnCharge);
-        const newScore = computeCandidateScore(pair, newLoad, avgLoad, options, isNewEleveEnCours);
-        
-        // Amélioration?
-        if (newScore < currentScore - 1) { // Seuil pour éviter les micro-optimisations
-          // Appliquer le swap
+        const newCtx = buildScoringCtx(stage, ens, targetLoads, options);
+        const newScore = computeCandidateScore(pair, newLoad, avgLoad, options, newCtx);
+
+        if (newScore < currentScore - 1) {
           state.affectations.set(stage.stageId, ens.enseignantId);
           state.loads.set(currentEnsId, currentLoad - 1);
           state.loads.set(ens.enseignantId, newLoad + 1);
@@ -456,7 +588,7 @@ function localSearch(
       }
     }
   }
-  
+
   if (options.verbose) {
     console.log(`[StageSolver] Local search: ${iterations} iterations`);
   }
@@ -696,7 +828,8 @@ export function solveStageMatching(
           dureeTotale += pair.durationMin;
           distanceTotale += pair.distanceKm;
 
-          const isEleveEnCours = isEleveEnCoursForEnseignant(stage.eleveClasse, ens.classesEnCharge);
+          const targetLoads = computeTargetLoads(enseignants, stages.length, !!opts.equilibrageWeightByHours);
+          const ctx = buildScoringCtx(stage, ens, targetLoads, opts);
 
           affectations.push({
             stageId: stage.stageId,
@@ -709,7 +842,7 @@ export function solveStageMatching(
               state.loads.get(enseignantId) || 0,
               enseignants.length > 0 ? stages.length / enseignants.length : 0,
               opts,
-              isEleveEnCours
+              ctx
             ),
             explication: `${ens.prenom} ${ens.nom} - Trajet: ${Math.round(pair.distanceKm)}km, ${Math.round(pair.durationMin)}min`,
           });
@@ -727,7 +860,7 @@ export function solveStageMatching(
             enseignantId,
             distanceKm: Math.round(distanceFromCollege * 10) / 10,
             durationMin: 0, // Non pertinent pour fallback
-            score: 50,
+            score: 80, // Score élevé = moins bon (fallback)
             explication: `${ens.prenom} ${ens.nom} - 📍 Proche collège (${Math.round(distanceFromCollege)}km)`,
           });
         }
@@ -739,7 +872,7 @@ export function solveStageMatching(
             enseignantId,
             distanceKm: 0,
             durationMin: 0,
-            score: 25, // Score plus bas pour aléatoire (inférieur au fallback collège = 50)
+            score: 95, // Score élevé = moins bon (dernier recours)
             explication: `${ens.prenom} ${ens.nom} - 🎲 Affectation équilibrée`,
           });
         }
@@ -871,6 +1004,10 @@ export function toEnseignantGeoInfo(ens: {
   geoErrorMessage?: string;
   capaciteStage?: number;
   classesEnCharge?: string[];
+  estProfPrincipal?: boolean;
+  classePP?: string;
+  heures3eReelles?: number;
+  heuresParNiveau?: { '3e': number };
   stageExclusions?: Array<{ type: string; value: string; reason?: string }>;
 }): EnseignantGeoInfo {
   return {
@@ -884,6 +1021,9 @@ export function toEnseignantGeoInfo(ens: {
     homeGeoErrorMessage: ens.geoErrorMessage,
     capacityMax: ens.capaciteStage || 10,
     classesEnCharge: ens.classesEnCharge,
+    estProfPrincipal: ens.estProfPrincipal,
+    classePP: ens.classePP,
+    heures3e: ens.heures3eReelles ?? ens.heuresParNiveau?.['3e'],
     exclusions: ens.stageExclusions?.map(e => ({
       type: toExclusionType(e.type),
       value: e.value,
