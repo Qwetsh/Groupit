@@ -112,7 +112,7 @@ export async function uploadSessionToSupabase(
       .from('exam_sessions')
       .select('id')
       .eq('code', sessionCode)
-      .single();
+      .maybeSingle();
 
     let sessionId: string;
 
