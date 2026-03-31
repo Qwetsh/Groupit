@@ -1089,41 +1089,41 @@
 
 /* Groupe cards */
 .groupe-card {
-  background: #f5f3ff;
-  border: 1px solid #d8b4fe;
-  border-radius: 10px;
-  padding: 10px 14px;
-  margin-bottom: 6px;
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 4px;
 }
 
 .trinome-badge {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
-  color: #92400e;
-  background: #fef3c7;
-  padding: 2px 8px;
-  border-radius: 6px;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.15);
+  padding: 1px 6px;
+  border-radius: 4px;
   letter-spacing: 0.5px;
 }
 
 .binome-badge-tag {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
-  color: #6b46c1;
-  background: #e9d8fd;
-  padding: 2px 8px;
-  border-radius: 6px;
+  color: #a78bfa;
+  background: rgba(139, 92, 246, 0.15);
+  padding: 1px 6px;
+  border-radius: 4px;
   letter-spacing: 0.5px;
 }
 
 .groupe-members {
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .groupe-member-name {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  color: #1e293b;
+  color: #e2e8f0;
 }
 
 .confetti {
@@ -2348,21 +2348,22 @@
 
 .oral-table-header {
   display: grid;
-  grid-template-columns: 160px 155px 1fr 130px 130px;
-  gap: 0.5rem;
-  padding: 0.4rem 1rem 0.4rem 1.5rem;
+  grid-template-columns: 140px 120px 1fr 100px 100px 80px;
+  gap: 0.35rem;
+  padding: 0.4rem 0.75rem 0.4rem 1.25rem;
   font-size: 0.7rem;
   font-weight: 600;
   color: #64748b;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  white-space: nowrap;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .oral-table-row {
   display: grid;
-  grid-template-columns: 160px 155px 1fr 130px 130px auto;
-  gap: 0.5rem;
+  grid-template-columns: 140px 120px 1fr 100px 100px 80px auto;
+  gap: 0.35rem;
   align-items: center;
   padding: 0.35rem 1rem 0.35rem 1.5rem;
   border-top: 1px solid rgba(255, 255, 255, 0.04);
@@ -2988,6 +2989,13 @@
   text-align: center;
 }
 
+.step-binomes .step-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #f1f5f9;
+  margin: 8px 0 4px;
+}
+
 .step-binomes .step-icon-wrap {
   display: inline-flex;
   align-items: center;
@@ -3270,8 +3278,12 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  padding-top: 12px;
+  padding: 12px 0;
   border-top: 1px solid #334155;
+  position: sticky;
+  bottom: 0;
+  background: #0f172a;
+  z-index: 5;
 }
 
 /* ============================================================

@@ -5,6 +5,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { Users, X, Search, ChevronDown, ChevronRight, Plus } from 'lucide-react';
 import { useEleveStore } from '../../../stores/eleveStore';
+import '../GuidedMode.css';
 
 interface StepGroupesProps {
   onNext: () => void;
@@ -122,7 +123,7 @@ export const StepGroupes: React.FC<StepGroupesProps> = ({ onNext, onBack }) => {
   const addingToGroupe = addingToGroupeId ? groupes.find(g => g.id === addingToGroupeId) : null;
 
   return (
-    <div className="step-groupes">
+    <div className="step-binomes">
       <div className="step-header">
         <div className="step-icon-wrap">
           <Users size={28} />
@@ -142,8 +143,8 @@ export const StepGroupes: React.FC<StepGroupesProps> = ({ onNext, onBack }) => {
             {groupes.map(({ id, members }) => {
               const isTrinome = members.length === 3;
               return (
-                <div key={id} className="groupe-card" style={isTrinome ? { borderColor: '#f59e0b' } : {}}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <div key={id} className="groupe-card" style={isTrinome ? { borderColor: 'rgba(245, 158, 11, 0.3)' } : {}}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                     <span className={isTrinome ? 'trinome-badge' : 'binome-badge-tag'}>
                       {isTrinome ? 'TRINOME' : 'BINOME'}
                     </span>
@@ -151,7 +152,7 @@ export const StepGroupes: React.FC<StepGroupesProps> = ({ onNext, onBack }) => {
                   </div>
                   <div className="groupe-members">
                     {members.map(m => (
-                      <div key={m.id} className="groupe-member" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 0' }}>
+                      <div key={m.id} className="groupe-member" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1px 0' }}>
                         <span className="groupe-member-name">{m.nom} {m.prenom}</span>
                         <button
                           className="binome-remove-btn"
@@ -199,7 +200,7 @@ export const StepGroupes: React.FC<StepGroupesProps> = ({ onNext, onBack }) => {
               </div>
             )}
             {addingToGroupe && (
-              <div className="binome-selected-banner" style={{ borderColor: '#f59e0b' }}>
+              <div className="binome-selected-banner" style={{ borderColor: 'rgba(245, 158, 11, 0.4)' }}>
                 <Users size={16} />
                 <span>{addingToGroupe.members.map(m => `${m.prenom} ${m.nom}`).join(' & ')}</span>
                 <button onClick={() => setAddingToGroupeId(null)}><X size={14} /></button>
