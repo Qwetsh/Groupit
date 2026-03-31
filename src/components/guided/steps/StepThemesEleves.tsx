@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useEleveStore } from '../../../stores/eleveStore';
-import { MATIERES_HEURES_3E, PARCOURS_ORAL_DNB } from '../../../domain/models';
+import { MATIERES_HEURES_3E, PARCOURS_ORAL_DNB, LANGUES_ETRANGERES } from '../../../domain/models';
 import type { Eleve } from '../../../domain/models';
 import {
   generateTemplateOralDNB,
@@ -157,6 +157,15 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
     [updateEleve]
   );
 
+  const handleSetLangue = useCallback(
+    async (eleveId: string, langue: string) => {
+      await updateEleve(eleveId, {
+        langueEtrangere: langue || undefined,
+      });
+    },
+    [updateEleve]
+  );
+
   const handleSetMatiere = useCallback(
     async (eleveId: string, index: number, matiere: string) => {
       const eleve = eleves3e.find(e => e.id === eleveId);
@@ -276,6 +285,7 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
           parcoursOral: item.parcours || undefined,
           sujetOral: item.sujet || undefined,
           matieresOral: item.matieres.length > 0 ? item.matieres : undefined,
+          langueEtrangere: item.langue || undefined,
         });
         success++;
       } else {
@@ -487,6 +497,7 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
                   <span className="col-sujet">Sujet</span>
                   <span className="col-matiere">Matière 1</span>
                   <span className="col-matiere">Matière 2</span>
+                  <span className="col-langue">Langue</span>
                 </div>
                 {elvs.map(eleve => {
                   const isComplete = eleve.parcoursOral && eleve.sujetOral;
@@ -561,6 +572,18 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
                         <option value="">--</option>
                         {AVAILABLE_MATIERES.map(m => (
                           <option key={m} value={m}>{m}</option>
+                        ))}
+                      </select>
+
+                      {/* Langue étrangère */}
+                      <select
+                        className={clsx('oral-select oral-select-sm', eleve.langueEtrangere && 'has-value')}
+                        value={eleve.langueEtrangere || ''}
+                        onChange={e => handleSetLangue(eleve.id!, e.target.value)}
+                      >
+                        <option value="">--</option>
+                        {LANGUES_ETRANGERES.map(l => (
+                          <option key={l} value={l}>{l}</option>
                         ))}
                       </select>
 

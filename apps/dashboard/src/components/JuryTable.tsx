@@ -124,15 +124,30 @@ export function JuryTable({ jurys, criteriaConfig, maxTotal, maxByCategory }: Ju
                 {jury.eleves.map(eleve => {
                   const fs = jury.finalScores.get(eleve.id);
                   const badge = getStatusBadge(eleve.status);
-                  const hasBinome = eleve.binome_id != null;
+                  const hasGroupe = eleve.groupe_oral_id != null;
+                  // Detect group size by counting members with same groupe_oral_id
+                  const groupSize = hasGroupe
+                    ? jury.eleves.filter(e => e.groupe_oral_id === eleve.groupe_oral_id).length
+                    : 0;
+                  const groupLabel = groupSize === 3 ? 'Trinome' : 'Binome';
                   return (
                     <tr key={eleve.id} style={{
                       ...styles.tr,
-                      ...(hasBinome ? { borderLeft: '3px solid #6b46c1' } : {}),
+                      ...(hasGroupe ? { borderLeft: '3px solid #6b46c1' } : {}),
                     }}>
                       <td style={styles.td}>
                         <span style={{ fontWeight: 600 }}>{eleve.display_name}</span>
-                        {hasBinome && <span style={styles.binomeBadge}>Binôme</span>}
+                        {hasGroupe && <span style={styles.binomeBadge}>{groupLabel}</span>}
+                        {eleve.langue && <span style={{
+                          fontSize: 9,
+                          fontWeight: 700,
+                          color: '#2b6cb0',
+                          background: '#ebf4ff',
+                          padding: '1px 5px',
+                          borderRadius: 4,
+                          marginLeft: 6,
+                          verticalAlign: 'middle',
+                        }}>🌐 {eleve.langue}</span>}
                       </td>
                       <td style={styles.td}>{eleve.classe}</td>
                       <td style={styles.td}>

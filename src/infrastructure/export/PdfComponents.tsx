@@ -494,18 +494,19 @@ const StudentTable: React.FC<StudentTableProps> = ({ eleves, options, styles }) 
       </View>
 
       {eleves.map((eleve, idx) => {
-        const isBinome = !!eleve.binomeNom;
+        const isGroupe = !!eleve.groupeMembresNoms?.length;
+        const isTrinome = (eleve.groupeMembresNoms?.length ?? 0) >= 2;
         return (
           <View
             key={idx}
             style={[
               styles.tableRow,
               idx % 2 === 1 ? styles.tableRowAlt : {},
-              isBinome ? { backgroundColor: '#f5f3ff', borderLeftWidth: 2, borderLeftColor: '#7c3aed', borderLeftStyle: 'solid' as const } : {},
+              isGroupe ? { backgroundColor: '#f5f3ff', borderLeftWidth: 2, borderLeftColor: '#7c3aed', borderLeftStyle: 'solid' as const } : {},
             ]}
           >
             <Text style={[styles.tableCell, colNom]}>
-              {eleve.nom}{isBinome ? '  ♦' : ''}
+              {eleve.nom}{isGroupe ? (isTrinome ? '  ♦♦' : '  ♦') : ''}{eleve.langueEtrangere ? `  🌐${eleve.langueEtrangere}` : ''}
             </Text>
             <Text style={[styles.tableCell, colPrenom]}>{eleve.prenom}</Text>
             <Text style={[styles.tableCell, colClasse]}>{eleve.classe}</Text>
@@ -522,9 +523,9 @@ const StudentTable: React.FC<StudentTableProps> = ({ eleves, options, styles }) 
         );
       })}
     </View>
-    {eleves.some(e => e.binomeNom) && (
+    {eleves.some(e => e.groupeMembresNoms?.length) && (
       <Text style={{ fontSize: 7, color: '#7c3aed', marginTop: 2 }}>
-        ♦ Binôme — Les élèves marqués passent ensemble
+        ♦ Binome  ♦♦ Trinome — Les eleves marques passent ensemble
       </Text>
     )}
     </>
@@ -751,7 +752,7 @@ const DoorListPage: React.FC<DoorListPageProps> = ({ jury, data, options, styles
         >
           <Text style={styles.doorHeure}>{eleve.heurePassage || '—'}</Text>
           <Text style={styles.doorNom}>
-            {eleve.nom.toUpperCase()} {eleve.prenom}{eleve.binomeNom ? ` & ${eleve.binomeNom}` : ''}
+            {eleve.nom.toUpperCase()} {eleve.prenom}{eleve.groupeMembresNoms?.length ? ` & ${eleve.groupeMembresNoms.join(' & ')}` : ''}{eleve.langueEtrangere ? ` [${eleve.langueEtrangere}]` : ''}
           </Text>
         </View>
       ))}
@@ -791,7 +792,8 @@ const AttendancePage: React.FC<AttendancePageProps> = ({ jury, data, options, st
         </View>
 
         {jury.eleves.map((eleve, idx) => {
-          const isBinome = !!eleve.binomeNom;
+          const isGroupe = !!eleve.groupeMembresNoms?.length;
+          const isTrinome = (eleve.groupeMembresNoms?.length ?? 0) >= 2;
           return (
             <View
               key={idx}
@@ -799,13 +801,13 @@ const AttendancePage: React.FC<AttendancePageProps> = ({ jury, data, options, st
                 styles.tableRow,
                 idx % 2 === 1 ? styles.tableRowAlt : {},
                 { minHeight: 22 },
-                isBinome ? { backgroundColor: '#f5f3ff', borderLeftWidth: 2, borderLeftColor: '#7c3aed', borderLeftStyle: 'solid' as const } : {},
+                isGroupe ? { backgroundColor: '#f5f3ff', borderLeftWidth: 2, borderLeftColor: '#7c3aed', borderLeftStyle: 'solid' as const } : {},
               ]}
             >
               <Text style={[styles.tableCell, styles.attendanceColNum]}>{idx + 1}</Text>
               <Text style={[styles.tableCell, styles.attendanceColHeure]}>{eleve.heurePassage || '—'}</Text>
               <Text style={[styles.tableCell, styles.attendanceColNom]}>
-                {eleve.nom}{isBinome ? '  ♦' : ''}
+                {eleve.nom}{isGroupe ? (isTrinome ? '  ♦♦' : '  ♦') : ''}
               </Text>
               <Text style={[styles.tableCell, styles.attendanceColPrenom]}>{eleve.prenom}</Text>
               <Text style={[styles.tableCell, styles.attendanceColClasse]}>{eleve.classe}</Text>
@@ -867,7 +869,8 @@ const EleveConvocationPage: React.FC<EleveConvocationPageProps> = ({ eleve, jury
           <Text style={styles.letterParagraph}>
             Vous passerez devant le {jury.juryName}{jury.salle ? `, en salle ${jury.salle}` : ''}.
             {eleve.heurePassage ? ` Votre heure de passage est prévue à ${eleve.heurePassage}.` : ''}
-            {eleve.binomeNom ? ` Vous passerez en binôme avec ${eleve.binomeNom}.` : ''}
+            {eleve.groupeMembresNoms?.length === 1 ? ` Vous passerez en binome avec ${eleve.groupeMembresNoms[0]}.` : eleve.groupeMembresNoms && eleve.groupeMembresNoms.length >= 2 ? ` Vous passerez en trinome avec ${eleve.groupeMembresNoms.join(' et ')}.` : ''}
+            {eleve.langueEtrangere ? ` Vous présenterez tout ou partie de votre oral en ${eleve.langueEtrangere}.` : ''}
           </Text>
           {(eleve.parcoursOral || eleve.sujetOral) && (
             <Text style={styles.letterParagraph}>

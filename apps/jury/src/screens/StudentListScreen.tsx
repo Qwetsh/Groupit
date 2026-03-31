@@ -8,11 +8,11 @@ import autoTable from 'jspdf-autotable';
 interface StudentListScreenProps {
   juryId: string;
   onSelectEleve: (eleve: SessionEleveRow) => void;
-  onSelectBinome: (eleves: [SessionEleveRow, SessionEleveRow]) => void;
+  onSelectGroupe: (eleves: SessionEleveRow[]) => void;
   onDisconnect: () => void;
 }
 
-export function StudentListScreen({ juryId, onSelectEleve, onSelectBinome, onDisconnect }: StudentListScreenProps) {
+export function StudentListScreen({ juryId, onSelectEleve, onSelectGroupe, onDisconnect }: StudentListScreenProps) {
   const [eleves, setEleves] = useState<SessionEleveRow[]>([]);
   const [scoreMap, setScoreMap] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -350,28 +350,30 @@ export function StudentListScreen({ juryId, onSelectEleve, onSelectBinome, onDis
 
       <div style={styles.list}>
         {(() => {
-          // Regrouper les binômes : on skip un élève si son binôme a déjà été rendu
+          // Regrouper les groupes : on skip un élève si son groupe a déjà été rendu
           const rendered = new Set<string>();
 
           return eleves.map((eleve, idx) => {
             if (rendered.has(eleve.id)) return null;
             rendered.add(eleve.id);
 
-            // Vérifier si c'est un binôme
-            const partner = eleve.binome_id ? eleves.find(e => e.id === eleve.binome_id) : null;
-            if (partner) rendered.add(partner.id);
+            // Vérifier si c'est un groupe (binôme ou trinôme)
+            const groupMembers = eleve.groupe_oral_id
+              ? eleves.filter(e => e.groupe_oral_id === eleve.groupe_oral_id)
+              : [];
+            if (groupMembers.length >= 2) {
+              groupMembers.forEach(m => rendered.add(m.id));
+            }
 
-            if (partner) {
-              // --- Rendu binôme ---
-              const pair: [SessionEleveRow, SessionEleveRow] = [eleve, partner];
-              const stA = getStatusStyle(eleve.status, eleve.id);
-              const stB = getStatusStyle(partner.status, partner.id);
-              const isClickable = pair.some(e => e.status === 'pending' || e.status === 'validated');
+            if (groupMembers.length >= 2) {
+              // --- Rendu groupe ---
+              const isClickable = groupMembers.some(e => e.status === 'pending' || e.status === 'validated');
+              const badgeLabel = groupMembers.length === 3 ? 'TRINOME' : 'BINOME';
 
               return (
                 <div
                   key={eleve.id}
-                  onClick={() => isClickable && onSelectBinome(pair)}
+                  onClick={() => isClickable && onSelectGroupe(groupMembers)}
                   style={{
                     ...styles.card,
                     borderLeft: '4px solid #6b46c1',
@@ -380,17 +382,17 @@ export function StudentListScreen({ juryId, onSelectEleve, onSelectBinome, onDis
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                    <span style={styles.binomeBadge}>BINÔME</span>
+                    <span style={styles.binomeBadge}>{badgeLabel}</span>
                     <span style={{ fontSize: 11, color: '#94a3b8' }}>#{idx + 1}</span>
                   </div>
-                  {pair.map(e => {
-                    const st = e === eleve ? stA : stB;
+                  {groupMembers.map(e => {
+                    const st = getStatusStyle(e.status, e.id);
                     return (
                       <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
                         <div>
                           <div style={{ fontSize: 15, fontWeight: 700, color: '#1a202c' }}>{e.display_name}</div>
                           <div style={{ fontSize: 11, color: '#64748b' }}>
-                            {e.classe}{e.parcours && ` · ${e.parcours}`}
+                            {e.classe}{e.parcours && ` · ${e.parcours}`}{e.langue && ` · 🌐 ${e.langue}`}
                           </div>
                         </div>
                         {e.status === 'absent' ? (
@@ -436,6 +438,7 @@ export function StudentListScreen({ juryId, onSelectEleve, onSelectBinome, onDis
                       {eleve.classe}
                       {eleve.parcours && ` · ${eleve.parcours}`}
                       {eleve.heure_passage && ` · ${eleve.heure_passage}`}
+                      {eleve.langue && ` · 🌐 ${eleve.langue}`}
                     </div>
                     {eleve.sujet && (
                       <div style={styles.eleveSujet}>{eleve.sujet}</div>

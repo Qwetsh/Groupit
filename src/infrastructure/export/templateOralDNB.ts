@@ -6,7 +6,7 @@
 import ExcelJS from 'exceljs';
 import * as XLSX from 'xlsx';
 import type { Eleve } from '../../domain/models';
-import { PARCOURS_ORAL_DNB, MATIERES_HEURES_3E } from '../../domain/models';
+import { PARCOURS_ORAL_DNB, MATIERES_HEURES_3E, LANGUES_ETRANGERES } from '../../domain/models';
 
 const MATIERES_LIST = MATIERES_HEURES_3E.map(m => m.matiere);
 
@@ -21,7 +21,7 @@ export async function generateTemplateOralDNB(eleves: Eleve[]): Promise<void> {
   const ws = wb.addWorksheet('Sujets Oral DNB');
 
   // Headers
-  const headerRow = ws.addRow(['Nom', 'Prénom', 'Classe', 'Parcours / Thème', 'Sujet', 'Matière 1', 'Matière 2']);
+  const headerRow = ws.addRow(['Nom', 'Prénom', 'Classe', 'Parcours / Thème', 'Sujet', 'Matière 1', 'Matière 2', 'Langue Étrangère']);
   headerRow.eachCell(cell => {
     cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4A5568' } };
@@ -45,6 +45,7 @@ export async function generateTemplateOralDNB(eleves: Eleve[]): Promise<void> {
       e.sujetOral || '',
       e.matieresOral?.[0] || '',
       e.matieresOral?.[1] || '',
+      e.langueEtrangere || '',
     ]);
 
     // Colonnes Nom/Prénom/Classe en gris clair (lecture seule visuelle)
@@ -66,6 +67,7 @@ export async function generateTemplateOralDNB(eleves: Eleve[]): Promise<void> {
     { width: 42 },  // Sujet
     { width: 22 },  // Matière 1
     { width: 22 },  // Matière 2
+    { width: 20 },  // Langue Étrangère
   ];
 
   // Listes déroulantes (data validation)
@@ -103,6 +105,16 @@ export async function generateTemplateOralDNB(eleves: Eleve[]): Promise<void> {
       errorTitle: 'Matière invalide',
       error: 'Veuillez choisir une matière dans la liste.',
     };
+
+    // Langue Étrangère (colonne H)
+    ws.getCell(`H${r}`).dataValidation = {
+      type: 'list',
+      allowBlank: true,
+      formulae: [`"${LANGUES_ETRANGERES.join(',')}"`],
+      showErrorMessage: true,
+      errorTitle: 'Langue invalide',
+      error: 'Veuillez choisir une langue dans la liste.',
+    };
   }
 
   // Figer la première ligne (header)
@@ -131,6 +143,7 @@ export interface OralDNBImportRow {
   parcours: string;
   sujet: string;
   matieres: string[];
+  langue: string;
 }
 
 export async function parseOralDNBFile(file: File): Promise<OralDNBImportRow[]> {
@@ -162,12 +175,13 @@ export async function parseOralDNBFile(file: File): Promise<OralDNBImportRow[]> 
           const sujet = getCol(['sujet']);
           const matiere1 = getCol(['matière 1', 'matiere 1']);
           const matiere2 = getCol(['matière 2', 'matiere 2']);
+          const langue = getCol(['langue', 'langue étrangère', 'langue etrangere']);
 
           if (!nom) continue;
 
           const matieres = [matiere1, matiere2].filter(Boolean);
 
-          result.push({ nom, prenom, classe, parcours, sujet, matieres });
+          result.push({ nom, prenom, classe, parcours, sujet, matieres, langue });
         }
 
         resolve(result);

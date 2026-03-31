@@ -62,12 +62,12 @@ function mapEleveAffecte(
 ): ExportEleveData {
   const metadata = affectation.metadata as MetadataOralDNB;
 
-  // Résoudre le nom du binôme
-  let binomeNom: string | undefined;
-  if (eleve.binomeId && allEleves) {
-    const partner = allEleves.find(e => e.id === eleve.binomeId);
-    if (partner) {
-      binomeNom = `${partner.prenom} ${partner.nom}`;
+  // Résoudre les membres du groupe
+  let groupeMembresNoms: string[] | undefined;
+  if (eleve.groupeOralId && allEleves) {
+    const members = allEleves.filter(e => e.groupeOralId === eleve.groupeOralId && e.id !== eleve.id);
+    if (members.length > 0) {
+      groupeMembresNoms = members.map(m => `${m.prenom} ${m.nom}`);
     }
   }
 
@@ -80,8 +80,8 @@ function mapEleveAffecte(
     matiereAffectee: getMatiereAffectee(eleve, juryEnseignants),
     parcoursOral: eleve.parcoursOral,
     sujetOral: eleve.sujetOral,
-    binomeNom,
-    binomeEleveId: eleve.binomeId,
+    langueEtrangere: eleve.langueEtrangere,
+    groupeMembresNoms,
 
     // Champs futurs depuis metadata si disponibles
     datePassage: metadata?.dateCreneau,

@@ -112,7 +112,8 @@ export interface SessionEleveRow {
   classe: string | null;
   parcours: string | null;
   sujet: string | null;
-  binome_id: string | null;
+  groupe_oral_id: string | null;
+  langue: string | null;
   ordre_passage: number | null;
   heure_passage: string | null;
   status: string;
@@ -126,7 +127,8 @@ export interface SessionEleveInsert {
   classe?: string | null;
   parcours?: string | null;
   sujet?: string | null;
-  binome_id?: string | null;
+  groupe_oral_id?: string | null;
+  langue?: string | null;
   ordre_passage?: number | null;
   heure_passage?: string | null;
   status?: string;

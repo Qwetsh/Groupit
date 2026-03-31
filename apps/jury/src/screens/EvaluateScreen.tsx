@@ -169,7 +169,7 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
     try { localStorage.setItem(TIMER_KEY(eleve.id), String(elapsed)); } catch { /* ignore */ }
   }, [eleve.id]);
 
-  const isCollectif = eleve.binome_id !== null;
+  const isCollectif = eleve.groupe_oral_id !== null;
   const timerDuration = isCollectif ? TIMER_COLLECTIF : TIMER_INDIVIDUEL;
   const totals = computeTotals(scores, config);
   const allScored = allCriteriaScored(scores, config);
@@ -310,6 +310,7 @@ export function EvaluateScreen({ eleve, juryId: _juryId, onDone, onBack }: Evalu
           {eleve.parcours && ` · ${eleve.parcours}`}
           {eleve.sujet && ` · ${eleve.sujet}`}
           {isCollectif && ' · Collectif'}
+          {eleve.langue && ` · 🌐 ${eleve.langue}`}
         </div>
         {isRevisit && (
           <div style={{

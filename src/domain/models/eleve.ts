@@ -59,9 +59,11 @@ export interface Eleve {
   sujetOral?: string;
   // Matière(s) associée(s) au sujet
   matieresOral?: string[];
+  // Langue étrangère choisie pour l'oral (optionnel)
+  langueEtrangere?: string;
 
-  // Binôme : ID de l'élève partenaire (passage en duo, même jury/sujet/créneau)
-  binomeId?: string;
+  // Groupe oral : UUID partagé par les membres du groupe (2 ou 3 élèves)
+  groupeOralId?: string;
 
   // Timestamps
   createdAt: Date;
