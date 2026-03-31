@@ -201,6 +201,14 @@ export async function uploadSessionToSupabase(
     // On utilise directement le groupeOralId transmis par le dataMapper
     const groupeUpdates: { supaId: string; groupeOralId: string; groupSize: number }[] = [];
 
+    // DEBUG: vérifier ce qui arrive dans les données
+    const allEleves = data.jurys.flatMap(j => j.eleves);
+    const withGroup = allEleves.filter(e => e.groupeOralId);
+    const withGroupNoms = allEleves.filter(e => e.groupeMembresNoms?.length);
+    console.log(`[supabaseUpload] DEBUG: ${allEleves.length} élèves total, ${withGroup.length} avec groupeOralId, ${withGroupNoms.length} avec groupeMembresNoms`);
+    if (withGroup.length > 0) console.log('[supabaseUpload] DEBUG groupeOralId sample:', withGroup[0]);
+    if (withGroupNoms.length > 0 && withGroup.length === 0) console.log('[supabaseUpload] DEBUG groupeMembresNoms sample (pas de groupeOralId!):', withGroupNoms[0]);
+
     // Collecter les groupes par groupeOralId pour calculer la taille
     const groupSizes = new Map<string, number>();
     for (const jury of data.jurys) {
