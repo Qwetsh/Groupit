@@ -20,10 +20,10 @@ export interface ExportEleveData {
   matiereAffectee: string | null; // Matière qui a justifié l'affectation
   parcoursOral?: string;
   sujetOral?: string;
+  langueEtrangere?: string;
 
-  // Binôme
-  binomeNom?: string; // "Prénom Nom" du partenaire si binôme
-  binomeEleveId?: string; // ID local de l'élève partenaire
+  // Groupe oral
+  groupeMembresNoms?: string[]; // Noms des autres membres du groupe
 
   // Champs futurs (placeholders)
   datePassage?: string;

@@ -4,6 +4,18 @@
 
 import type { Affectation, Eleve, Jury } from '../domain/models';
 
+// ============ DURÉE PAR TAILLE DE GROUPE ============
+
+/**
+ * Retourne la durée de passage en minutes selon la taille du groupe.
+ * Solo = 20min, Binôme = 25min, Trinôme = 35min, autre = 20min (fallback).
+ */
+export function getGroupDuration(size: number): number {
+  if (size === 2) return 25;
+  if (size === 3) return 35;
+  return 20;
+}
+
 // ============ TYPES ============
 
 export type DistributionMode = 'fill_first' | 'distribute_evenly';
@@ -159,7 +171,7 @@ export function assignTimeSlots(
     // Distribuer les élèves dans les demi-journées selon le mode
     const distribution = distributeStudents(juryAffectations.length, demiJournees, slotsByDemiJournee, mode);
 
-    // Assigner les créneaux (binômes = même créneau, durée doublée → saute un slot)
+    // Assigner les créneaux (groupes = même créneau, durée variable → skip slots)
     let slotIdx = 0;
     const assignedIds = new Set<string>();
 
@@ -171,29 +183,41 @@ export function assignTimeSlots(
       if (!slot) break;
 
       const eleve = elevesById.get(aff.eleveId);
-      const isBinome = eleve?.binomeId != null;
 
+      // Find group members
+      const groupMembers: typeof juryAffectations = [];
+      if (eleve?.groupeOralId) {
+        for (const otherAff of juryAffectations) {
+          if (assignedIds.has(otherAff.eleveId)) continue;
+          const otherEleve = elevesById.get(otherAff.eleveId);
+          if (otherEleve?.groupeOralId === eleve.groupeOralId) {
+            groupMembers.push(otherAff);
+          }
+        }
+      }
+
+      // Assign slot to this student
       updates.set(aff.id, {
         dateCreneau: getDemiJourneeLabel(slot.demiJournee),
         heureCreneau: slot.heure,
       });
       assignedIds.add(aff.eleveId);
 
-      // Si binôme, assigner le partenaire au même créneau
-      if (isBinome) {
-        const partnerAff = juryAffectations.find(a => a.eleveId === eleve!.binomeId);
-        if (partnerAff && !assignedIds.has(partnerAff.eleveId)) {
-          updates.set(partnerAff.id, {
+      // Assign same slot to group members
+      for (const memberAff of groupMembers) {
+        if (memberAff.eleveId !== aff.eleveId && !assignedIds.has(memberAff.eleveId)) {
+          updates.set(memberAff.id, {
             dateCreneau: getDemiJourneeLabel(slot.demiJournee),
             heureCreneau: slot.heure,
           });
-          assignedIds.add(partnerAff.eleveId);
-          // Sauter un créneau supplémentaire (durée doublée)
-          slotIdx++;
+          assignedIds.add(memberAff.eleveId);
         }
       }
 
-      slotIdx++;
+      // Skip slots based on group duration
+      const groupSize = groupMembers.length > 0 ? groupMembers.length : 1;
+      const slotsToSkip = Math.ceil(getGroupDuration(groupSize) / DUREE_PASSAGE_MIN) - 1;
+      slotIdx += 1 + slotsToSkip;
     }
   }
 

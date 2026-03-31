@@ -5,6 +5,7 @@
 export { StepScenarioChoice } from './StepScenarioChoice';
 export { StepImportEleves } from './StepImportEleves';
 export { StepBinomes } from './StepBinomes';
+export { StepGroupes } from './StepGroupes';
 export { StepImportEnseignants } from './StepImportEnseignants';
 export { StepConfiguration } from './StepConfiguration';
 export { StepSalles } from './StepSalles';

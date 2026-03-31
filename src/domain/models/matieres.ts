@@ -58,3 +58,7 @@ export function getPoidsPedagogiqueNormalise(matiere: string): number {
   const maxHeures = Math.max(...MATIERES_HEURES_3E.map(m => m.heuresMoyenne));
   return heures / maxHeures;
 }
+
+// Langues étrangères disponibles pour l'oral DNB
+export const LANGUES_ETRANGERES = ['Anglais', 'Espagnol', 'Allemand', 'Chinois'] as const;
+export type LangueEtrangere = typeof LANGUES_ETRANGERES[number];

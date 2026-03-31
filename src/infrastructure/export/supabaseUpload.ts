@@ -165,13 +165,13 @@ export async function uploadSessionToSupabase(
       sessionId = newSession.id;
     }
 
-    // 3. Créer les jurys et élèves (passe 1 : sans binome_id)
+    // 3. Créer les jurys et élèves (passe 1 : sans groupe_oral_id)
     const globalIdMap = new Map<string, string>(); // eleveId local → UUID Supabase
 
     for (let juryIdx = 0; juryIdx < data.jurys.length; juryIdx++) {
       const jury = data.jurys[juryIdx]!;
       const juryNumber = juryIdx + 1;
-      const hasBinomes = jury.eleves.some(e => e.binomeEleveId);
+      const hasGroupes = jury.eleves.some(e => e.groupeMembresNoms && e.groupeMembresNoms.length > 0);
 
       const { data: newJury, error: juryErr } = await supabase
         .from('session_jurys')
@@ -180,7 +180,7 @@ export async function uploadSessionToSupabase(
           jury_number: juryNumber,
           jury_name: jury.juryName,
           salle: jury.salle || null,
-          mode: hasBinomes ? 'collectif' : 'solo',
+          mode: hasGroupes ? 'collectif' : 'solo',
         })
         .select('id')
         .single();
@@ -190,33 +190,55 @@ export async function uploadSessionToSupabase(
         continue;
       }
 
-      // 4. Créer les élèves pseudonymisés (sans binome_id)
+      // 4. Créer les élèves pseudonymisés (sans groupe_oral_id)
       const juryMap = await uploadJuryEleves(newJury.id, jury);
       for (const [localId, supaId] of juryMap) {
         globalIdMap.set(localId, supaId);
       }
     }
 
-    // 5. Passe 2 : mettre à jour les binome_id maintenant que tous les IDs existent
-    const binomeUpdates: { supaId: string; binomeSupaId: string }[] = [];
+    // 5. Passe 2 : identifier les groupes et assigner un groupe_oral_id partagé
+    // Group members share the same groupeMembresNoms pattern — detect groups by matching display names
+    const groupeUpdates: { supaId: string; groupeOralId: string; groupSize: number }[] = [];
+    const processedGroupMembers = new Set<string>();
+
     for (const jury of data.jurys) {
       for (const eleve of jury.eleves) {
-        if (eleve.binomeEleveId) {
-          const supaId = globalIdMap.get(eleve.eleveId);
-          const binomeSupaId = globalIdMap.get(eleve.binomeEleveId);
-          if (supaId && binomeSupaId) {
-            binomeUpdates.push({ supaId, binomeSupaId });
+        if (!eleve.groupeMembresNoms?.length || processedGroupMembers.has(eleve.eleveId)) continue;
+
+        // Find all group members in this jury by cross-referencing groupeMembresNoms
+        const groupMembers = jury.eleves.filter(e =>
+          e.groupeMembresNoms?.length &&
+          (e.eleveId === eleve.eleveId || eleve.groupeMembresNoms!.some(name =>
+            name === `${e.prenom} ${e.nom}`
+          ))
+        );
+
+        if (groupMembers.length >= 2) {
+          const groupeOralId = crypto.randomUUID();
+          const groupSize = groupMembers.length;
+          for (const member of groupMembers) {
+            const supaId = globalIdMap.get(member.eleveId);
+            if (supaId) {
+              groupeUpdates.push({ supaId, groupeOralId, groupSize });
+              processedGroupMembers.add(member.eleveId);
+            }
           }
         }
       }
     }
 
-    for (const { supaId, binomeSupaId } of binomeUpdates) {
-      await supabase.from('session_eleves').update({ binome_id: binomeSupaId }).eq('id', supaId);
+    for (const { supaId, groupeOralId, groupSize } of groupeUpdates) {
+      // Calculate duration based on group size: solo=20, binome=25, trinome=35
+      const dureeSec = (groupSize === 2 ? 25 : groupSize === 3 ? 35 : 20) * 60;
+      await supabase.from('session_eleves').update({
+        groupe_oral_id: groupeOralId,
+        duree_passage: dureeSec,
+      }).eq('id', supaId);
     }
 
-    if (binomeUpdates.length > 0) {
-      console.log(`[supabaseUpload] ${binomeUpdates.length} liens binômes créés`);
+    if (groupeUpdates.length > 0) {
+      console.log(`[supabaseUpload] ${groupeUpdates.length} liens groupes créés`);
     }
 
     console.log(`[supabaseUpload] Session ${sessionCode} uploadée: ${data.jurys.length} jurys`);
@@ -248,6 +270,7 @@ async function uploadJuryEleves(
       classe: eleve.classe,
       parcours: eleve.parcoursOral || null,
       sujet: eleve.sujetOral || null,
+      langue: eleve.langueEtrangere || null,
       ordre_passage: idx + 1,
       heure_passage: eleve.heurePassage || null,
       status: 'pending',

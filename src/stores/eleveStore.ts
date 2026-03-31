@@ -43,9 +43,9 @@ interface EleveState {
   selectAllEleves: () => void;
   deselectAllEleves: () => void;
 
-  // Binômes
-  setBinome: (eleveAId: string, eleveBId: string) => Promise<void>;
-  removeBinome: (eleveId: string) => Promise<void>;
+  // Groupes oraux
+  setGroupeOral: (eleveIds: string[]) => Promise<void>;
+  removeFromGroupeOral: (eleveId: string) => Promise<void>;
 
   // Getters
   getFilteredEleves: () => Eleve[];
@@ -236,28 +236,43 @@ export const useEleveStore = create<EleveState>((set, get) => ({
     }
   },
 
-  setBinome: async (eleveAId, eleveBId) => {
+  setGroupeOral: async (eleveIds) => {
     try {
-      // D'abord, dissocier les anciens binômes éventuels
+      // Remove from existing groups first
       const stateNow = get();
-      const eleveA = stateNow.eleves.find(e => e.id === eleveAId);
-      const eleveB = stateNow.eleves.find(e => e.id === eleveBId);
-      if (eleveA?.binomeId && eleveA.binomeId !== eleveBId) {
-        await getRepo().update(eleveA.binomeId, { binomeId: undefined });
+      for (const id of eleveIds) {
+        const eleve = stateNow.eleves.find(e => e.id === id);
+        if (eleve?.groupeOralId) {
+          // Remove from old group
+          const oldMembers = stateNow.eleves.filter(e => e.groupeOralId === eleve.groupeOralId && e.id !== id);
+          if (oldMembers.length === 1) {
+            // Last remaining member loses groupeOralId
+            await getRepo().update(oldMembers[0]!.id!, { groupeOralId: undefined });
+          }
+          await getRepo().update(id, { groupeOralId: undefined });
+        }
       }
-      if (eleveB?.binomeId && eleveB.binomeId !== eleveAId) {
-        await getRepo().update(eleveB.binomeId, { binomeId: undefined });
+      // Generate shared UUID
+      const groupeId = crypto.randomUUID();
+      for (const id of eleveIds) {
+        await getRepo().update(id, { groupeOralId: groupeId });
       }
-      // Lier A ↔ B
-      await getRepo().update(eleveAId, { binomeId: eleveBId });
-      await getRepo().update(eleveBId, { binomeId: eleveAId });
       set(state => {
         const eleves = state.eleves.map(e => {
-          if (e.id === eleveAId) return { ...e, binomeId: eleveBId, updatedAt: new Date() };
-          if (e.id === eleveBId) return { ...e, binomeId: eleveAId, updatedAt: new Date() };
-          // Dissocier les anciens partenaires
-          if (e.binomeId === eleveAId && e.id !== eleveBId) return { ...e, binomeId: undefined, updatedAt: new Date() };
-          if (e.binomeId === eleveBId && e.id !== eleveAId) return { ...e, binomeId: undefined, updatedAt: new Date() };
+          if (eleveIds.includes(e.id)) return { ...e, groupeOralId: groupeId, updatedAt: new Date() };
+          // Clean up orphaned old group members (single member left)
+          const wasInGroupWithMember = eleveIds.some(id => {
+            const member = state.eleves.find(m => m.id === id);
+            return member?.groupeOralId && member.groupeOralId === e.groupeOralId;
+          });
+          if (wasInGroupWithMember) {
+            const remainingMembers = state.eleves.filter(
+              m => m.groupeOralId === e.groupeOralId && !eleveIds.includes(m.id) && m.id !== e.id
+            );
+            if (remainingMembers.length === 0) {
+              return { ...e, groupeOralId: undefined, updatedAt: new Date() };
+            }
+          }
           return e;
         });
         eleveBackupService.persist(eleves);
@@ -269,16 +284,28 @@ export const useEleveStore = create<EleveState>((set, get) => ({
     }
   },
 
-  removeBinome: async (eleveId) => {
+  removeFromGroupeOral: async (eleveId) => {
     try {
       const eleve = get().eleves.find(e => e.id === eleveId);
-      if (!eleve?.binomeId) return;
-      const partnerId = eleve.binomeId;
-      await getRepo().update(eleveId, { binomeId: undefined });
-      await getRepo().update(partnerId, { binomeId: undefined });
+      if (!eleve?.groupeOralId) return;
+      const groupeId = eleve.groupeOralId;
+      const members = get().eleves.filter(e => e.groupeOralId === groupeId);
+
+      // Remove this eleve from group
+      await getRepo().update(eleveId, { groupeOralId: undefined });
+
+      // If only 1 member remains, dissolve the group
+      const remaining = members.filter(e => e.id !== eleveId);
+      if (remaining.length === 1) {
+        await getRepo().update(remaining[0]!.id!, { groupeOralId: undefined });
+      }
+
       set(state => {
         const eleves = state.eleves.map(e => {
-          if (e.id === eleveId || e.id === partnerId) return { ...e, binomeId: undefined, updatedAt: new Date() };
+          if (e.id === eleveId) return { ...e, groupeOralId: undefined, updatedAt: new Date() };
+          if (e.groupeOralId === groupeId && remaining.length === 1) {
+            return { ...e, groupeOralId: undefined, updatedAt: new Date() };
+          }
           return e;
         });
         eleveBackupService.persist(eleves);

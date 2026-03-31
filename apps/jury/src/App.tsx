@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { JoinScreen } from './screens/JoinScreen';
 import { StudentListScreen } from './screens/StudentListScreen';
 import { EvaluateScreen } from './screens/EvaluateScreen';
-import { BinomeEvaluateScreen } from './screens/BinomeEvaluateScreen';
+import { GroupeEvaluateScreen } from './screens/GroupeEvaluateScreen';
 import { CriteriaProvider } from './context/CriteriaContext';
 import { supabase, DEFAULT_CRITERIA_CONFIG } from '@groupit/shared';
 import type { SessionEleveRow, CriteriaConfig } from '@groupit/shared';
@@ -12,7 +12,7 @@ export type Screen =
   | { type: 'join' }
   | { type: 'students'; juryId: string; sessionId: string }
   | { type: 'evaluate'; juryId: string; sessionId: string; eleve: SessionEleveRow }
-  | { type: 'evaluate-binome'; juryId: string; sessionId: string; eleves: [SessionEleveRow, SessionEleveRow] };
+  | { type: 'evaluate-groupe'; juryId: string; sessionId: string; eleves: SessionEleveRow[] };
 
 const SESSION_NAV_KEY = 'jury-nav';
 const CRITERIA_CONFIG_KEY = 'jury-criteria-config';
@@ -21,7 +21,7 @@ interface SavedNav {
   juryId: string;
   sessionId: string;
   eleveId?: string;
-  eleveIds?: [string, string];
+  eleveIds?: string[];
 }
 
 function saveNav(screen: Screen) {
@@ -39,7 +39,7 @@ function saveNav(screen: Screen) {
     } else {
       sessionStorage.setItem(SESSION_NAV_KEY, JSON.stringify({
         juryId: screen.juryId, sessionId: screen.sessionId,
-        eleveIds: [screen.eleves[0].id, screen.eleves[1].id],
+        eleveIds: screen.eleves.map(e => e.id),
       }));
     }
   } catch { /* ignore */ }
@@ -90,18 +90,18 @@ export default function App() {
         }
       } catch { /* ignore */ }
 
-      if (nav.eleveIds) {
+      if (nav.eleveIds && nav.eleveIds.length >= 2) {
         const { data } = await supabase
           .from('session_eleves')
           .select('*')
           .in('id', nav.eleveIds);
-        if (data && data.length === 2) {
-          const sorted = nav.eleveIds.map(id => data.find(e => e.id === id));
-          if (sorted.some(e => !e)) { setRestoring(false); return; }
-          const validSorted = sorted as [SessionEleveRow, SessionEleveRow];
-          setScreen({ type: 'evaluate-binome', juryId: nav.juryId, sessionId: nav.sessionId, eleves: validSorted });
-          setRestoring(false);
-          return;
+        if (data && data.length >= 2) {
+          const sorted = nav.eleveIds.map(id => data.find(e => e.id === id)).filter((e): e is SessionEleveRow => !!e);
+          if (sorted.length >= 2) {
+            setScreen({ type: 'evaluate-groupe', juryId: nav.juryId, sessionId: nav.sessionId, eleves: sorted });
+            setRestoring(false);
+            return;
+          }
         }
       }
 
@@ -198,8 +198,8 @@ export default function App() {
           onSelectEleve={(eleve) =>
             navigate({ type: 'evaluate', juryId: screen.juryId, sessionId: screen.sessionId, eleve })
           }
-          onSelectBinome={(eleves) =>
-            navigate({ type: 'evaluate-binome', juryId: screen.juryId, sessionId: screen.sessionId, eleves })
+          onSelectGroupe={(eleves) =>
+            navigate({ type: 'evaluate-groupe', juryId: screen.juryId, sessionId: screen.sessionId, eleves })
           }
           onDisconnect={() => navigate({ type: 'join' })}
         />;
@@ -217,8 +217,8 @@ export default function App() {
           }
         />;
 
-      case 'evaluate-binome':
-        return <BinomeEvaluateScreen
+      case 'evaluate-groupe':
+        return <GroupeEvaluateScreen
           eleves={screen.eleves}
           juryId={screen.juryId}
           onDone={() => {

@@ -205,7 +205,20 @@ function scoreEleveJury(
     scoreMatiereBase = 50; // Score neutre
     raisons.push('Matière élève non renseignée');
   }
-  
+
+  // Score langue étrangère
+  let scoreLangue = 0;
+  if (eleve.langueEtrangere) {
+    const hasLangueTeacher = juryContext.matieres.includes(eleve.langueEtrangere);
+    scoreLangue = hasLangueTeacher ? 100 : 0;
+    if (hasLangueTeacher) {
+      raisons.push(`Correspondance langue: ${eleve.langueEtrangere}`);
+    } else {
+      raisons.push(`Pas de prof de ${eleve.langueEtrangere} dans ce jury`);
+    }
+  }
+  scoreDetail['langue'] = scoreLangue;
+
   // Normaliser les poids pour avoir un total de 100
   const poidsElevesEnCours = opts.poidsElevesEnCours ?? 0;
   const poidsPedagogique = opts.poidsPedagogique ?? 0;
@@ -316,7 +329,7 @@ function scoreEleveJury(
   }
 
   // 7. Score final pondéré
-  const scoreFinal = Math.round(
+  let scoreFinal = Math.round(
     scoreMatiereBase * wMatiere +
     scoreEquilibrage * wEquilibrage +
     scoreMixite * wMixite +
@@ -324,6 +337,11 @@ function scoreEleveJury(
     scorePedagogique * wPedagogique +
     scoreElevesEnCours * wElevesEnCours
   );
+
+  // Bonus langue étrangère (priorité haute, additif)
+  if (eleve.langueEtrangere && scoreLangue > 0) {
+    scoreFinal += 50; // Gros bonus pour jury avec prof de la langue
+  }
   
   return {
     score: scoreFinal,
@@ -352,7 +370,11 @@ function generateExplication(
   } else {
     raisonPrincipale = `Pas de jury avec matière ${eleve.matieresOral.join('/')} - Fallback sur critères secondaires`;
   }
-  
+
+  if (eleve.langueEtrangere) {
+    raisonPrincipale += ` | Langue: ${eleve.langueEtrangere}`;
+  }
+
   return {
     raisonPrincipale,
     criteresUtilises: Object.keys(scoreResult.scoreDetail),
@@ -437,16 +459,19 @@ export function solveOralDnb(
   const nonAffectes: string[] = [];
   const sansMatchMatiere: string[] = [];
 
-  // Identifier les binômes (paires d'élèves liés)
+  // Identifier les groupes (élèves liés par groupeOralId)
   const alreadyAssigned = new Set<string>();
 
   /**
-   * Affecte un élève (et son binôme éventuel) à un jury.
+   * Affecte un élève (et son groupe éventuel) à un jury.
    * Retourne true si l'affectation a réussi.
    */
   function affectEleve(eleve: Eleve, juryId: string, score: ScoreEleveJury, ctx: JuryContext): boolean {
-    const partner = eleve.binomeId ? eleves.find(e => e.id === eleve.binomeId) : null;
-    const slotsNeeded = partner && !alreadyAssigned.has(partner.id!) ? 2 : 1;
+    // Find group members
+    const groupMembers = eleve.groupeOralId
+      ? eleves.filter(e => e.groupeOralId === eleve.groupeOralId && !alreadyAssigned.has(e.id!))
+      : [];
+    const slotsNeeded = groupMembers.length > 0 ? groupMembers.length : 1;
 
     if (ctx.capaciteRestante < slotsNeeded) return false;
 
@@ -465,28 +490,31 @@ export function solveOralDnb(
     ctx.chargeActuelle++;
     alreadyAssigned.add(eleve.id!);
 
-    // Affecter le binôme au même jury
-    if (partner && !alreadyAssigned.has(partner.id!)) {
-      const partnerScore = scoreEleveJury(partner, ctx, scenario, scoringOptions);
+    // Affecter les membres du groupe au même jury
+    const otherMembers = groupMembers.filter(m => m.id !== eleve.id && !alreadyAssigned.has(m.id!));
+    const groupLabel = otherMembers.length === 1 ? 'Binôme' : otherMembers.length === 2 ? 'Trinôme' : 'Groupe';
+
+    for (const member of otherMembers) {
+      const memberScore = scoreEleveJury(member, ctx, scenario, scoringOptions);
       affectations.push({
-        eleveId: partner.id!,
+        eleveId: member.id!,
         juryId,
-        matiereEleve: partnerScore.matiereEleve,
+        matiereEleve: memberScore.matiereEleve,
         matieresJury: ctx.matieres,
-        matiereMatch: partnerScore.matiereMatch,
-        score: partnerScore.score,
-        scoreDetail: partnerScore.scoreDetail,
+        matiereMatch: memberScore.matiereMatch,
+        score: memberScore.score,
+        scoreDetail: memberScore.scoreDetail,
         explication: {
-          ...generateExplication(partner, ctx, partnerScore),
-          raisonPrincipale: `Binôme avec ${eleve.prenom} ${eleve.nom} — ${generateExplication(partner, ctx, partnerScore).raisonPrincipale}`,
+          ...generateExplication(member, ctx, memberScore),
+          raisonPrincipale: `${groupLabel} avec ${[eleve, ...otherMembers.filter(m => m.id !== member.id)].map(m => `${m.prenom} ${m.nom}`).join(', ')} — ${generateExplication(member, ctx, memberScore).raisonPrincipale}`,
         },
       });
       ctx.capaciteRestante--;
       ctx.chargeActuelle++;
-      alreadyAssigned.add(partner.id!);
+      alreadyAssigned.add(member.id!);
 
-      if (!partnerScore.matiereMatch && partner.matieresOral?.length) {
-        sansMatchMatiere.push(partner.id!);
+      if (!memberScore.matiereMatch && member.matieresOral?.length) {
+        sansMatchMatiere.push(member.id!);
       }
     }
 
@@ -500,8 +528,10 @@ export function solveOralDnb(
     if (alreadyAssigned.has(eleve.id!)) continue; // Déjà affecté comme binôme
 
     let bestMatch: { juryId: string; score: ScoreEleveJury } | null = null;
-    const partner = eleve.binomeId ? eleves.find(e => e.id === eleve.binomeId) : null;
-    const slotsNeeded = partner && !alreadyAssigned.has(partner.id!) ? 2 : 1;
+    const groupMembers = eleve.groupeOralId
+      ? eleves.filter(e => e.groupeOralId === eleve.groupeOralId && !alreadyAssigned.has(e.id!))
+      : [];
+    const slotsNeeded = groupMembers.length > 0 ? groupMembers.length : 1;
 
     // Chercher d'abord un jury avec correspondance matière
     for (const [juryId, ctx] of juryContexts) {
@@ -534,8 +564,10 @@ export function solveOralDnb(
     if (alreadyAssigned.has(eleve.id!)) continue;
 
     let bestMatch: { juryId: string; score: ScoreEleveJury } | null = null;
-    const partner = eleve.binomeId ? eleves.find(e => e.id === eleve.binomeId) : null;
-    const slotsNeeded = partner && !alreadyAssigned.has(partner.id!) ? 2 : 1;
+    const groupMembers = eleve.groupeOralId
+      ? eleves.filter(e => e.groupeOralId === eleve.groupeOralId && !alreadyAssigned.has(e.id!))
+      : [];
+    const slotsNeeded = groupMembers.length > 0 ? groupMembers.length : 1;
 
     for (const [juryId, ctx] of juryContexts) {
       if (ctx.capaciteRestante < slotsNeeded) continue;
@@ -556,10 +588,13 @@ export function solveOralDnb(
       }
     } else {
       nonAffectes.push(eleve.id!);
-      // Si l'élève a un binôme non encore affecté, le marquer aussi
-      if (partner && !alreadyAssigned.has(partner.id!)) {
-        nonAffectes.push(partner.id!);
-        alreadyAssigned.add(partner.id!);
+      alreadyAssigned.add(eleve.id!);
+      // Si l'élève a un groupe non encore affecté, marquer tous les membres
+      for (const member of groupMembers) {
+        if (!alreadyAssigned.has(member.id!)) {
+          nonAffectes.push(member.id!);
+          alreadyAssigned.add(member.id!);
+        }
       }
     }
   }

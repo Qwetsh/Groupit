@@ -37,8 +37,8 @@ export type {
 export { NIVEAUX, isNiveau, extractNiveau } from './types';
 
 // ============ MATIÈRES ============
-export type { MatiereHeuresRef, ParcoursOralDNB } from './matieres';
-export { MATIERES_HEURES_3E, PARCOURS_ORAL_DNB, getHeuresMatiere, getPoidsPedagogiqueNormalise } from './matieres';
+export type { MatiereHeuresRef, ParcoursOralDNB, LangueEtrangere } from './matieres';
+export { MATIERES_HEURES_3E, PARCOURS_ORAL_DNB, LANGUES_ETRANGERES, getHeuresMatiere, getPoidsPedagogiqueNormalise } from './matieres';
 
 // ============ CAPACITÉ ============
 export {

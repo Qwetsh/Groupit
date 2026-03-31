@@ -1087,6 +1087,45 @@
   }
 }
 
+/* Groupe cards */
+.groupe-card {
+  background: #f5f3ff;
+  border: 1px solid #d8b4fe;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 6px;
+}
+
+.trinome-badge {
+  font-size: 10px;
+  font-weight: 800;
+  color: #92400e;
+  background: #fef3c7;
+  padding: 2px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+
+.binome-badge-tag {
+  font-size: 10px;
+  font-weight: 800;
+  color: #6b46c1;
+  background: #e9d8fd;
+  padding: 2px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+
+.groupe-members {
+  margin-top: 4px;
+}
+
+.groupe-member-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
 .confetti {
   position: absolute;
   top: 0;
