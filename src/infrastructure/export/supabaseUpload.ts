@@ -197,39 +197,33 @@ export async function uploadSessionToSupabase(
       }
     }
 
-    // 5. Passe 2 : identifier les groupes et assigner un groupe_oral_id partagé
-    // Group members share the same groupeMembresNoms pattern — detect groups by matching display names
+    // 5. Passe 2 : assigner groupe_oral_id aux membres de groupes
+    // On utilise directement le groupeOralId transmis par le dataMapper
     const groupeUpdates: { supaId: string; groupeOralId: string; groupSize: number }[] = [];
-    const processedGroupMembers = new Set<string>();
+
+    // Collecter les groupes par groupeOralId pour calculer la taille
+    const groupSizes = new Map<string, number>();
+    for (const jury of data.jurys) {
+      for (const eleve of jury.eleves) {
+        if (eleve.groupeOralId) {
+          groupSizes.set(eleve.groupeOralId, (groupSizes.get(eleve.groupeOralId) || 0) + 1);
+        }
+      }
+    }
 
     for (const jury of data.jurys) {
       for (const eleve of jury.eleves) {
-        if (!eleve.groupeMembresNoms?.length || processedGroupMembers.has(eleve.eleveId)) continue;
-
-        // Find all group members in this jury by cross-referencing groupeMembresNoms
-        const groupMembers = jury.eleves.filter(e =>
-          e.groupeMembresNoms?.length &&
-          (e.eleveId === eleve.eleveId || eleve.groupeMembresNoms!.some(name =>
-            name === `${e.prenom} ${e.nom}`
-          ))
-        );
-
-        if (groupMembers.length >= 2) {
-          const groupeOralId = crypto.randomUUID();
-          const groupSize = groupMembers.length;
-          for (const member of groupMembers) {
-            const supaId = globalIdMap.get(member.eleveId);
-            if (supaId) {
-              groupeUpdates.push({ supaId, groupeOralId, groupSize });
-              processedGroupMembers.add(member.eleveId);
-            }
-          }
+        if (!eleve.groupeOralId) continue;
+        const supaId = globalIdMap.get(eleve.eleveId);
+        if (supaId) {
+          const groupSize = groupSizes.get(eleve.groupeOralId) || 1;
+          groupeUpdates.push({ supaId, groupeOralId: eleve.groupeOralId, groupSize });
         }
       }
     }
 
     for (const { supaId, groupeOralId, groupSize } of groupeUpdates) {
-      // Calculate duration based on group size: solo=20, binome=25, trinome=35
+      // Durée selon taille : solo=20, binôme=25, trinôme=35
       const dureeSec = (groupSize === 2 ? 25 : groupSize === 3 ? 35 : 20) * 60;
       await supabase.from('session_eleves').update({
         groupe_oral_id: groupeOralId,
