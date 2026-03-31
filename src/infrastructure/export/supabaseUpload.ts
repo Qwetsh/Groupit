@@ -165,13 +165,24 @@ export async function uploadSessionToSupabase(
       sessionId = newSession.id;
     }
 
-    // 3. Créer les jurys et élèves (passe 1 : sans groupe_oral_id)
-    const globalIdMap = new Map<string, string>(); // eleveId local → UUID Supabase
+    // 3. Pré-calculer les tailles de groupes pour inclure groupe_oral_id dès l'INSERT
+    const groupSizes = new Map<string, number>();
+    for (const jury of data.jurys) {
+      for (const eleve of jury.eleves) {
+        if (eleve.groupeOralId) {
+          groupSizes.set(eleve.groupeOralId, (groupSizes.get(eleve.groupeOralId) || 0) + 1);
+        }
+      }
+    }
+    if (groupSizes.size > 0) {
+      console.log(`[supabaseUpload] ${groupSizes.size} groupes détectés (${[...groupSizes.values()].reduce((a, b) => a + b, 0)} élèves)`);
+    }
 
+    // 4. Créer les jurys et élèves (avec groupe_oral_id directement dans l'INSERT)
     for (let juryIdx = 0; juryIdx < data.jurys.length; juryIdx++) {
       const jury = data.jurys[juryIdx]!;
       const juryNumber = juryIdx + 1;
-      const hasGroupes = jury.eleves.some(e => e.groupeMembresNoms && e.groupeMembresNoms.length > 0);
+      const hasGroupes = jury.eleves.some(e => e.groupeOralId);
 
       const { data: newJury, error: juryErr } = await supabase
         .from('session_jurys')
@@ -190,57 +201,7 @@ export async function uploadSessionToSupabase(
         continue;
       }
 
-      // 4. Créer les élèves pseudonymisés (sans groupe_oral_id)
-      const juryMap = await uploadJuryEleves(newJury.id, jury);
-      for (const [localId, supaId] of juryMap) {
-        globalIdMap.set(localId, supaId);
-      }
-    }
-
-    // 5. Passe 2 : assigner groupe_oral_id aux membres de groupes
-    // On utilise directement le groupeOralId transmis par le dataMapper
-    const groupeUpdates: { supaId: string; groupeOralId: string; groupSize: number }[] = [];
-
-    // DEBUG: vérifier ce qui arrive dans les données
-    const allEleves = data.jurys.flatMap(j => j.eleves);
-    const withGroup = allEleves.filter(e => e.groupeOralId);
-    const withGroupNoms = allEleves.filter(e => e.groupeMembresNoms?.length);
-    console.log(`[supabaseUpload] DEBUG: ${allEleves.length} élèves total, ${withGroup.length} avec groupeOralId, ${withGroupNoms.length} avec groupeMembresNoms`);
-    if (withGroup.length > 0) console.log('[supabaseUpload] DEBUG groupeOralId sample:', withGroup[0]);
-    if (withGroupNoms.length > 0 && withGroup.length === 0) console.log('[supabaseUpload] DEBUG groupeMembresNoms sample (pas de groupeOralId!):', withGroupNoms[0]);
-
-    // Collecter les groupes par groupeOralId pour calculer la taille
-    const groupSizes = new Map<string, number>();
-    for (const jury of data.jurys) {
-      for (const eleve of jury.eleves) {
-        if (eleve.groupeOralId) {
-          groupSizes.set(eleve.groupeOralId, (groupSizes.get(eleve.groupeOralId) || 0) + 1);
-        }
-      }
-    }
-
-    for (const jury of data.jurys) {
-      for (const eleve of jury.eleves) {
-        if (!eleve.groupeOralId) continue;
-        const supaId = globalIdMap.get(eleve.eleveId);
-        if (supaId) {
-          const groupSize = groupSizes.get(eleve.groupeOralId) || 1;
-          groupeUpdates.push({ supaId, groupeOralId: eleve.groupeOralId, groupSize });
-        }
-      }
-    }
-
-    for (const { supaId, groupeOralId, groupSize } of groupeUpdates) {
-      // Durée selon taille : solo=20, binôme=25, trinôme=35
-      const dureeSec = (groupSize === 2 ? 25 : groupSize === 3 ? 35 : 20) * 60;
-      await supabase.from('session_eleves').update({
-        groupe_oral_id: groupeOralId,
-        duree_passage: dureeSec,
-      }).eq('id', supaId);
-    }
-
-    if (groupeUpdates.length > 0) {
-      console.log(`[supabaseUpload] ${groupeUpdates.length} liens groupes créés`);
+      await uploadJuryEleves(newJury.id, jury, groupSizes);
     }
 
     console.log(`[supabaseUpload] Session ${sessionCode} uploadée: ${data.jurys.length} jurys`);
@@ -254,49 +215,45 @@ export async function uploadSessionToSupabase(
 
 /**
  * Upload les élèves d'un jury (pseudonymisés avec hash).
- * Retourne un map eleveId local → session_eleves.id (UUID Supabase)
- * pour résoudre les binômes en 2ème passe.
+ * Inclut groupe_oral_id et duree_passage directement dans l'INSERT
+ * pour éviter les conflits RLS sur UPDATE.
  */
 async function uploadJuryEleves(
   juryId: string,
   jury: ExportJuryData,
-): Promise<Map<string, string>> {
-  const localToSupabase = new Map<string, string>();
-  if (jury.eleves.length === 0) return localToSupabase;
+  groupSizes: Map<string, number>,
+): Promise<void> {
+  if (jury.eleves.length === 0) return;
 
   const rows = await Promise.all(
-    jury.eleves.map(async (eleve: ExportEleveData, idx: number) => ({
-      jury_id: juryId,
-      eleve_hash: await hashEleve(eleve.nom, eleve.prenom, eleve.classe),
-      display_name: pseudonymize(eleve.prenom, eleve.nom),
-      classe: eleve.classe,
-      parcours: eleve.parcoursOral || null,
-      sujet: eleve.sujetOral || null,
-      langue: eleve.langueEtrangere || null,
-      ordre_passage: idx + 1,
-      heure_passage: eleve.heurePassage || null,
-      status: 'pending',
-    }))
+    jury.eleves.map(async (eleve: ExportEleveData, idx: number) => {
+      const groupSize = eleve.groupeOralId ? (groupSizes.get(eleve.groupeOralId) || 1) : 0;
+      const dureeSec = groupSize >= 2
+        ? (groupSize === 2 ? 25 : groupSize === 3 ? 35 : 20) * 60
+        : null;
+
+      return {
+        jury_id: juryId,
+        eleve_hash: await hashEleve(eleve.nom, eleve.prenom, eleve.classe),
+        display_name: pseudonymize(eleve.prenom, eleve.nom),
+        classe: eleve.classe,
+        parcours: eleve.parcoursOral || null,
+        sujet: eleve.sujetOral || null,
+        langue: eleve.langueEtrangere || null,
+        groupe_oral_id: eleve.groupeOralId || null,
+        duree_passage: dureeSec,
+        ordre_passage: idx + 1,
+        heure_passage: eleve.heurePassage || null,
+        status: 'pending',
+      };
+    })
   );
 
-  const { data: inserted, error } = await supabase
+  const { error } = await supabase
     .from('session_eleves')
-    .insert(rows)
-    .select('id');
+    .insert(rows);
 
-  if (error || !inserted) {
+  if (error) {
     console.error(`[supabaseUpload] Erreur élèves jury ${jury.juryName}:`, error);
-    return localToSupabase;
   }
-
-  // Mapper eleveId local → UUID Supabase (même ordre d'insertion)
-  for (let i = 0; i < jury.eleves.length; i++) {
-    const localId = jury.eleves[i]!.eleveId;
-    const supaId = inserted[i]?.id;
-    if (localId && supaId) {
-      localToSupabase.set(localId, supaId);
-    }
-  }
-
-  return localToSupabase;
 }
