@@ -81,6 +81,7 @@ function mapEleveAffecte(
     parcoursOral: eleve.parcoursOral,
     sujetOral: eleve.sujetOral,
     langueEtrangere: eleve.langueEtrangere,
+    groupeOralId: eleve.groupeOralId,
     groupeMembresNoms,
 
     // Champs futurs depuis metadata si disponibles

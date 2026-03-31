@@ -23,6 +23,7 @@ export interface ExportEleveData {
   langueEtrangere?: string;
 
   // Groupe oral
+  groupeOralId?: string;        // UUID partagé par les membres du groupe
   groupeMembresNoms?: string[]; // Noms des autres membres du groupe
 
   // Champs futurs (placeholders)
