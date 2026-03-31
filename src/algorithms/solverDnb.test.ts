@@ -3,7 +3,7 @@
 // ============================================================
 
 import { describe, it, expect } from 'vitest';
-import { solveOralDnb } from './solverDnb';
+import { solveOralDnb, solveOralDnbComplete } from './solverDnb';
 import type { Eleve, Enseignant, Jury, Scenario } from '../domain/models';
 
 describe('Solveur Oral DNB', () => {
@@ -258,6 +258,71 @@ describe('Solveur Oral DNB', () => {
       expect(bin1Jury).toBe(bin2Jury);
 
       // Trinôme dans le même jury
+      const tri1Jury = result.affectations.find(a => a.eleveId === 'tri1')!.juryId;
+      const tri2Jury = result.affectations.find(a => a.eleveId === 'tri2')!.juryId;
+      const tri3Jury = result.affectations.find(a => a.eleveId === 'tri3')!.juryId;
+      expect(tri1Jury).toBe(tri2Jury);
+      expect(tri2Jury).toBe(tri3Jury);
+    });
+  });
+
+  // === TESTS solveOralDnbComplete (greedy + swaps) ===
+
+  describe('solveOralDnbComplete — swaps ne cassent pas les groupes', () => {
+    it('binôme reste dans le même jury après amélioration par swaps', () => {
+      // Scénario : binôme SVT dans jury Français, un solo Français dans jury SVT
+      // Le swap voudrait échanger le solo mais NE DOIT PAS toucher au binôme
+      const eleves = [
+        createEleve('bin1', { matieresOral: ['SVT'], groupeOralId: 'g1' }),
+        createEleve('bin2', { matieresOral: ['SVT'], groupeOralId: 'g1' }),
+        createEleve('solo1', { matieresOral: ['Français'] }),
+        createEleve('solo2', { matieresOral: ['SVT'] }),
+        createEleve('solo3', { matieresOral: ['Français'] }),
+        createEleve('solo4', { matieresOral: ['SVT'] }),
+      ];
+      const enseignants = [
+        createEnseignant('ens1', { matierePrincipale: 'SVT' }),
+        createEnseignant('ens2', { matierePrincipale: 'Français' }),
+      ];
+      const scenario = createScenario();
+      const jurys = [
+        createJury('j1', scenario.id!, ['ens1'], { capaciteMax: 10 }),
+        createJury('j2', scenario.id!, ['ens2'], { capaciteMax: 10 }),
+      ];
+
+      const result = solveOralDnbComplete(eleves, enseignants, jurys, scenario);
+
+      expect(result.affectations).toHaveLength(6);
+
+      // Le binôme DOIT rester dans le même jury après swaps
+      const bin1Jury = result.affectations.find(a => a.eleveId === 'bin1')!.juryId;
+      const bin2Jury = result.affectations.find(a => a.eleveId === 'bin2')!.juryId;
+      expect(bin1Jury).toBe(bin2Jury);
+    });
+
+    it('trinôme reste dans le même jury après amélioration par swaps', () => {
+      const eleves = [
+        createEleve('tri1', { matieresOral: ['SVT'], groupeOralId: 'g-tri' }),
+        createEleve('tri2', { matieresOral: ['SVT'], groupeOralId: 'g-tri' }),
+        createEleve('tri3', { matieresOral: ['SVT'], groupeOralId: 'g-tri' }),
+        createEleve('solo1', { matieresOral: ['Français'] }),
+        createEleve('solo2', { matieresOral: ['SVT'] }),
+      ];
+      const enseignants = [
+        createEnseignant('ens1', { matierePrincipale: 'SVT' }),
+        createEnseignant('ens2', { matierePrincipale: 'Français' }),
+      ];
+      const scenario = createScenario();
+      const jurys = [
+        createJury('j1', scenario.id!, ['ens1'], { capaciteMax: 10 }),
+        createJury('j2', scenario.id!, ['ens2'], { capaciteMax: 10 }),
+      ];
+
+      const result = solveOralDnbComplete(eleves, enseignants, jurys, scenario);
+
+      expect(result.affectations).toHaveLength(5);
+
+      // Trinôme doit rester ensemble
       const tri1Jury = result.affectations.find(a => a.eleveId === 'tri1')!.juryId;
       const tri2Jury = result.affectations.find(a => a.eleveId === 'tri2')!.juryId;
       const tri3Jury = result.affectations.find(a => a.eleveId === 'tri3')!.juryId;
