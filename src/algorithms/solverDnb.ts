@@ -698,22 +698,27 @@ export function improveOralDnbWithSwaps(
     for (const affSansMatch of currentResult.affectations.filter(a => !a.matiereMatch)) {
       const eleve = eleveMap.get(affSansMatch.eleveId);
       if (!eleve?.matieresOral?.length) continue;
-      
+
+      // Ne pas swapper les élèves qui font partie d'un groupe (binôme/trinôme)
+      // car cela casserait l'affectation groupée au même jury
+      if (eleve.groupeOralId) continue;
+
       // Chercher un jury qui a la matière de l'élève
       for (const [juryId, ctx] of juryContexts) {
         if (juryId === affSansMatch.juryId) continue;
-        
+
         // Ce jury a-t-il la matière?
         const hasMatiere = eleve.matieresOral.some(m => ctx.matieres.includes(m));
         if (!hasMatiere) continue;
-        
+
         // Peut-on faire un échange?
-        // Trouver un élève dans ce jury qui n'a pas besoin de cette matière
-        const eleveAEchanger = currentResult.affectations.find(a => 
-          a.juryId === juryId && 
-          !a.matiereMatch &&
-          a.eleveId !== affSansMatch.eleveId
-        );
+        // Trouver un élève SOLO dans ce jury qui n'a pas besoin de cette matière
+        const eleveAEchanger = currentResult.affectations.find(a => {
+          if (a.juryId !== juryId || a.matiereMatch || a.eleveId === affSansMatch.eleveId) return false;
+          // Exclure les membres de groupes du swap
+          const candidat = eleveMap.get(a.eleveId);
+          return !candidat?.groupeOralId;
+        });
         
         if (eleveAEchanger) {
           // Faire l'échange
