@@ -18,6 +18,8 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   );
 }
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  db: { schema: 'groupit' },
+});
 
 export { SUPABASE_URL, SUPABASE_ANON_KEY };
