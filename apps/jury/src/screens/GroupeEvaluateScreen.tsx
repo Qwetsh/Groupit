@@ -265,9 +265,10 @@ export function GroupeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
       const totalOral = categoryTotals['oral'] ?? 0;
       const totalSujet = categoryTotals['sujet'] ?? 0;
 
+      const mySlot = sessionStorage.getItem('jury-my-slot') || 'A';
       const { error: evalErr } = await withRetry(() => supabase.from('evaluations').upsert({
         eleve_id: eleve.id,
-        juror_slot: 'A',
+        juror_slot: mySlot,
         ...legacyEval,
         total_oral: totalOral,
         total_sujet: totalSujet,

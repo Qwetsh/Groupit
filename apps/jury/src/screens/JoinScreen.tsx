@@ -46,6 +46,48 @@ export function JoinScreen({ onJoined }: JoinScreenProps) {
         throw new Error('Numéro de jury introuvable');
       }
 
+      // 4. Créer/réutiliser le jury_member (lie auth.uid() au jury + slot)
+      const { data: authData } = await supabase.auth.getUser();
+      const userId = authData?.user?.id;
+      if (!userId) throw new Error('Erreur d\'authentification');
+
+      // Vérifier si déjà membre de ce jury
+      const { data: existingMember } = await supabase
+        .from('jury_members')
+        .select('id, slot')
+        .eq('jury_id', jury.id)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      let mySlot: string;
+      if (existingMember) {
+        mySlot = existingMember.slot;
+      } else {
+        // Trouver le prochain slot disponible (A, puis B)
+        const { data: members } = await supabase
+          .from('jury_members')
+          .select('slot')
+          .eq('jury_id', jury.id);
+
+        const takenSlots = (members || []).map(m => m.slot);
+        const slot = !takenSlots.includes('A') ? 'A' : !takenSlots.includes('B') ? 'B' : null;
+
+        if (!slot) throw new Error('Ce jury est complet (2 membres max)');
+
+        const { error: memberErr } = await supabase
+          .from('jury_members')
+          .insert({ jury_id: jury.id, slot });
+
+        if (memberErr) {
+          console.error('[JoinScreen] Erreur jury_members:', memberErr);
+          throw new Error('Impossible de rejoindre le jury');
+        }
+        mySlot = slot;
+      }
+
+      // Sauvegarder le slot pour les écrans de notation
+      try { sessionStorage.setItem('jury-my-slot', mySlot); } catch { /* ignore */ }
+
       onJoined(jury.id, session.id, (session as Record<string, unknown>).criteria_config as CriteriaConfig | null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');

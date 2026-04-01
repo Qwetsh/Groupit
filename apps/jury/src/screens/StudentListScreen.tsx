@@ -48,7 +48,7 @@ export function StudentListScreen({ juryId, onSelectEleve, onSelectGroupe, onDis
       .channel(`eleves-${juryId}`)
       .on('postgres_changes', {
         event: 'UPDATE',
-        schema: 'public',
+        schema: 'groupit',
         table: 'session_eleves',
         filter: `jury_id=eq.${juryId}`,
       }, (payload) => {
@@ -58,7 +58,7 @@ export function StudentListScreen({ juryId, onSelectEleve, onSelectGroupe, onDis
       })
       .on('postgres_changes', {
         event: '*',
-        schema: 'public',
+        schema: 'groupit',
         table: 'final_scores',
       }, (payload) => {
         const row = payload.new as { eleve_id?: string; total?: number };
