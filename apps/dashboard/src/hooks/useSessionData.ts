@@ -155,12 +155,12 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
       .channel(`dashboard-${sessionId}`)
       .on('postgres_changes', {
         event: '*',
-        schema: 'public',
+        schema: 'groupit',
         table: 'final_scores',
       }, () => { debouncedReload(); })
       .on('postgres_changes', {
         event: 'UPDATE',
-        schema: 'public',
+        schema: 'groupit',
         table: 'session_eleves',
       }, () => { debouncedReload(); })
       .subscribe();
