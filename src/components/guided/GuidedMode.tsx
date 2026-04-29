@@ -18,9 +18,9 @@ import { StepResults } from './steps/StepResults';
 import './GuidedMode.css';
 
 // Steps for each wizard path
-const STEPS_BASE: GuidedStep[] = ['scenario', 'eleves', 'enseignants', 'configuration', 'recap', 'results'];
-const STEPS_ORAL_DNB: GuidedStep[] = ['scenario', 'eleves', 'themes', 'groupes', 'enseignants', 'configuration', 'salles', 'recap', 'results'];
-const STEPS_STAGE: GuidedStep[] = ['scenario', 'eleves', 'stages', 'enseignants', 'configuration', 'recap', 'results'];
+const STEPS_BASE: GuidedStep[] = ['eleves', 'enseignants', 'configuration', 'recap', 'results'];
+const STEPS_ORAL_DNB: GuidedStep[] = ['eleves', 'themes', 'groupes', 'enseignants', 'configuration', 'salles', 'recap', 'results'];
+const STEPS_STAGE: GuidedStep[] = ['eleves', 'stages', 'enseignants', 'configuration', 'recap', 'results'];
 
 const STEP_LABELS: Record<GuidedStep, string> = {
   welcome: 'Bienvenue',
@@ -93,7 +93,7 @@ export function GuidedMode() {
 
   return (
     <div className="guided-overlay">
-      <div className={`guided-container ${currentStep === 'configuration' ? 'guided-container-wide' : ''}`}>
+      <div className={`guided-container ${['themes', 'groupes', 'enseignants', 'configuration', 'salles'].includes(currentStep) ? 'guided-container-wide' : ''}`}>
         {/* Header */}
         <div className="guided-header">
           {currentStepIndex > 0 && currentStep !== 'results' && (

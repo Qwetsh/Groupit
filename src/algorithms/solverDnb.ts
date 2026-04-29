@@ -14,6 +14,11 @@ import type {
 } from '../domain/models';
 import { getPoidsPedagogiqueNormalise } from '../domain/models';
 import { getEffectiveCriteres, criteresToOralDnbOptions, type OralDnbOptions } from '../domain/criteriaConfig';
+import { calculateDistance } from './distance';
+
+// Coordonnées du collège (partagées avec StageAssignmentMapDrawer)
+const COLLEGE_LAT = 49.15680;
+const COLLEGE_LON = 6.13754;
 
 // ============ TYPES ============
 
@@ -24,6 +29,11 @@ interface JuryContext {
   capaciteRestante: number;
   chargeActuelle: number;
   poidsPedagogiqueMoyen: number; // Moyenne pondérée des heures hebdo des matières
+  nbF: number; // Nombre de filles affectées
+  nbM: number; // Nombre de garçons affectés
+  nbTiersTemps: number; // Nombre d'élèves tiers temps affectés
+  distanceCollegeMin: number; // Distance min (km) d'un enseignant du jury au collège
+  matieresElevesCounts: Record<string, number>; // Compteur des matières des élèves affectés
 }
 
 interface SolverDnbConfig {
@@ -133,6 +143,16 @@ function initializeJuryContexts(
       .filter((e): e is Enseignant => !!e);
     const matieres = getJuryMatieres(jury, enseignantMap);
     
+    // Distance min d'un enseignant du jury au collège
+    let distanceCollegeMin = Infinity;
+    for (const ens of juryEnseignants) {
+      if (ens.lat && ens.lon) {
+        const d = calculateDistance(ens.lat, ens.lon, COLLEGE_LAT, COLLEGE_LON);
+        if (d < distanceCollegeMin) distanceCollegeMin = d;
+      }
+    }
+    if (!isFinite(distanceCollegeMin)) distanceCollegeMin = 10; // Défaut si aucune géoloc
+
     contexts.set(jury.id!, {
       jury,
       enseignants: juryEnseignants,
@@ -140,6 +160,11 @@ function initializeJuryContexts(
       capaciteRestante: jury.capaciteMax,
       chargeActuelle: 0,
       poidsPedagogiqueMoyen: getJuryPoidsPedagogique(matieres),
+      nbF: 0,
+      nbM: 0,
+      nbTiersTemps: 0,
+      distanceCollegeMin,
+      matieresElevesCounts: {},
     });
   });
   
@@ -288,7 +313,22 @@ function scoreEleveJury(
   // 3. Score mixité (parité filles/garçons)
   let scoreMixite = 60;
   if (opts.poidsMixite > 0) {
-    // Note: Nécessiterait de tracker le ratio actuel - simplifié ici
+    const total = juryContext.nbF + juryContext.nbM;
+    if (total === 0) {
+      scoreMixite = 70; // Jury vide, score neutre
+    } else {
+      // Ratio actuel : 0.5 = parfait, 0 ou 1 = déséquilibré
+      const ratioF = juryContext.nbF / total;
+      // Simuler l'ajout de cet élève
+      const newNbF = juryContext.nbF + (eleve.sexe === 'F' ? 1 : 0);
+      const newNbM = juryContext.nbM + (eleve.sexe === 'M' ? 1 : 0);
+      const newTotal = newNbF + newNbM;
+      const newRatioF = newTotal > 0 ? newNbF / newTotal : 0.5;
+      // Score : plus le ratio est proche de 0.5, mieux c'est
+      const ecart = Math.abs(newRatioF - 0.5); // 0 = parfait, 0.5 = pire
+      scoreMixite = Math.round(100 - ecart * 200); // 100 si 50/50, 0 si 100/0
+    }
+    if (!eleve.sexe) scoreMixite = 60; // Sexe non renseigné → neutre
     scoreDetail['mixite'] = scoreMixite;
   }
   
@@ -328,7 +368,50 @@ function scoreEleveJury(
     scoreDetail['pedagogique'] = scorePedagogique;
   }
 
-  // 7. Score final pondéré
+  // 7. Critères tiers temps (appliqués automatiquement si l'élève a le tiers temps)
+  let scoreTiersTemps = 50; // neutre par défaut
+  if (eleve.tiersTemps) {
+    // Équilibrage: favoriser les jurys avec le moins de tiers temps
+    const avgTT = juryContext.chargeActuelle > 0
+      ? juryContext.nbTiersTemps / juryContext.chargeActuelle
+      : 0;
+    // Si le jury a déjà beaucoup de tiers temps proportionnellement, score bas
+    const equilibrageTT = Math.round(100 - avgTT * 150); // 100 si 0 TT, ~25 si 50% TT
+
+    // Proximité collège: favoriser les jurys dont les profs habitent proche
+    let proximiteTT = 50;
+    if (juryContext.distanceCollegeMin <= 5) proximiteTT = 100;
+    else if (juryContext.distanceCollegeMin <= 15) proximiteTT = 75;
+    else if (juryContext.distanceCollegeMin <= 30) proximiteTT = 40;
+    else proximiteTT = 20;
+
+    scoreTiersTemps = Math.round(equilibrageTT * 0.6 + proximiteTT * 0.4);
+    scoreDetail['tiersTemps'] = scoreTiersTemps;
+    raisons.push(`Tiers temps — ${juryContext.nbTiersTemps} déjà dans ce jury, profs à ${Math.round(juryContext.distanceCollegeMin)}km du collège`);
+  }
+
+  // 8. Diversité des sujets (pénalise la concentration d'une même matière dans un jury)
+  let scoreDiversite = 100; // neutre si pas de matière ou jury vide
+  if (matieresEleve.length > 0 && juryContext.chargeActuelle >= 2) {
+    const matiereElv = matieresEleve[0];
+    const countCetteMatiere = juryContext.matieresElevesCounts[matiereElv] || 0;
+    const total = juryContext.chargeActuelle;
+    const concentration = countCetteMatiere / total; // 0 = aucun, 1 = tous la même matière
+
+    // Score: 100 si 0 concentration, décroît linéairement
+    // Seuil à 30%: au-delà, on commence à pénaliser fortement
+    if (concentration <= 0.3) {
+      scoreDiversite = 100;
+    } else {
+      scoreDiversite = Math.max(0, Math.round(100 - (concentration - 0.3) * 140));
+    }
+    scoreDetail['diversite'] = scoreDiversite;
+    if (concentration > 0.3) {
+      raisons.push(`Concentration ${matiereElv}: ${countCetteMatiere}/${total} élèves (${Math.round(concentration * 100)}%)`);
+    }
+  }
+
+  // 9. Score final pondéré
   let scoreFinal = Math.round(
     scoreMatiereBase * wMatiere +
     scoreEquilibrage * wEquilibrage +
@@ -337,6 +420,18 @@ function scoreEleveJury(
     scorePedagogique * wPedagogique +
     scoreElevesEnCours * wElevesEnCours
   );
+
+  // Malus diversité (additif, pénalise la monotonie des sujets dans un jury)
+  // Jusqu'à -35 points quand un sujet est surreprésenté
+  if (scoreDiversite < 100 && matieresEleve.length > 0) {
+    scoreFinal += Math.round((scoreDiversite - 100) * 0.35); // -35 points max
+    raisons.push(`Malus diversité: ${Math.round((scoreDiversite - 100) * 0.35)} pts`);
+  }
+
+  // Bonus tiers temps (additif pour influencer le placement)
+  if (eleve.tiersTemps) {
+    scoreFinal += Math.round((scoreTiersTemps - 50) * 0.3); // ±15 points max
+  }
 
   // Bonus langue étrangère (priorité haute, additif)
   if (eleve.langueEtrangere && scoreLangue > 0) {
@@ -459,6 +554,16 @@ export function solveOralDnb(
   const nonAffectes: string[] = [];
   const sansMatchMatiere: string[] = [];
 
+  // Pré-indexer les groupes oraux pour éviter O(n²)
+  const groupeIndex = new Map<string, Eleve[]>();
+  for (const e of eleves) {
+    if (e.groupeOralId) {
+      const list = groupeIndex.get(e.groupeOralId) || [];
+      list.push(e);
+      groupeIndex.set(e.groupeOralId, list);
+    }
+  }
+
   // Identifier les groupes (élèves liés par groupeOralId)
   const alreadyAssigned = new Set<string>();
 
@@ -467,9 +572,9 @@ export function solveOralDnb(
    * Retourne true si l'affectation a réussi.
    */
   function affectEleve(eleve: Eleve, juryId: string, score: ScoreEleveJury, ctx: JuryContext): boolean {
-    // Find group members
+    // Find group members via pre-built index
     const groupMembers = eleve.groupeOralId
-      ? eleves.filter(e => e.groupeOralId === eleve.groupeOralId && !alreadyAssigned.has(e.id!))
+      ? (groupeIndex.get(eleve.groupeOralId) || []).filter(e => !alreadyAssigned.has(e.id!))
       : [];
     const slotsNeeded = groupMembers.length > 0 ? groupMembers.length : 1;
 
@@ -488,6 +593,12 @@ export function solveOralDnb(
     });
     ctx.capaciteRestante--;
     ctx.chargeActuelle++;
+    if (eleve.sexe === 'F') ctx.nbF++;
+    else if (eleve.sexe === 'M') ctx.nbM++;
+    if (eleve.tiersTemps) ctx.nbTiersTemps++;
+    if (eleve.matieresOral?.[0]) {
+      ctx.matieresElevesCounts[eleve.matieresOral[0]] = (ctx.matieresElevesCounts[eleve.matieresOral[0]] || 0) + 1;
+    }
     alreadyAssigned.add(eleve.id!);
 
     // Affecter les membres du groupe au même jury
@@ -511,6 +622,12 @@ export function solveOralDnb(
       });
       ctx.capaciteRestante--;
       ctx.chargeActuelle++;
+      if (member.sexe === 'F') ctx.nbF++;
+      else if (member.sexe === 'M') ctx.nbM++;
+      if (member.tiersTemps) ctx.nbTiersTemps++;
+      if (member.matieresOral?.[0]) {
+        ctx.matieresElevesCounts[member.matieresOral[0]] = (ctx.matieresElevesCounts[member.matieresOral[0]] || 0) + 1;
+      }
       alreadyAssigned.add(member.id!);
 
       if (!memberScore.matiereMatch && member.matieresOral?.length) {
@@ -529,7 +646,7 @@ export function solveOralDnb(
 
     let bestMatch: { juryId: string; score: ScoreEleveJury } | null = null;
     const groupMembers = eleve.groupeOralId
-      ? eleves.filter(e => e.groupeOralId === eleve.groupeOralId && !alreadyAssigned.has(e.id!))
+      ? (groupeIndex.get(eleve.groupeOralId) || []).filter(e => !alreadyAssigned.has(e.id!))
       : [];
     const slotsNeeded = groupMembers.length > 0 ? groupMembers.length : 1;
 
@@ -565,7 +682,7 @@ export function solveOralDnb(
 
     let bestMatch: { juryId: string; score: ScoreEleveJury } | null = null;
     const groupMembers = eleve.groupeOralId
-      ? eleves.filter(e => e.groupeOralId === eleve.groupeOralId && !alreadyAssigned.has(e.id!))
+      ? (groupeIndex.get(eleve.groupeOralId) || []).filter(e => !alreadyAssigned.has(e.id!))
       : [];
     const slotsNeeded = groupMembers.length > 0 ? groupMembers.length : 1;
 

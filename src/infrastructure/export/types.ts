@@ -156,6 +156,7 @@ export interface PdfExportOptions {
   includeSectionConvocProf: boolean;      // Convocations enseignants (jurys)
   includeSectionEmargement: boolean;      // Feuilles d'émargement
   includeSectionFeuillesPorte: boolean;   // Feuilles de porte
+  includeSectionRecapJurys: boolean;      // Récapitulatif global jurys
 
   // Type d'oral (DNB officiel ou oral blanc de préparation)
   typeOral?: 'dnb' | 'oral_blanc';
@@ -202,6 +203,7 @@ export const DEFAULT_PDF_OPTIONS: PdfExportOptions = {
   includeSectionConvocProf: true,
   includeSectionEmargement: true,
   includeSectionFeuillesPorte: true,
+  includeSectionRecapJurys: true,
   orientation: 'portrait',
   pageSize: 'A4',
   fontSize: 'medium',

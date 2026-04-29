@@ -159,7 +159,9 @@
 /* Guided Container */
 .guided-container {
   width: 100%;
-  max-width: 800px;
+  max-width: 960px;
+  height: 100%;
+  max-height: calc(100vh - 2rem);
   display: flex;
   flex-direction: column;
   animation: fadeInUp 0.4s ease-out;
@@ -168,8 +170,6 @@
 
 .guided-container.guided-container-wide {
   max-width: 1200px;
-  height: 100%;
-  max-height: calc(100vh - 2rem);
 }
 
 /* Header */
@@ -248,6 +248,24 @@
   margin-bottom: 0.75rem;
 }
 
+/* Scrollbars visibles dans le guided mode (dark theme) */
+.guided-container *::-webkit-scrollbar {
+  width: 6px;
+}
+
+.guided-container *::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.guided-container *::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+.guided-container *::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 /* Content */
 .guided-content {
   flex: 1;
@@ -260,6 +278,25 @@
 /* Step Base */
 .guided-step {
   animation: fadeIn 0.3s ease-out;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Steps qui scrollent en entier (pas de zone scrollable interne) */
+.step-import,
+.step-themes {
+  overflow-y: auto;
+}
+
+/* Steps centrés (pas de contenu scrollable qui remplit l'espace) */
+.step-results,
+.step-recap {
+  justify-content: center;
+  overflow-y: visible;
+  text-align: center;
 }
 
 @keyframes fadeIn {
@@ -1054,9 +1091,6 @@
 }
 
 /* Results Step */
-.step-results {
-  text-align: center;
-}
 
 .success-animation {
   position: relative;
@@ -1592,7 +1626,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 0.5rem;
-  max-height: 300px;
+  flex: 1;
+  min-height: 200px;
   overflow-y: auto;
   padding: 0.5rem;
   background: rgba(0, 0, 0, 0.2);
@@ -1602,7 +1637,6 @@
 .enseignant-grid.compact {
   grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
   gap: 0.375rem;
-  max-height: 380px;
   padding: 0.375rem;
 }
 
@@ -1771,16 +1805,20 @@
   background: rgba(59, 130, 246, 0.1);
 }
 
-.jury-header {
+.jury-card-guided .jury-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 0.75rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.06);
+  margin: -1rem -1rem 0.75rem -1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 14px 14px 0 0;
 }
 
-.jury-name {
+.jury-card-guided .jury-name {
   font-size: 1rem;
   font-weight: 600;
   color: white;
@@ -1893,6 +1931,45 @@
 
 .oral-grid .indispo-cell.indispo:hover {
   background: #2563eb;
+}
+
+/* Heure de début oral */
+.heure-debut-row {
+  display: flex;
+  gap: 20px;
+  margin-top: 12px;
+}
+
+.heure-debut-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.heure-debut-group label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.time-input {
+  width: 110px;
+  padding: 6px 8px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: white;
+  color: #1e293b;
+}
+
+.time-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
 }
 
 /* Chip enseignant indisponible */
@@ -2280,7 +2357,8 @@
 }
 
 .themes-class-list {
-  max-height: 420px;
+  flex: 1;
+  min-height: 200px;
   overflow-y: auto;
   margin-bottom: 1rem;
   border-radius: 12px;
@@ -2348,7 +2426,7 @@
 
 .oral-table-header {
   display: grid;
-  grid-template-columns: 140px 120px 1fr 100px 100px 80px;
+  grid-template-columns: 140px 120px 1fr 100px 100px 80px 50px 28px;
   gap: 0.35rem;
   padding: 0.4rem 0.75rem 0.4rem 1.25rem;
   font-size: 0.7rem;
@@ -2362,7 +2440,7 @@
 
 .oral-table-row {
   display: grid;
-  grid-template-columns: 140px 120px 1fr 100px 100px 80px auto;
+  grid-template-columns: 140px 120px 1fr 100px 100px 80px 50px auto 28px;
   gap: 0.35rem;
   align-items: center;
   padding: 0.35rem 1rem 0.35rem 1.5rem;
@@ -2455,6 +2533,50 @@
 .row-check {
   color: #22c55e;
   flex-shrink: 0;
+}
+
+.delete-eleve-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.oral-table-row:hover .delete-eleve-btn {
+  opacity: 1;
+}
+
+.delete-eleve-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Tiers temps checkbox */
+.col-tiers {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  color: #94a3b8;
+}
+
+.tiers-checkbox {
+  cursor: pointer;
+  margin: 0;
+}
+
+.tiers-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #6366f1;
 }
 
 /* Import drop zone inline (compact button-like) */
@@ -2648,7 +2770,8 @@
   border-radius: 12px;
   overflow: hidden;
   margin-bottom: 1rem;
-  max-height: 350px;
+  flex: 1;
+  min-height: 200px;
   overflow-y: auto;
 }
 
@@ -2980,43 +3103,124 @@
 .step-binomes {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  max-width: 700px;
+  gap: 12px;
+  width: 100%;
   margin: 0 auto;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .step-binomes .step-header {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
 }
 
 .step-binomes .step-header h2 {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 700;
   color: #f1f5f9;
-  margin: 8px 0 4px;
+  margin: 0;
 }
 
 .step-binomes .step-icon-wrap {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.2));
   color: #60a5fa;
-  margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .step-binomes .step-description {
   color: #94a3b8;
-  font-size: 14px;
-  max-width: 500px;
-  margin: 8px auto 0;
-  line-height: 1.5;
+  font-size: 13px;
+  margin: 0;
+  line-height: 1.4;
 }
 
-/* Binômes existants */
+/* Layout deux colonnes : sidebar groupes + zone de sélection */
+.binomes-layout {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.binomes-sidebar {
+  width: 240px;
+  min-width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.binomes-sidebar h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #94a3b8;
+  margin: 0 0 8px;
+  flex-shrink: 0;
+}
+
+.binomes-sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+
+.binomes-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.binomes-main h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin: 0 0 8px;
+  flex-shrink: 0;
+}
+
+.binomes-main .binome-search-area {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.binomes-main .binome-candidates {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.binomes-main .binome-eleves-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Binômes existants (fallback pour ancien layout) */
 .binomes-existing h3,
 .binomes-creation h3 {
   font-size: 14px;
@@ -3149,7 +3353,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 250px;
+  max-height: 400px;
   overflow-y: auto;
 }
 
@@ -3207,7 +3411,8 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  max-height: 350px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -3278,12 +3483,9 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 0;
+  padding: 12px 0 0;
   border-top: 1px solid #334155;
-  position: sticky;
-  bottom: 0;
-  background: #0f172a;
-  z-index: 5;
+  flex-shrink: 0;
 }
 
 /* ============================================================

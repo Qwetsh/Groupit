@@ -2,7 +2,7 @@
 // GUIDED STEP - SUJETS ORAL DNB (Parcours + Sujet + Matières)
 // ============================================================
 
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useState, useCallback, useRef, useMemo, useEffect } from 'react';
 import {
   Upload,
   Download,
@@ -13,6 +13,7 @@ import {
   BookOpen,
   X,
   Shuffle,
+  Trash2,
 } from 'lucide-react';
 import clsx from 'clsx';
 import { useEleveStore } from '../../../stores/eleveStore';
@@ -62,6 +63,7 @@ function findEleveMatch(
 export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
   const eleves = useEleveStore(state => state.eleves);
   const updateEleve = useEleveStore(state => state.updateEleve);
+  const deleteEleve = useEleveStore(state => state.deleteEleve);
 
   const [searchFilter, setSearchFilter] = useState('');
   const [expandedClasses, setExpandedClasses] = useState<Set<string>>(new Set());
@@ -103,10 +105,11 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
   }, [eleves3e]);
 
   // Auto-expand all classes initially
-  useMemo(() => {
+  useEffect(() => {
     if (expandedClasses.size === 0 && classeGroups.length > 0) {
       setExpandedClasses(new Set(classeGroups.map(([cls]) => cls)));
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classeGroups.length]);
 
   // Stats
@@ -179,6 +182,21 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
       await updateEleve(eleveId, { matieresOral: matieres.filter(Boolean) });
     },
     [updateEleve, eleves3e]
+  );
+
+  const handleSetTiersTemps = useCallback(
+    async (eleveId: string, checked: boolean) => {
+      await updateEleve(eleveId, { tiersTemps: checked || undefined });
+    },
+    [updateEleve]
+  );
+
+  const handleDeleteEleve = useCallback(
+    async (eleveId: string, displayName: string) => {
+      if (!window.confirm(`Supprimer ${displayName} de la liste ?`)) return;
+      await deleteEleve(eleveId);
+    },
+    [deleteEleve]
   );
 
   const startEditSujet = useCallback((eleveId: string, currentValue: string) => {
@@ -286,6 +304,7 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
           sujetOral: item.sujet || undefined,
           matieresOral: item.matieres.length > 0 ? item.matieres : undefined,
           langueEtrangere: item.langue || undefined,
+          tiersTemps: item.tiersTemps || undefined,
         });
         success++;
       } else {
@@ -498,6 +517,8 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
                   <span className="col-matiere">Matière 1</span>
                   <span className="col-matiere">Matière 2</span>
                   <span className="col-langue">Langue</span>
+                  <span className="col-tiers" title="Tiers temps">Tiers T.</span>
+                  <span className="col-actions"></span>
                 </div>
                 {elvs.map(eleve => {
                   const isComplete = eleve.parcoursOral && eleve.sujetOral;
@@ -524,6 +545,10 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
                         {PARCOURS_ORAL_DNB.map(p => (
                           <option key={p} value={p}>{p}</option>
                         ))}
+                        {/* Afficher la valeur custom si elle n'est pas dans la liste */}
+                        {eleve.parcoursOral && !PARCOURS_ORAL_DNB.includes(eleve.parcoursOral as typeof PARCOURS_ORAL_DNB[number]) && (
+                          <option value={eleve.parcoursOral}>{eleve.parcoursOral}</option>
+                        )}
                       </select>
 
                       {/* Sujet (click to edit) */}
@@ -587,8 +612,26 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
                         ))}
                       </select>
 
+                      {/* Tiers temps */}
+                      <label className="col-tiers tiers-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={!!eleve.tiersTemps}
+                          onChange={e => handleSetTiersTemps(eleve.id!, e.target.checked)}
+                        />
+                      </label>
+
                       {/* Status indicator */}
                       {isComplete && <Check size={14} className="row-check" />}
+
+                      {/* Delete button */}
+                      <button
+                        className="col-actions delete-eleve-btn"
+                        onClick={() => handleDeleteEleve(eleve.id!, `${eleve.nom} ${eleve.prenom}`)}
+                        title={`Supprimer ${eleve.nom} ${eleve.prenom}`}
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   );
                 })}

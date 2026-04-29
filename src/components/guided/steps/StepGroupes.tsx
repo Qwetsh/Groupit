@@ -135,143 +135,145 @@ export const StepGroupes: React.FC<StepGroupesProps> = ({ onNext, onBack }) => {
         </p>
       </div>
 
-      {/* Groupes existants */}
-      {groupes.length > 0 && (
-        <div className="binomes-existing">
-          <h3>Groupes crees ({groupes.length})</h3>
-          <div className="binomes-list">
-            {groupes.map(({ id, members }) => {
-              const isTrinome = members.length === 3;
-              return (
-                <div key={id} className="groupe-card" style={isTrinome ? { borderColor: 'rgba(245, 158, 11, 0.3)' } : {}}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                    <span className={isTrinome ? 'trinome-badge' : 'binome-badge-tag'}>
-                      {isTrinome ? 'TRINOME' : 'BINOME'}
-                    </span>
-                    <span className="binome-classe">{members[0]?.classe}</span>
-                  </div>
-                  <div className="groupe-members">
-                    {members.map(m => (
-                      <div key={m.id} className="groupe-member" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1px 0' }}>
-                        <span className="groupe-member-name">{m.nom} {m.prenom}</span>
-                        <button
-                          className="binome-remove-btn"
-                          onClick={() => handleRemoveMember(m.id)}
-                          title="Retirer du groupe"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  {members.length < 3 && (
-                    <button
-                      className="btn btn-secondary"
-                      style={{ fontSize: 11, padding: '2px 8px', marginTop: 4 }}
-                      onClick={() => handleAddToGroupe(id)}
-                    >
-                      <Plus size={12} /> Ajouter un membre
-                    </button>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Selection */}
-      <div className="binomes-creation">
-        <h3>
-          {addingToGroupe
-            ? `Ajouter un membre au groupe (${addingToGroupe.members.map(m => m.prenom).join(', ')})`
-            : selectedEleve
-              ? `Choisir le partenaire de ${selectedEleve.prenom} ${selectedEleve.nom}`
-              : 'Selectionnez un eleve pour creer un groupe'}
-        </h3>
-
-        {(selectedEleve || addingToGroupe) && (
-          <div className="binome-search-area">
-            {selectedEleve && (
-              <div className="binome-selected-banner">
-                <Users size={16} />
-                <span>{selectedEleve.prenom} {selectedEleve.nom} ({selectedEleve.classe})</span>
-                <button onClick={() => setSelectedEleveId(null)}><X size={14} /></button>
-              </div>
-            )}
-            {addingToGroupe && (
-              <div className="binome-selected-banner" style={{ borderColor: 'rgba(245, 158, 11, 0.4)' }}>
-                <Users size={16} />
-                <span>{addingToGroupe.members.map(m => `${m.prenom} ${m.nom}`).join(' & ')}</span>
-                <button onClick={() => setAddingToGroupeId(null)}><X size={14} /></button>
-              </div>
-            )}
-            <div className="binome-search-input">
-              <Search size={14} />
-              <input
-                type="text"
-                placeholder="Rechercher un eleve..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                autoFocus
-              />
-            </div>
-            <div className="binome-candidates">
-              {availableForPairing.length === 0 ? (
-                <p className="binome-empty">Aucun eleve disponible</p>
-              ) : (
-                availableForPairing.slice(0, 20).map(e => (
-                  <button
-                    key={e.id}
-                    className="binome-candidate"
-                    onClick={() => handlePair(e.id)}
-                  >
-                    <span className="candidate-name">{e.nom} {e.prenom}</span>
-                    <span className="candidate-classe">{e.classe}</span>
-                    {e.matieresOral && e.matieresOral.length > 0 && (
-                      <span className="candidate-matiere">{e.matieresOral[0]}</span>
-                    )}
-                  </button>
-                ))
-              )}
-            </div>
-          </div>
-        )}
-
-        {!selectedEleve && !addingToGroupe && (
-          <div className="binome-eleves-list">
-            {[...classeGroups.entries()].map(([classe, elevesClasse]) => {
-              const available = elevesClasse.filter(e => !e.groupeOralId);
-              if (available.length === 0) return null;
-              const isExpanded = expandedClasses.has(classe);
-              return (
-                <div key={classe} className="binome-classe-group">
-                  <button className="binome-classe-header" onClick={() => toggleClasse(classe)}>
-                    {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                    <span>{classe}</span>
-                    <span className="binome-classe-count">{available.length} disponible{available.length > 1 ? 's' : ''}</span>
-                  </button>
-                  {isExpanded && (
-                    <div className="binome-classe-eleves">
-                      {available.map(e => (
-                        <button
-                          key={e.id}
-                          className="binome-eleve-btn"
-                          onClick={() => handleSelectEleve(e.id)}
-                        >
-                          <span>{e.nom} {e.prenom}</span>
-                          {e.matieresOral && e.matieresOral.length > 0 && (
-                            <span className="eleve-matiere-tag">{e.matieresOral[0]}</span>
-                          )}
-                        </button>
+      <div className="binomes-layout">
+        {/* Colonne gauche : groupes existants */}
+        {groupes.length > 0 && (
+          <div className="binomes-sidebar">
+            <h3>Groupes ({groupes.length})</h3>
+            <div className="binomes-sidebar-list">
+              {groupes.map(({ id, members }) => {
+                const isTrinome = members.length === 3;
+                return (
+                  <div key={id} className="groupe-card" style={isTrinome ? { borderColor: 'rgba(245, 158, 11, 0.3)' } : {}}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                      <span className={isTrinome ? 'trinome-badge' : 'binome-badge-tag'}>
+                        {isTrinome ? 'TRINOME' : 'BINOME'}
+                      </span>
+                      <span className="binome-classe">{members[0]?.classe}</span>
+                    </div>
+                    <div className="groupe-members">
+                      {members.map(m => (
+                        <div key={m.id} className="groupe-member" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1px 0' }}>
+                          <span className="groupe-member-name">{m.nom} {m.prenom}</span>
+                          <button
+                            className="binome-remove-btn"
+                            onClick={() => handleRemoveMember(m.id)}
+                            title="Retirer du groupe"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
                       ))}
                     </div>
-                  )}
-                </div>
-              );
-            })}
+                    {members.length < 3 && (
+                      <button
+                        className="btn btn-secondary"
+                        style={{ fontSize: 11, padding: '2px 8px', marginTop: 4 }}
+                        onClick={() => handleAddToGroupe(id)}
+                      >
+                        <Plus size={12} /> Ajouter
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
+
+        {/* Colonne droite : zone de sélection */}
+        <div className="binomes-main">
+          <h3>
+            {addingToGroupe
+              ? `Ajouter un membre au groupe (${addingToGroupe.members.map(m => m.prenom).join(', ')})`
+              : selectedEleve
+                ? `Choisir le partenaire de ${selectedEleve.prenom} ${selectedEleve.nom}`
+                : 'Selectionnez un eleve pour creer un groupe'}
+          </h3>
+
+          {(selectedEleve || addingToGroupe) && (
+            <div className="binome-search-area">
+              {selectedEleve && (
+                <div className="binome-selected-banner">
+                  <Users size={16} />
+                  <span>{selectedEleve.prenom} {selectedEleve.nom} ({selectedEleve.classe})</span>
+                  <button onClick={() => setSelectedEleveId(null)}><X size={14} /></button>
+                </div>
+              )}
+              {addingToGroupe && (
+                <div className="binome-selected-banner" style={{ borderColor: 'rgba(245, 158, 11, 0.4)' }}>
+                  <Users size={16} />
+                  <span>{addingToGroupe.members.map(m => `${m.prenom} ${m.nom}`).join(' & ')}</span>
+                  <button onClick={() => setAddingToGroupeId(null)}><X size={14} /></button>
+                </div>
+              )}
+              <div className="binome-search-input">
+                <Search size={14} />
+                <input
+                  type="text"
+                  placeholder="Rechercher un eleve..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              <div className="binome-candidates">
+                {availableForPairing.length === 0 ? (
+                  <p className="binome-empty">Aucun eleve disponible</p>
+                ) : (
+                  availableForPairing.slice(0, 30).map(e => (
+                    <button
+                      key={e.id}
+                      className="binome-candidate"
+                      onClick={() => handlePair(e.id)}
+                    >
+                      <span className="candidate-name">{e.nom} {e.prenom}</span>
+                      <span className="candidate-classe">{e.classe}</span>
+                      {e.matieresOral && e.matieresOral.length > 0 && (
+                        <span className="candidate-matiere">{e.matieresOral[0]}</span>
+                      )}
+                    </button>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {!selectedEleve && !addingToGroupe && (
+            <div className="binome-eleves-list">
+              {[...classeGroups.entries()].map(([classe, elevesClasse]) => {
+                const available = elevesClasse.filter(e => !e.groupeOralId);
+                if (available.length === 0) return null;
+                const isExpanded = expandedClasses.has(classe);
+                return (
+                  <div key={classe} className="binome-classe-group">
+                    <button className="binome-classe-header" onClick={() => toggleClasse(classe)}>
+                      {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                      <span>{classe}</span>
+                      <span className="binome-classe-count">{available.length} disponible{available.length > 1 ? 's' : ''}</span>
+                    </button>
+                    {isExpanded && (
+                      <div className="binome-classe-eleves">
+                        {available.map(e => (
+                          <button
+                            key={e.id}
+                            className="binome-eleve-btn"
+                            onClick={() => handleSelectEleve(e.id)}
+                          >
+                            <span>{e.nom} {e.prenom}</span>
+                            {e.matieresOral && e.matieresOral.length > 0 && (
+                              <span className="eleve-matiere-tag">{e.matieresOral[0]}</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Actions */}
