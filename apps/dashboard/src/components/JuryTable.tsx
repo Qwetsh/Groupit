@@ -81,6 +81,14 @@ export function JuryTable({ jurys, criteriaConfig, maxTotal, maxByCategory }: Ju
               <div>
                 <span style={styles.juryName}>{jury.jury_name}</span>
                 {jury.salle && <span style={styles.jurySalle}>Salle {jury.salle}</span>}
+                {jury.enseignants_names && (
+                  <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                    {jury.enseignants_names}
+                    {jury.suppleant_name && (
+                      <span style={{ opacity: 0.7 }}> · Suppléant : {jury.suppleant_name}</span>
+                    )}
+                  </div>
+                )}
               </div>
               <div style={styles.juryMeta}>
                 <span style={{
