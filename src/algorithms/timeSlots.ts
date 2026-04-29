@@ -288,39 +288,6 @@ export function assignTimeSlots(
 }
 
 /**
- * Distribue N élèves dans les demi-journées disponibles.
- */
-function distributeStudents(
-  count: number,
-  demiJournees: string[],
-  slotsByDemiJournee: Map<string, TimeSlot[]>,
-  mode: DistributionMode
-): TimeSlot[] {
-  const allSlots: TimeSlot[] = [];
-
-  if (mode === 'fill_first') {
-    // Remplir chaque demi-journée avant de passer à la suivante
-    for (const dj of demiJournees) {
-      const slots = slotsByDemiJournee.get(dj) || [];
-      allSlots.push(...slots);
-      if (allSlots.length >= count) break;
-    }
-  } else {
-    // Répartir équitablement entre les demi-journées
-    const perDj = Math.ceil(count / demiJournees.length);
-
-    for (let djIdx = 0; djIdx < demiJournees.length; djIdx++) {
-      const slots = slotsByDemiJournee.get(demiJournees[djIdx]) || [];
-      const take = Math.min(perDj, slots.length, count - allSlots.length);
-      allSlots.push(...slots.slice(0, take));
-      if (allSlots.length >= count) break;
-    }
-  }
-
-  return allSlots.slice(0, count);
-}
-
-/**
  * Recalcule les créneaux pour un ou plusieurs jurys spécifiques.
  * Utilisé après un swap d'élève entre jurys.
  */
