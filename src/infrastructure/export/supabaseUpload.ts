@@ -218,7 +218,7 @@ export async function uploadSessionToSupabase(
         continue;
       }
 
-      await uploadJuryEleves(newJury.id, jury, groupSizes);
+      await uploadJuryEleves(newJury.id, jury);
     }
 
     console.log(`[supabaseUpload] Session ${sessionCode} uploadée: ${data.jurys.length} jurys`);
@@ -238,17 +238,11 @@ export async function uploadSessionToSupabase(
 async function uploadJuryEleves(
   juryId: string,
   jury: ExportJuryData,
-  groupSizes: Map<string, number>,
 ): Promise<void> {
   if (jury.eleves.length === 0) return;
 
   const rows = await Promise.all(
     jury.eleves.map(async (eleve: ExportEleveData, idx: number) => {
-      const groupSize = eleve.groupeOralId ? (groupSizes.get(eleve.groupeOralId) || 1) : 0;
-      const dureeSec = groupSize >= 2
-        ? (groupSize === 2 ? 25 : groupSize === 3 ? 35 : 20) * 60
-        : null;
-
       return {
         jury_id: juryId,
         eleve_hash: await hashEleve(eleve.nom, eleve.prenom, eleve.classe),
@@ -258,7 +252,7 @@ async function uploadJuryEleves(
         sujet: eleve.sujetOral || null,
         langue: eleve.langueEtrangere || null,
         groupe_oral_id: eleve.groupeOralId || null,
-        duree_passage: dureeSec,
+        duree_passage: null, // Mesuré par le chronomètre in-app
         ordre_passage: idx + 1,
         heure_passage: eleve.heurePassage || null,
         status: 'pending',
