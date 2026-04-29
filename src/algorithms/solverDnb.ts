@@ -318,7 +318,6 @@ function scoreEleveJury(
       scoreMixite = 70; // Jury vide, score neutre
     } else {
       // Ratio actuel : 0.5 = parfait, 0 ou 1 = déséquilibré
-      const ratioF = juryContext.nbF / total;
       // Simuler l'ajout de cet élève
       const newNbF = juryContext.nbF + (eleve.sexe === 'F' ? 1 : 0);
       const newNbM = juryContext.nbM + (eleve.sexe === 'M' ? 1 : 0);

@@ -61,6 +61,8 @@ export interface Eleve {
   matieresOral?: string[];
   // Langue étrangère choisie pour l'oral (optionnel)
   langueEtrangere?: string;
+  // Tiers temps (aménagement d'épreuve)
+  tiersTemps?: boolean;
 
   // Groupe oral : UUID partagé par les membres du groupe (2 ou 3 élèves)
   groupeOralId?: string;
