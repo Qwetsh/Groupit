@@ -20,17 +20,19 @@ export interface SessionData {
   scenarioName: string;
   dateOral: string | null;
   criteriaConfig: CriteriaConfig;
+  locked: boolean;
   jurys: JuryWithEleves[];
   allFinalScores: FinalScoreRow[];
   loading: boolean;
   error: string | null;
 }
 
-export function useSessionData(sessionCode: string): SessionData & { refresh: () => void } {
+export function useSessionData(sessionCode: string): SessionData & { refresh: () => void; toggleLocked: () => Promise<void> } {
   const [sessionId, setSessionId] = useState('');
   const [scenarioName, setScenarioName] = useState('');
   const [dateOral, setDateOral] = useState<string | null>(null);
   const [criteriaConfig, setCriteriaConfig] = useState<CriteriaConfig>(DEFAULT_CRITERIA_CONFIG);
+  const [locked, setLocked] = useState(false);
   const [jurys, setJurys] = useState<JuryWithEleves[]>([]);
   const [allFinalScores, setAllFinalScores] = useState<FinalScoreRow[]>([]);
   const connectedJuryIdsRef = useRef<Set<string>>(new Set());
@@ -63,6 +65,7 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
       setSessionId(session.id);
       setScenarioName(session.scenario_name || '');
       setDateOral(session.date_oral);
+      setLocked(!!(session as Record<string, unknown>).locked);
 
       // Extraire criteria_config
       const rawConfig = (session as Record<string, unknown>).criteria_config as CriteriaConfig | null;
@@ -185,15 +188,27 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
     return () => { supabase.removeChannel(channel); };
   }, [sessionId]);
 
+  const toggleLocked = useCallback(async () => {
+    if (!sessionId) return;
+    const newLocked = !locked;
+    const { error: updErr } = await supabase
+      .from('exam_sessions')
+      .update({ locked: newLocked })
+      .eq('id', sessionId);
+    if (!updErr) setLocked(newLocked);
+  }, [sessionId, locked]);
+
   return {
     sessionId,
     scenarioName,
     dateOral,
     criteriaConfig,
+    locked,
     jurys,
     allFinalScores,
     loading,
     error,
     refresh: loadData,
+    toggleLocked,
   };
 }

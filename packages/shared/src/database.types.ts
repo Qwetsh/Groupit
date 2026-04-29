@@ -58,6 +58,7 @@ export interface ExamSessionRow {
   created_at: string;
   expires_at: string;
   criteria_config: import('./criteria').CriteriaConfig | null;
+  locked: boolean;
 }
 export interface ExamSessionInsert {
   id?: string;
@@ -67,6 +68,7 @@ export interface ExamSessionInsert {
   created_at?: string;
   expires_at: string;
   criteria_config?: import('./criteria').CriteriaConfig | null;
+  locked?: boolean;
 }
 
 // === session_jurys ===

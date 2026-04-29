@@ -12,7 +12,7 @@ export default function App() {
   const [activeCode, setActiveCode] = useState('');
   const [showConfigModal, setShowConfigModal] = useState(false);
 
-  const { jurys, allFinalScores, scenarioName, dateOral, criteriaConfig, sessionId, loading, error, refresh } = useSessionData(activeCode);
+  const { jurys, allFinalScores, scenarioName, dateOral, criteriaConfig, sessionId, locked, loading, error, refresh, toggleLocked } = useSessionData(activeCode);
   const { globalStats, juryStats, parcoursStats, critereStats, distribution, dureeDistribution, dureeNoteData, maxTotal, maxByCategory } = useStats(jurys, allFinalScores, criteriaConfig);
 
   const isConnected = activeCode && !error && !loading;
@@ -82,6 +82,18 @@ export default function App() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button
+            onClick={toggleLocked}
+            style={{
+              ...styles.lockBtn,
+              background: locked ? '#fed7d7' : '#c6f6d5',
+              color: locked ? '#9b2c2c' : '#276749',
+              borderColor: locked ? '#fc8181' : '#68d391',
+            }}
+            title={locked ? 'Session verrouillée — cliquez pour déverrouiller' : 'Session ouverte — cliquez pour verrouiller'}
+          >
+            {locked ? '🔒 Verrouillé' : '🔓 Ouvert'}
+          </button>
           <button onClick={() => setShowConfigModal(true)} style={styles.configBtn} title="Configurer la grille de critères">
             ⚙️
           </button>
@@ -215,6 +227,15 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#059669',
     fontWeight: 700,
     fontSize: 12,
+  },
+  lockBtn: {
+    padding: '8px 14px',
+    borderRadius: 10,
+    border: '1.5px solid',
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: 'pointer',
+    transition: 'all 0.2s',
   },
   configBtn: {
     width: 40,
