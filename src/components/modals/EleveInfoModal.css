@@ -322,6 +322,179 @@
   border: 1px solid #fecaca;
 }
 
+/* ============================================================ */
+/* ALGO REASONING SECTION */
+/* ============================================================ */
+
+.algo-reasoning-section {
+  background: linear-gradient(135deg, #f0f4ff, #e8ecff);
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #c7d2fe;
+}
+
+.algo-reasoning-section h4 {
+  color: #4338ca;
+}
+
+.algo-reasoning-section h4 svg {
+  color: #6366f1;
+}
+
+/* Main reason */
+.algo-main-reason {
+  margin-bottom: 14px;
+}
+
+.algo-verdict {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.algo-verdict.match {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.algo-verdict.no-match {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.algo-reason-text {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.4;
+}
+
+/* Global score */
+.algo-global-score {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 8px 0;
+}
+
+.algo-score-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6366f1;
+  white-space: nowrap;
+  min-width: 80px;
+}
+
+.algo-score-bar-container {
+  flex: 1;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.algo-score-bar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.algo-score-bar.score-high { background: #16a34a; }
+.algo-score-bar.score-medium { background: #ca8a04; }
+.algo-score-bar.score-low { background: #dc2626; }
+
+.algo-score-value {
+  font-size: 16px;
+  font-weight: 700;
+  min-width: 28px;
+  text-align: right;
+}
+
+/* Criteria list */
+.algo-criteria-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.algo-criterion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.algo-criterion-icon {
+  font-size: 14px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.algo-criterion-label {
+  font-size: 12px;
+  color: #475569;
+  min-width: 90px;
+  white-space: nowrap;
+}
+
+.algo-criterion-bar-container {
+  flex: 1;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.algo-criterion-bar {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.algo-criterion-bar.score-high { background: #16a34a; }
+.algo-criterion-bar.score-medium { background: #ca8a04; }
+.algo-criterion-bar.score-low { background: #dc2626; }
+
+.algo-criterion-value {
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 24px;
+  text-align: right;
+}
+
+/* Jury info footer */
+.algo-jury-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(99, 102, 241, 0.08);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #4338ca;
+}
+
+.algo-jury-info svg {
+  color: #6366f1;
+  flex-shrink: 0;
+}
+
+.algo-jury-salle {
+  margin-left: auto;
+  font-size: 12px;
+  color: #6366f1;
+  opacity: 0.8;
+}
+
 /* Responsive */
 @media (max-width: 600px) {
   .info-grid {

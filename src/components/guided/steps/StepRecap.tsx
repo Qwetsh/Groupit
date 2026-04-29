@@ -291,7 +291,12 @@ export function StepRecap({ onBack }: StepRecapProps) {
     demiJournees: string[],
     mode: DistributionMode
   ) => {
-    const updates = assignTimeSlots(scenarioJurys, savedAffectations, eleves3e, demiJournees, mode);
+    const updates = assignTimeSlots(
+      scenarioJurys, savedAffectations, eleves3e, demiJournees, mode,
+      scenario?.parametres.oralDnb?.heureDebutMatin,
+      scenario?.parametres.oralDnb?.heureDebutAprem,
+      scenario?.parametres.oralDnb?.dureeSupplementaireTiersTemps
+    );
     for (const [affId, meta] of updates) {
       await updateAffectation(affId, {
         metadata: { dateCreneau: meta.dateCreneau, heureCreneau: meta.heureCreneau },
