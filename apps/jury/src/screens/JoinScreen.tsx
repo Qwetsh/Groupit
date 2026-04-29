@@ -77,7 +77,7 @@ export function JoinScreen({ onJoined }: JoinScreenProps) {
 
         // Si les 2 slots sont pris, remplacer le membre le plus ancien
         if (!slot && members && members.length >= 2) {
-          const oldest = members[0];
+          const oldest = members[0]!;
           await supabase.from('jury_members').delete().eq('id', oldest.id);
           slot = oldest.slot;
         }
