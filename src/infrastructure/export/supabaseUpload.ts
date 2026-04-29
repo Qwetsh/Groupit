@@ -122,6 +122,15 @@ export async function uploadSessionToSupabase(
       // Session existe → mettre à jour les métadonnées
       sessionId = existingSession.id;
 
+      // Vérifier si des notes existent avant de supprimer en cascade
+      const { hasScores, count } = await checkSessionHasScores(sessionCode);
+      if (hasScores) {
+        return {
+          success: false,
+          error: `Cette session contient ${count} note(s) déjà enregistrée(s). Supprimez-les d'abord via le dashboard ou utilisez un nouveau code de session.`,
+        };
+      }
+
       const { error: updErr } = await supabase.from('exam_sessions').update({
         scenario_name: data.scenarioName,
         date_oral: options.dateOral || null,

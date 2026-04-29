@@ -55,6 +55,7 @@ export interface ContextMenuState {
   eleve: Eleve;
   affectation?: Affectation;
   enseignant?: Enseignant;
+  jury?: Jury;
 }
 
 // ============================================================

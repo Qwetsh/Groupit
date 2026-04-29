@@ -75,6 +75,12 @@ export interface ScenarioParametres {
     capaciteJuryDefaut: number;
     // Demi-journées de l'oral (ex: ['jeudi_matin', 'jeudi_aprem'])
     demiJourneesOral?: string[];
+    // Heure de début matin (ex: "08:15")
+    heureDebutMatin?: string;
+    // Heure de début après-midi (ex: "13:35")
+    heureDebutAprem?: string;
+    // Durée supplémentaire pour les élèves tiers temps (en minutes, ex: 7)
+    dureeSupplementaireTiersTemps?: number;
     // Mode de distribution des créneaux entre demi-journées
     distributionCreneaux?: 'fill_first' | 'distribute_evenly';
   };

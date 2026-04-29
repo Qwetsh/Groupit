@@ -25,17 +25,27 @@ interface TimeSlot {
   demiJournee: string; // "jeudi_matin"
 }
 
-// ============ CONSTANTES HORAIRES ============
+// ============ CONSTANTES HORAIRES (défauts) ============
 
 const DUREE_PASSAGE_MIN = 20;
 
-/** Créneaux matin : 08:15 → 12:10 avec pause 10 min au milieu */
-const MATIN_START = { h: 8, m: 15 };
+/** Créneaux matin par défaut : 08:15 → 12:10 avec pause 10 min au milieu */
+const DEFAULT_MATIN_START = { h: 8, m: 15 };
 const MATIN_END = { h: 12, m: 10 };
 
-/** Créneaux après-midi : 13:35 → 16:35 avec pause ~15:30 */
-const APREM_START = { h: 13, m: 35 };
+/** Créneaux après-midi par défaut : 13:35 → 16:35 avec pause ~15:30 */
+const DEFAULT_APREM_START = { h: 13, m: 35 };
 const APREM_END = { h: 16, m: 35 };
+
+/** Parse une heure "HH:MM" en { h, m }. Retourne le défaut si invalide. */
+function parseHeure(heure: string | undefined, fallback: { h: number; m: number }): { h: number; m: number } {
+  if (!heure) return fallback;
+  const [hStr, mStr] = heure.split(':');
+  const h = parseInt(hStr, 10);
+  const m = parseInt(mStr, 10);
+  if (isNaN(h) || isNaN(m)) return fallback;
+  return { h, m };
+}
 
 // ============ HELPERS ============
 
@@ -55,8 +65,9 @@ function minutesToTimeStr(totalMinutes: number): string {
  * Si minSlots est fourni et dépasse la capacité de la plage, génère des
  * créneaux supplémentaires au-delà de l'heure de fin prévue.
  */
-function generateSlotsForPeriod(type: 'matin' | 'aprem', minSlots?: number): string[] {
-  const start = type === 'matin' ? MATIN_START : APREM_START;
+function generateSlotsForPeriod(type: 'matin' | 'aprem', minSlots?: number, customStart?: { h: number; m: number }): string[] {
+  const defaultStart = type === 'matin' ? DEFAULT_MATIN_START : DEFAULT_APREM_START;
+  const start = customStart || defaultStart;
   const end = type === 'matin' ? MATIN_END : APREM_END;
 
   const startMin = timeToMinutes(start.h, start.m);
@@ -91,8 +102,9 @@ function generateSlotsForPeriod(type: 'matin' | 'aprem', minSlots?: number): str
 /**
  * Retourne les créneaux horaires pour un type de demi-journée.
  */
-export function getTimeSlotsForDemiJournee(type: 'matin' | 'aprem'): string[] {
-  return generateSlotsForPeriod(type);
+export function getTimeSlotsForDemiJournee(type: 'matin' | 'aprem', customStart?: string): string[] {
+  const start = customStart ? parseHeure(customStart, type === 'matin' ? DEFAULT_MATIN_START : DEFAULT_APREM_START) : undefined;
+  return generateSlotsForPeriod(type, undefined, start);
 }
 
 /**
@@ -129,7 +141,10 @@ export function assignTimeSlots(
   affectations: Affectation[],
   eleves: Eleve[],
   demiJournees: string[],
-  mode: DistributionMode
+  mode: DistributionMode,
+  heureDebutMatin?: string,
+  heureDebutAprem?: string,
+  dureeSupplementaireTiersTemps?: number
 ): Map<string, { dateCreneau: string; heureCreneau: string }> {
   const updates = new Map<string, { dateCreneau: string; heureCreneau: string }>();
 
@@ -146,14 +161,19 @@ export function assignTimeSlots(
   const slotsNeededPerDj = mode === 'fill_first' ? maxElevesPerJury : Math.ceil(maxElevesPerJury / Math.max(demiJournees.length, 1));
 
   // Pré-calculer les créneaux pour chaque demi-journée (avec overflow si nécessaire)
+  const matinStart = parseHeure(heureDebutMatin, DEFAULT_MATIN_START);
+  const apremStart = parseHeure(heureDebutAprem, DEFAULT_APREM_START);
   const slotsByDemiJournee = new Map<string, TimeSlot[]>();
   for (const dj of demiJournees) {
     const periodType = getPeriodType(dj);
-    const heures = generateSlotsForPeriod(periodType, slotsNeededPerDj);
+    const customStart = periodType === 'matin' ? matinStart : apremStart;
+    const heures = generateSlotsForPeriod(periodType, slotsNeededPerDj, customStart);
     slotsByDemiJournee.set(dj, heures.map(h => ({ heure: h, demiJournee: dj })));
   }
 
-  // Pour chaque jury, assigner les créneaux
+  const extraTT = dureeSupplementaireTiersTemps || 0;
+
+  // Pour chaque jury, assigner les créneaux avec temps cumulatif réel
   for (const jury of jurys) {
     // Récupérer les affectations de ce jury, triées par nom d'élève (alphabétique)
     const juryAffectations = affectations
@@ -168,56 +188,99 @@ export function assignTimeSlots(
 
     if (juryAffectations.length === 0) continue;
 
-    // Distribuer les élèves dans les demi-journées selon le mode
-    const distribution = distributeStudents(juryAffectations.length, demiJournees, slotsByDemiJournee, mode);
-
-    // Assigner les créneaux (groupes = même créneau, durée variable → skip slots)
-    let slotIdx = 0;
+    // Build ordered passages (group oral members on same slot)
     const assignedIds = new Set<string>();
+    interface Passage { affs: Affectation[]; groupSize: number; hasTiersTemps: boolean }
+    const passages: Passage[] = [];
 
-    for (let i = 0; i < juryAffectations.length; i++) {
-      const aff = juryAffectations[i];
+    for (const aff of juryAffectations) {
       if (assignedIds.has(aff.eleveId)) continue;
-
-      const slot = distribution[slotIdx];
-      if (!slot) break;
-
       const eleve = elevesById.get(aff.eleveId);
+      const groupAffs: Affectation[] = [aff];
+      assignedIds.add(aff.eleveId);
 
-      // Find group members
-      const groupMembers: typeof juryAffectations = [];
       if (eleve?.groupeOralId) {
-        for (const otherAff of juryAffectations) {
-          if (assignedIds.has(otherAff.eleveId)) continue;
-          const otherEleve = elevesById.get(otherAff.eleveId);
-          if (otherEleve?.groupeOralId === eleve.groupeOralId) {
-            groupMembers.push(otherAff);
+        for (const other of juryAffectations) {
+          if (!assignedIds.has(other.eleveId)) {
+            const otherEleve = elevesById.get(other.eleveId);
+            if (otherEleve?.groupeOralId === eleve.groupeOralId) {
+              groupAffs.push(other);
+              assignedIds.add(other.eleveId);
+            }
           }
         }
       }
 
-      // Assign slot to this student
-      updates.set(aff.id, {
-        dateCreneau: getDemiJourneeLabel(slot.demiJournee),
-        heureCreneau: slot.heure,
-      });
-      assignedIds.add(aff.eleveId);
+      const hasTT = groupAffs.some(a => elevesById.get(a.eleveId)?.tiersTemps);
+      passages.push({ affs: groupAffs, groupSize: groupAffs.length, hasTiersTemps: hasTT });
+    }
 
-      // Assign same slot to group members
-      for (const memberAff of groupMembers) {
-        if (memberAff.eleveId !== aff.eleveId && !assignedIds.has(memberAff.eleveId)) {
-          updates.set(memberAff.id, {
-            dateCreneau: getDemiJourneeLabel(slot.demiJournee),
-            heureCreneau: slot.heure,
+    // Distribute passages across demi-journées
+    const passagesPerDj: { dj: string; passages: Passage[] }[] = [];
+    if (mode === 'fill_first') {
+      // Fill each DJ before moving to the next
+      let djIdx = 0;
+      let remaining = [...passages];
+      while (remaining.length > 0 && djIdx < demiJournees.length) {
+        const dj = demiJournees[djIdx];
+        const periodType = getPeriodType(dj);
+        const start = periodType === 'matin' ? matinStart : apremStart;
+        const end = periodType === 'matin' ? MATIN_END : APREM_END;
+        const availableMin = timeToMinutes(end.h, end.m) - timeToMinutes(start.h, start.m);
+
+        const djPassages: Passage[] = [];
+        let usedMin = 0;
+        while (remaining.length > 0) {
+          const p = remaining[0];
+          const dur = getGroupDuration(p.groupSize) + (p.hasTiersTemps ? extraTT : 0);
+          if (usedMin + dur > availableMin + 10 && djPassages.length > 0) break; // 10min tolerance
+          djPassages.push(remaining.shift()!);
+          usedMin += dur;
+        }
+        if (djPassages.length > 0) passagesPerDj.push({ dj, passages: djPassages });
+        djIdx++;
+      }
+      // Overflow: put remaining in last DJ
+      if (remaining.length > 0 && passagesPerDj.length > 0) {
+        passagesPerDj[passagesPerDj.length - 1].passages.push(...remaining);
+      }
+    } else {
+      // Distribute evenly
+      const perDj = Math.ceil(passages.length / demiJournees.length);
+      let idx = 0;
+      for (const dj of demiJournees) {
+        const djPassages = passages.slice(idx, idx + perDj);
+        if (djPassages.length > 0) passagesPerDj.push({ dj, passages: djPassages });
+        idx += perDj;
+      }
+    }
+
+    // Assign actual times with cumulative duration + break
+    for (const { dj, passages: djPassages } of passagesPerDj) {
+      const periodType = getPeriodType(dj);
+      const start = periodType === 'matin' ? matinStart : apremStart;
+      let curMin = timeToMinutes(start.h, start.m);
+      const halfIdx = Math.floor(djPassages.length / 2);
+
+      for (let pi = 0; pi < djPassages.length; pi++) {
+        const passage = djPassages[pi];
+        const heure = minutesToTimeStr(curMin);
+
+        for (const aff of passage.affs) {
+          updates.set(aff.id, {
+            dateCreneau: getDemiJourneeLabel(dj),
+            heureCreneau: heure,
           });
-          assignedIds.add(memberAff.eleveId);
+        }
+
+        const dur = getGroupDuration(passage.groupSize) + (passage.hasTiersTemps ? extraTT : 0);
+        curMin += dur;
+
+        // 10min break after halfway
+        if (pi === halfIdx - 1 && djPassages.length >= 4) {
+          curMin += 10;
         }
       }
-
-      // Skip slots based on group duration
-      const groupSize = groupMembers.length > 0 ? groupMembers.length : 1;
-      const slotsToSkip = Math.ceil(getGroupDuration(groupSize) / DUREE_PASSAGE_MIN) - 1;
-      slotIdx += 1 + slotsToSkip;
     }
   }
 
@@ -267,8 +330,11 @@ export function recalcTimeSlotsForJurys(
   affectations: Affectation[],
   eleves: Eleve[],
   demiJournees: string[],
-  mode: DistributionMode
+  mode: DistributionMode,
+  heureDebutMatin?: string,
+  heureDebutAprem?: string,
+  dureeSupplementaireTiersTemps?: number
 ): Map<string, { dateCreneau: string; heureCreneau: string }> {
   const targetJurys = allJurys.filter(j => juryIds.includes(j.id!));
-  return assignTimeSlots(targetJurys, affectations, eleves, demiJournees, mode);
+  return assignTimeSlots(targetJurys, affectations, eleves, demiJournees, mode, heureDebutMatin, heureDebutAprem, dureeSupplementaireTiersTemps);
 }

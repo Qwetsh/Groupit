@@ -238,34 +238,54 @@ export const useEleveStore = create<EleveState>((set, get) => ({
 
   setGroupeOral: async (eleveIds) => {
     try {
-      // Remove from existing groups first
+      // Snapshot state for consistent reads
       const stateNow = get();
+      const oldGroupeIds = new Map<string, string | undefined>();
+
+      // Record old groupeOralId for each eleve (for state update later)
+      for (const id of eleveIds) {
+        const eleve = stateNow.eleves.find(e => e.id === id);
+        oldGroupeIds.set(id, eleve?.groupeOralId);
+      }
+
+      // Collect all DB updates, then execute them all
+      const updates: { id: string; groupeOralId: string | undefined }[] = [];
+
+      // Remove from existing groups first
       for (const id of eleveIds) {
         const eleve = stateNow.eleves.find(e => e.id === id);
         if (eleve?.groupeOralId) {
-          // Remove from old group
           const oldMembers = stateNow.eleves.filter(e => e.groupeOralId === eleve.groupeOralId && e.id !== id);
           if (oldMembers.length === 1) {
-            // Last remaining member loses groupeOralId
-            await getRepo().update(oldMembers[0]!.id!, { groupeOralId: undefined });
+            updates.push({ id: oldMembers[0]!.id!, groupeOralId: undefined });
           }
-          await getRepo().update(id, { groupeOralId: undefined });
+          updates.push({ id, groupeOralId: undefined });
         }
       }
-      // Generate shared UUID
+
+      // Generate shared UUID and assign
       const groupeId = crypto.randomUUID();
       for (const id of eleveIds) {
-        await getRepo().update(id, { groupeOralId: groupeId });
+        updates.push({ id, groupeOralId: groupeId });
       }
+
+      // Execute all updates — if any fails, stop and report
+      for (const upd of updates) {
+        await getRepo().update(upd.id, { groupeOralId: upd.groupeOralId });
+      }
+
+      // All succeeded — update state in one shot
       set(state => {
+        const affectedOrphanGroups = new Set<string>();
+        for (const id of eleveIds) {
+          const old = oldGroupeIds.get(id);
+          if (old) affectedOrphanGroups.add(old);
+        }
+
         const eleves = state.eleves.map(e => {
           if (eleveIds.includes(e.id)) return { ...e, groupeOralId: groupeId, updatedAt: new Date() };
           // Clean up orphaned old group members (single member left)
-          const wasInGroupWithMember = eleveIds.some(id => {
-            const member = state.eleves.find(m => m.id === id);
-            return member?.groupeOralId && member.groupeOralId === e.groupeOralId;
-          });
-          if (wasInGroupWithMember) {
+          if (e.groupeOralId && affectedOrphanGroups.has(e.groupeOralId)) {
             const remainingMembers = state.eleves.filter(
               m => m.groupeOralId === e.groupeOralId && !eleveIds.includes(m.id) && m.id !== e.id
             );
@@ -279,6 +299,8 @@ export const useEleveStore = create<EleveState>((set, get) => ({
         return { eleves };
       });
     } catch (error) {
+      // On failure, reload from DB to ensure consistent state
+      await get().loadEleves();
       set({ error: extractErrorMessage(error) });
       throw error;
     }

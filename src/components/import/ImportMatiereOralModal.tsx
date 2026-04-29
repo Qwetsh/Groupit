@@ -75,6 +75,7 @@ const MATIERE_ALIASES: Record<string, string> = {
   'education musicale': 'Éducation Musicale',
   'éducation musicale': 'Éducation Musicale',
   'arts plastiques': 'Arts Plastiques',
+  'art plastique': 'Arts Plastiques',
   'arts': 'Arts Plastiques',
   'dessin': 'Arts Plastiques',
   'latin': 'Latin (option)',
@@ -244,10 +245,10 @@ export function ImportMatiereOralModal({ onClose, matieresAutorisees }: ImportMa
     setDragActive(false);
     
     const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && (droppedFile.name.endsWith('.csv') || droppedFile.type === 'text/csv')) {
+    if (droppedFile && /\.(csv|xlsx|xls)$/i.test(droppedFile.name)) {
       handleFile(droppedFile);
     } else {
-      setErrors(['Veuillez sélectionner un fichier CSV']);
+      setErrors(['Veuillez sélectionner un fichier CSV ou Excel (.xlsx, .xls)']);
     }
   }, [handleFile]);
 
@@ -470,7 +471,7 @@ export function ImportMatiereOralModal({ onClose, matieresAutorisees }: ImportMa
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".csv"
+                accept=".csv,.xlsx,.xls"
                 onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
                 style={{ display: 'none' }}
               />

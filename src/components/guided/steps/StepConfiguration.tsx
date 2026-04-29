@@ -202,6 +202,9 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
   const [showJuryEditor, setShowJuryEditor] = useState(false);
   const [activeEnseignant, setActiveEnseignant] = useState<Enseignant | null>(null);
   const [demiJourneesOral, setDemiJourneesOral] = useState<string[]>(['mercredi_matin']);
+  const [heureDebutMatin, setHeureDebutMatin] = useState('08:15');
+  const [heureDebutAprem, setHeureDebutAprem] = useState('13:35');
+  const [dureeTiersTemps, setDureeTiersTemps] = useState(7);
   const [filterNiveaux, setFilterNiveaux] = useState<Set<string>>(new Set());
   const [filterMatieres, setFilterMatieres] = useState<Set<string>>(new Set());
   const [filterDistanceMax, setFilterDistanceMax] = useState<number>(0); // 0 = no filter
@@ -428,6 +431,9 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
               criteresSecondaires: ['equilibrage'],
               capaciteJuryDefaut: elevesParJury,
               demiJourneesOral: demiJourneesOral.length > 0 ? demiJourneesOral : ['mercredi_matin'],
+              heureDebutMatin,
+              heureDebutAprem,
+              dureeSupplementaireTiersTemps: dureeTiersTemps,
             },
           },
         };
@@ -759,6 +765,43 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
                 ))}
               </div>
               <p className="form-hint">Cliquez pour selectionner — les enseignants indisponibles seront signales</p>
+
+              {/* Heures de début */}
+              <div className="heure-debut-row">
+                {demiJourneesOral.some(d => d.endsWith('_matin')) && (
+                  <div className="heure-debut-group">
+                    <label><Clock size={14} /> Début matin</label>
+                    <input
+                      type="time"
+                      value={heureDebutMatin}
+                      onChange={(e) => setHeureDebutMatin(e.target.value)}
+                      className="form-input time-input"
+                    />
+                  </div>
+                )}
+                {demiJourneesOral.some(d => d.endsWith('_aprem')) && (
+                  <div className="heure-debut-group">
+                    <label><Clock size={14} /> Début après-midi</label>
+                    <input
+                      type="time"
+                      value={heureDebutAprem}
+                      onChange={(e) => setHeureDebutAprem(e.target.value)}
+                      className="form-input time-input"
+                    />
+                  </div>
+                )}
+                <div className="heure-debut-group">
+                  <label><Clock size={14} /> Tiers temps (+min)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={20}
+                    value={dureeTiersTemps}
+                    onChange={(e) => setDureeTiersTemps(parseInt(e.target.value) || 0)}
+                    className="form-input time-input"
+                  />
+                </div>
+              </div>
             </div>
           )}
 

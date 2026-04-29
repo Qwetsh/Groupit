@@ -316,6 +316,7 @@ export const Board: React.FC = () => {
       eleve,
       affectation,
       enseignant: enseignants.find(ens => jury.enseignantIds.includes(ens.id!)),
+      jury,
     });
   }, [enseignants]);
 
@@ -484,6 +485,7 @@ export const Board: React.FC = () => {
           eleve: contextMenu.eleve,
           affectation: contextMenu.affectation,
           enseignant: contextMenu.enseignant,
+          jury: contextMenu.jury,
           stage: eleveStage,
         }),
       },
@@ -588,6 +590,31 @@ export const Board: React.FC = () => {
             scoreDetail: { manuel: 100 },
             scoreTotal: matiereMatch ? 100 : 50,
           });
+
+          // Recalculate time slots for the target jury
+          if (activeScenario.type === 'oral_dnb') {
+            const demiJournees = activeScenario.parametres.oralDnb?.demiJourneesOral || [];
+            const distMode = activeScenario.parametres.oralDnb?.distributionCreneaux || 'fill_first';
+            if (demiJournees.length > 0) {
+              const freshAffectations = useAffectationStore.getState().affectations.filter(a => a.scenarioId === activeScenario.id);
+              const updates = recalcTimeSlotsForJurys(
+                [targetJuryId],
+                scenarioJurys,
+                freshAffectations,
+                eleves,
+                demiJournees,
+                distMode,
+                activeScenario.parametres.oralDnb?.heureDebutMatin,
+                activeScenario.parametres.oralDnb?.heureDebutAprem,
+                activeScenario.parametres.oralDnb?.dureeSupplementaireTiersTemps
+              );
+              for (const [affId, meta] of updates) {
+                await updateAffectation(affId, {
+                  metadata: { dateCreneau: meta.dateCreneau, heureCreneau: meta.heureCreneau },
+                });
+              }
+            }
+          }
         } catch (err) {
           setMatchingError(`Erreur lors de l'affectation jury : ${String(err)}`);
         }
@@ -641,7 +668,10 @@ export const Board: React.FC = () => {
                 freshAffectations,
                 eleves,
                 demiJournees,
-                distMode
+                distMode,
+                activeScenario.parametres.oralDnb?.heureDebutMatin,
+                activeScenario.parametres.oralDnb?.heureDebutAprem,
+                activeScenario.parametres.oralDnb?.dureeSupplementaireTiersTemps
               );
               for (const [affId, meta] of updates) {
                 await updateAffectation(affId, {
@@ -659,7 +689,35 @@ export const Board: React.FC = () => {
     // Case 3: Remove affectation (drop on unassigned zone)
     if ((activeDataCurrent?.type === 'affectation' || activeDataCurrent?.type === 'jury-affectation') && isDropOnUnassigned) {
       try {
+        const sourceAff = affectations.find(a => a.id === activeDataCurrent.affectationId);
+        const sourceJuryId = sourceAff?.juryId;
+
         await deleteAffectation(activeDataCurrent.affectationId);
+
+        // Recalculate time slots for the source jury after removal
+        if (sourceJuryId && activeScenario?.type === 'oral_dnb') {
+          const demiJournees = activeScenario.parametres.oralDnb?.demiJourneesOral || [];
+          const distMode = activeScenario.parametres.oralDnb?.distributionCreneaux || 'fill_first';
+          if (demiJournees.length > 0) {
+            const freshAffectations = affectations.filter(a => a.id !== activeDataCurrent.affectationId);
+            const updates = recalcTimeSlotsForJurys(
+              [sourceJuryId],
+              scenarioJurys,
+              freshAffectations,
+              eleves,
+              demiJournees,
+              distMode,
+              activeScenario.parametres.oralDnb?.heureDebutMatin,
+              activeScenario.parametres.oralDnb?.heureDebutAprem,
+              activeScenario.parametres.oralDnb?.dureeSupplementaireTiersTemps
+            );
+            for (const [affId, meta] of updates) {
+              await updateAffectation(affId, {
+                metadata: { dateCreneau: meta.dateCreneau, heureCreneau: meta.heureCreneau },
+              });
+            }
+          }
+        }
       } catch (err) {
         setMatchingError(`Erreur lors de la suppression : ${String(err)}`);
       }
@@ -856,6 +914,7 @@ export const Board: React.FC = () => {
           eleve={infoModalEleve.eleve}
           affectation={infoModalEleve.affectation}
           enseignant={infoModalEleve.enseignant}
+          jury={infoModalEleve.jury}
           stage={infoModalEleve.stage}
           onClose={() => setInfoModalEleve(null)}
         />
