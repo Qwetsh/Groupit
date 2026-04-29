@@ -991,7 +991,7 @@ const RecapJurysPage: React.FC<RecapJurysPageProps> = ({ data, options, styles, 
         Les sujets des élèves seront communiqués sur les convocations individuelles.
       </Text>
 
-      {data.jurys.map((jury, jIdx) => (
+      {data.jurys.map((jury) => (
         <View key={jury.juryId} style={{ marginBottom: 10 }} wrap={false}>
           <View style={{
             flexDirection: 'row',
