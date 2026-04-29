@@ -21,15 +21,19 @@ export function JoinScreen({ onJoined }: JoinScreenProps) {
       const { error: authError } = await supabase.auth.signInAnonymously();
       if (authError) throw new Error('Erreur de connexion');
 
-      // 2. Trouver la session par code (inclut criteria_config)
+      // 2. Trouver la session par code (inclut criteria_config + locked)
       const { data: session, error: sessionError } = await supabase
         .from('exam_sessions')
-        .select('id, criteria_config')
+        .select('id, criteria_config, locked')
         .eq('code', sessionCode.trim().toUpperCase())
         .single();
 
       if (sessionError || !session) {
         throw new Error('Code de session invalide');
+      }
+
+      if ((session as Record<string, unknown>).locked) {
+        throw new Error('Cette session est verrouillée par la direction. La notation n\'est plus possible.');
       }
 
       // 3. Trouver le jury
