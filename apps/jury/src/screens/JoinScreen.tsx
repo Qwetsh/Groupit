@@ -68,13 +68,21 @@ export function JoinScreen({ onJoined }: JoinScreenProps) {
         // Trouver le prochain slot disponible (A, puis B)
         const { data: members } = await supabase
           .from('jury_members')
-          .select('slot')
-          .eq('jury_id', jury.id);
+          .select('id, slot, joined_at')
+          .eq('jury_id', jury.id)
+          .order('joined_at', { ascending: true });
 
         const takenSlots = (members || []).map(m => m.slot);
-        const slot = !takenSlots.includes('A') ? 'A' : !takenSlots.includes('B') ? 'B' : null;
+        let slot = !takenSlots.includes('A') ? 'A' : !takenSlots.includes('B') ? 'B' : null;
 
-        if (!slot) throw new Error('Ce jury est complet (2 membres max)');
+        // Si les 2 slots sont pris, remplacer le membre le plus ancien
+        if (!slot && members && members.length >= 2) {
+          const oldest = members[0];
+          await supabase.from('jury_members').delete().eq('id', oldest.id);
+          slot = oldest.slot;
+        }
+
+        if (!slot) throw new Error('Impossible de rejoindre le jury');
 
         const { error: memberErr } = await supabase
           .from('jury_members')
