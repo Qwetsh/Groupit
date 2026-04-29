@@ -34,7 +34,9 @@ const actionItems: NavItem[] = [
 ];
 
 // URL du dashboard principal (même base que l'app, sous-dossier)
-const DASHBOARD_URL = `${window.location.origin}${import.meta.env.BASE_URL}groupit-dashboard/`;
+const DASHBOARD_URL = import.meta.env.DEV
+  ? `${window.location.protocol}//${window.location.hostname}:5176/Groupit/groupit-dashboard/`
+  : `${window.location.origin}${import.meta.env.BASE_URL}groupit-dashboard/`;
 
 // Section 2: Gestion des données
 const dataItems: NavItem[] = [

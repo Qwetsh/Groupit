@@ -2,21 +2,47 @@
 // MODAL - INFO ÉLÈVE
 // ============================================================
 
-import { X, User, Calendar, BookOpen, Tag, AlertTriangle, Users, Clock, FileText, Settings, Building2, MapPin, Phone, Mail, UserCircle } from 'lucide-react';
-import type { Eleve, Affectation, Enseignant, Stage } from '../../domain/models';
+import { X, User, Calendar, BookOpen, Tag, AlertTriangle, Users, Clock, FileText, Settings, Building2, MapPin, Phone, Mail, UserCircle, Brain } from 'lucide-react';
+import type { Eleve, Affectation, Enseignant, Jury, Stage } from '../../domain/models';
 import { useFieldDefinitionStore } from '../../stores/fieldDefinitionStore';
 import './Modal.css';
 import './EleveInfoModal.css';
+
+// Labels et icônes UX-friendly pour chaque critère du solver
+const SCORE_LABELS: Record<string, { label: string; icon: string; description: string }> = {
+  matiere:       { label: 'Matière',       icon: '📚', description: 'Correspondance entre la matière de l\'élève et celles du jury' },
+  langue:        { label: 'Langue',        icon: '🌍', description: 'Correspondance de la langue étrangère choisie' },
+  equilibrage:   { label: 'Répartition',    icon: '⚖️', description: 'Favorise les jurys les moins remplis pour équilibrer le nombre d\'élèves' },
+  mixite:        { label: 'Mixité',        icon: '👥', description: 'Équilibre filles/garçons dans le jury' },
+  capacite:      { label: 'Capacité',      icon: '📊', description: 'Place disponible dans le jury' },
+  elevesEnCours: { label: 'Élèves du prof', icon: '🎓', description: 'Évite de placer un élève devant son propre professeur' },
+  pedagogique:   { label: 'Pédagogique',   icon: '📝', description: 'Score pédagogique des enseignants du jury' },
+  tiersTemps:    { label: 'Tiers temps',   icon: '⏱️', description: 'Équilibrage des tiers temps + proximité des profs au collège' },
+  diversite:     { label: 'Diversité',    icon: '🎨', description: 'Dispersion des sujets pour varier les passages dans chaque jury' },
+};
+
+function getScoreColor(score: number): string {
+  if (score >= 80) return '#16a34a';
+  if (score >= 50) return '#ca8a04';
+  return '#dc2626';
+}
+
+function getScoreBarClass(score: number): string {
+  if (score >= 80) return 'score-high';
+  if (score >= 50) return 'score-medium';
+  return 'score-low';
+}
 
 interface EleveInfoModalProps {
   eleve: Eleve;
   affectation?: Affectation;
   enseignant?: Enseignant;
+  jury?: Jury;
   stage?: Stage;
   onClose: () => void;
 }
 
-export function EleveInfoModal({ eleve, affectation, enseignant, stage, onClose }: EleveInfoModalProps) {
+export function EleveInfoModal({ eleve, affectation, enseignant, jury, stage, onClose }: EleveInfoModalProps) {
   // Calculer l'âge si date de naissance disponible
   const age = eleve.dateNaissance 
     ? Math.floor((new Date().getTime() - new Date(eleve.dateNaissance).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
@@ -268,6 +294,72 @@ export function EleveInfoModal({ eleve, affectation, enseignant, stage, onClose 
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Raisonnement algorithme (oral DNB) */}
+          {affectation?.explication && (
+            <div className="info-section algo-reasoning-section">
+              <h4><Brain size={16} /> Pourquoi ce jury ?</h4>
+
+              {/* Raison principale */}
+              <div className="algo-main-reason">
+                <span className={`algo-verdict ${affectation.explication.matiereRespectee ? 'match' : 'no-match'}`}>
+                  {affectation.explication.matiereRespectee ? '✓ Matière respectée' : '⚠ Matière non respectée'}
+                </span>
+                <p className="algo-reason-text">{affectation.explication.raisonPrincipale}</p>
+              </div>
+
+              {/* Score global */}
+              {affectation.explication.score != null && (
+                <div className="algo-global-score">
+                  <span className="algo-score-label">Score global</span>
+                  <div className="algo-score-bar-container">
+                    <div
+                      className={`algo-score-bar ${getScoreBarClass(affectation.explication.score)}`}
+                      style={{ width: `${Math.min(affectation.explication.score, 100)}%` }}
+                    />
+                  </div>
+                  <span className="algo-score-value" style={{ color: getScoreColor(affectation.explication.score) }}>
+                    {Math.round(affectation.explication.score)}
+                  </span>
+                </div>
+              )}
+
+              {/* Détail des critères */}
+              {affectation.explication.detailScores && Object.keys(affectation.explication.detailScores).length > 0 && (
+                <div className="algo-criteria-list">
+                  {Object.entries(affectation.explication.detailScores)
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([key, value]) => {
+                      const info = SCORE_LABELS[key] || { label: key, icon: '•', description: '' };
+                      return (
+                        <div key={key} className="algo-criterion" title={info.description}>
+                          <span className="algo-criterion-icon">{info.icon}</span>
+                          <span className="algo-criterion-label">{info.label}</span>
+                          <div className="algo-criterion-bar-container">
+                            <div
+                              className={`algo-criterion-bar ${getScoreBarClass(value)}`}
+                              style={{ width: `${Math.min(value, 100)}%` }}
+                            />
+                          </div>
+                          <span className="algo-criterion-value" style={{ color: getScoreColor(value) }}>
+                            {Math.round(value)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+
+              {/* Jury assigné */}
+              {jury && (
+                <div className="algo-jury-info">
+                  <Users size={14} />
+                  <span>{jury.nom}</span>
+                  {jury.salle && <span className="algo-jury-salle">Salle {jury.salle}</span>}
+                </div>
+              )}
             </div>
           )}
 

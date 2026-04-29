@@ -94,6 +94,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
   const [sectionConvocProf, setSectionConvocProf] = useState(true);
   const [sectionEmargement, setSectionEmargement] = useState(true);
   const [sectionFeuillesPorte, setSectionFeuillesPorte] = useState(true);
+  const [sectionRecapJurys, setSectionRecapJurys] = useState(true);
 
   // Options stage (séparées)
   const [stageCsvOptions] = useState(() => ({ ...DEFAULT_STAGE_CSV_OPTIONS }));
@@ -294,6 +295,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
           includeSectionConvocProf: sectionConvocProf,
           includeSectionEmargement: sectionEmargement,
           includeSectionFeuillesPorte: sectionFeuillesPorte,
+          includeSectionRecapJurys: sectionRecapJurys,
         });
       }
       setPdfStatus('success');
@@ -303,7 +305,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
       setPdfStatus('error');
       setErrorMessage('Erreur PDF');
     }
-  }, [exportData, baseFilename, pdfOptions, scenario.nom, hasData, stageMode, stagePdfOptions, dateOral, typeOral, sessionCode, sectionConvocEleve, sectionConvocProf, sectionEmargement, sectionFeuillesPorte]);
+  }, [exportData, baseFilename, pdfOptions, scenario.nom, hasData, stageMode, stagePdfOptions, dateOral, typeOral, sessionCode, sectionConvocEleve, sectionConvocProf, sectionEmargement, sectionFeuillesPorte, sectionRecapJurys]);
 
   const handlePdfClick = useCallback(() => {
     if (!hasData) return;
@@ -677,6 +679,14 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
                 <label className="option-checkbox">
                   <input
                     type="checkbox"
+                    checked={sectionRecapJurys}
+                    onChange={() => setSectionRecapJurys(v => !v)}
+                  />
+                  Récapitulatif des jurys
+                </label>
+                <label className="option-checkbox">
+                  <input
+                    type="checkbox"
                     checked={sectionFeuillesPorte}
                     onChange={() => setSectionFeuillesPorte(v => !v)}
                   />
@@ -709,7 +719,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
               <button
                 className="btn btn-primary"
                 onClick={doExportPdf}
-                disabled={!sectionConvocEleve && !sectionConvocProf && !sectionEmargement && !sectionFeuillesPorte}
+                disabled={!sectionConvocEleve && !sectionConvocProf && !sectionEmargement && !sectionFeuillesPorte && !sectionRecapJurys}
               >
                 Générer le PDF
               </button>

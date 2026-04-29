@@ -574,12 +574,11 @@ interface JuryPageProps {
   data: ExportResultData;
   options: PdfExportOptions;
   styles: ReturnType<typeof createStyles>;
-  isFirstJury: boolean;
   isOralBlanc: boolean;
   qrDataUrl?: string;
 }
 
-const JuryPage: React.FC<JuryPageProps> = ({ jury, data, options, styles, isFirstJury, isOralBlanc, qrDataUrl }) => {
+const JuryPage: React.FC<JuryPageProps> = ({ jury, data, options, styles, isOralBlanc, qrDataUrl }) => {
   const titleLabel = isOralBlanc ? 'Oral blanc' : 'Oral DNB';
   const dateOralFormatted = options.dateOral
     ? new Date(options.dateOral).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
@@ -590,7 +589,7 @@ const JuryPage: React.FC<JuryPageProps> = ({ jury, data, options, styles, isFirs
 
   return (
     <Page size={options.pageSize} orientation={options.orientation} style={styles.page}>
-      {isFirstJury && (
+      <View wrap={false}>
         <PageHeader
           title={fullTitle}
           subtitle={options.headerSchoolName}
@@ -598,41 +597,58 @@ const JuryPage: React.FC<JuryPageProps> = ({ jury, data, options, styles, isFirs
           options={options}
           styles={styles}
         />
-      )}
 
-      <View style={styles.jurySection} wrap={false}>
-        <Text style={styles.juryTitle}>{jury.juryName}</Text>
-        {jury.salle && (
-          <Text style={styles.jurySalle}>Salle {jury.salle}</Text>
-        )}
+        <View style={styles.jurySection}>
+          <Text style={styles.juryTitle}>{jury.juryName}</Text>
+          {jury.salle && (
+            <Text style={styles.jurySalle}>Salle {jury.salle}</Text>
+          )}
 
-        <EnseignantsBlock enseignants={jury.enseignants} suppleants={jury.suppleants} styles={styles} />
+          <EnseignantsBlock enseignants={jury.enseignants} suppleants={jury.suppleants} styles={styles} />
 
-        {qrDataUrl && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, padding: 8, backgroundColor: '#f8fafc', borderRadius: 4 }}>
-            <Image src={qrDataUrl} style={{ width: 80, height: 80 }} />
-            <View style={{ marginLeft: 10, flex: 1 }}>
-              <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#1e293b', marginBottom: 2 }}>Notation en ligne</Text>
-              <Text style={{ fontSize: 7, color: '#64748b', lineHeight: 1.3 }}>
-                Scannez ce QR code avec votre téléphone pour accéder à l'interface de notation. Saisissez ensuite votre numéro de jury pour commencer.
-              </Text>
+          {qrDataUrl && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, padding: 8, backgroundColor: '#f8fafc', borderRadius: 4 }}>
+              <View style={{ width: 80, height: 80, position: 'relative' }}>
+                <Image src={qrDataUrl} style={{ width: 80, height: 80 }} />
+                {options.sessionCode && (
+                  <View style={{ position: 'absolute', top: 28, left: 0, right: 0, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 8, fontWeight: 'bold', color: '#1e3a5f', backgroundColor: '#ffffff', paddingHorizontal: 3, paddingVertical: 1 }}>
+                      {options.sessionCode}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              <View style={{ marginLeft: 10, flex: 1 }}>
+                <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#1e293b', marginBottom: 2 }}>Notation en ligne</Text>
+                {options.sessionCode && (
+                  <Text style={{ fontSize: 9, fontWeight: 'bold', color: '#2563eb', marginBottom: 3 }}>
+                    Code d'accès : {options.sessionCode}
+                  </Text>
+                )}
+                <Text style={{ fontSize: 7, color: '#64748b', lineHeight: 1.4 }}>
+                  Scannez ce QR code avec votre téléphone pour accéder à l'interface de notation. Saisissez le code d'accès ci-dessus puis votre numéro de jury.
+                </Text>
+                <Text style={{ fontSize: 6.5, color: '#64748b', lineHeight: 1.4, marginTop: 2 }}>
+                  Ce dispositif de notation en ligne est en phase de test. La notation sur papier reste possible, mais le format numérique est plus pratique : les notes alimentent directement un fichier de calcul des statistiques. En cas de notation papier, merci de transmettre les grilles à Mme Adolph.
+                </Text>
+              </View>
             </View>
-          </View>
-        )}
+          )}
 
-        {options.includeLetterText && (
-          <LetterText juryName={jury.juryName} salle={jury.salle} isOralBlanc={isOralBlanc} styles={styles} />
-        )}
+          {options.includeLetterText && (
+            <LetterText juryName={jury.juryName} salle={jury.salle} isOralBlanc={isOralBlanc} styles={styles} />
+          )}
 
-      {jury.eleves.length > 0 ? (
-        <>
-          <StudentTable eleves={jury.eleves} options={options} styles={styles} />
-          <JuryStats jury={jury} styles={styles} />
-        </>
-      ) : (
-        <Text style={styles.emptyJury}>Aucun élève affecté à ce jury</Text>
-      )}
-    </View>
+          {jury.eleves.length > 0 ? (
+            <>
+              <StudentTable eleves={jury.eleves} options={options} styles={styles} />
+              <JuryStats jury={jury} styles={styles} />
+            </>
+          ) : (
+            <Text style={styles.emptyJury}>Aucun élève affecté à ce jury</Text>
+          )}
+        </View>
+      </View>
 
     <PageFooter scenarioName={data.scenarioName} styles={styles} />
   </Page>
@@ -942,6 +958,116 @@ const UnassignedPage: React.FC<UnassignedPageProps> = ({ data, options, styles }
 };
 
 // ============================================================
+// PAGE RÉCAPITULATIF GLOBAL DES JURYS — vue synthétique
+// ============================================================
+
+interface RecapJurysPageProps {
+  data: ExportResultData;
+  options: PdfExportOptions;
+  styles: ReturnType<typeof createStyles>;
+  isOralBlanc: boolean;
+}
+
+const RecapJurysPage: React.FC<RecapJurysPageProps> = ({ data, options, styles, isOralBlanc }) => {
+  const titleLabel = isOralBlanc ? 'Oral blanc' : 'Oral DNB';
+  const dateOralFormatted = options.dateOral
+    ? new Date(options.dateOral).toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    : null;
+  const fullTitle = dateOralFormatted
+    ? `${titleLabel} — Récapitulatif des jurys — ${dateOralFormatted}`
+    : `${titleLabel} — Récapitulatif des jurys`;
+
+  return (
+    <Page size={options.pageSize} orientation={options.orientation} style={styles.page}>
+      <PageHeader
+        title={fullTitle}
+        subtitle={options.headerSchoolName}
+        date={data.dateExport}
+        options={options}
+        styles={styles}
+      />
+
+      <Text style={{ fontSize: 7, color: '#64748b', fontStyle: 'italic', marginBottom: 10 }}>
+        Les sujets des élèves seront communiqués sur les convocations individuelles.
+      </Text>
+
+      {data.jurys.map((jury, jIdx) => (
+        <View key={jury.juryId} style={{ marginBottom: 10 }} wrap={false}>
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: '#1e3a5f',
+            paddingVertical: 4,
+            paddingHorizontal: 8,
+            borderRadius: 3,
+            marginBottom: 4,
+          }}>
+            <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#ffffff', flex: 1 }}>
+              {jury.juryName}
+            </Text>
+            {jury.salle && (
+              <Text style={{ fontSize: 9, color: '#93c5fd' }}>
+                Salle {jury.salle}
+              </Text>
+            )}
+            <Text style={{ fontSize: 8, color: '#93c5fd', marginLeft: 12 }}>
+              {jury.nbAffectes} élève{jury.nbAffectes > 1 ? 's' : ''}
+            </Text>
+          </View>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 3, paddingHorizontal: 4 }}>
+            <Text style={{ fontSize: 7, color: '#64748b', flex: 1 }}>
+              Enseignants : {jury.enseignants.map(e => `${e.prenom} ${e.nom} (${e.matierePrincipale})`).join(', ')}
+            </Text>
+          </View>
+
+          {jury.eleves.length > 0 ? (
+            <View style={styles.table}>
+              <View style={[styles.tableHeader, { backgroundColor: '#475569' }]}>
+                <Text style={[styles.tableHeaderCell, { width: '12%' }]}>Heure</Text>
+                <Text style={[styles.tableHeaderCell, { width: '28%' }]}>Nom</Text>
+                <Text style={[styles.tableHeaderCell, { width: '22%' }]}>Prénom</Text>
+                <Text style={[styles.tableHeaderCell, { width: '10%' }]}>Classe</Text>
+                <Text style={[styles.tableHeaderCell, { width: '28%' }]}>Parcours</Text>
+              </View>
+              {jury.eleves.map((eleve, idx) => {
+                const isGroupe = !!eleve.groupeMembresNoms?.length;
+                return (
+                  <View
+                    key={idx}
+                    style={[
+                      styles.tableRow,
+                      idx % 2 === 1 ? styles.tableRowAlt : {},
+                      isGroupe ? { backgroundColor: '#f5f3ff', borderLeftWidth: 2, borderLeftColor: '#7c3aed', borderLeftStyle: 'solid' as const } : {},
+                    ]}
+                  >
+                    <Text style={[styles.tableCell, { width: '12%', fontWeight: 'bold' }]}>{eleve.heurePassage || '—'}</Text>
+                    <Text style={[styles.tableCell, { width: '28%' }]}>{eleve.nom}{isGroupe ? ' ♦' : ''}</Text>
+                    <Text style={[styles.tableCell, { width: '22%' }]}>{eleve.prenom}</Text>
+                    <Text style={[styles.tableCell, { width: '10%' }]}>{eleve.classe}</Text>
+                    <Text style={[styles.tableCell, { width: '28%', color: '#64748b' }]}>{eleve.parcoursOral || '—'}</Text>
+                  </View>
+                );
+              })}
+            </View>
+          ) : (
+            <Text style={styles.emptyJury}>Aucun élève affecté</Text>
+          )}
+        </View>
+      ))}
+
+      {data.jurys.some(j => j.eleves.some(e => e.groupeMembresNoms?.length)) && (
+        <Text style={{ fontSize: 7, color: '#7c3aed', marginTop: 2 }}>
+          ♦ Binôme / Trinôme — Les élèves marqués passent ensemble
+        </Text>
+      )}
+
+      <PageFooter scenarioName={data.scenarioName} styles={styles} />
+    </Page>
+  );
+};
+
+// ============================================================
 // DOCUMENT PRINCIPAL
 // ============================================================
 
@@ -978,14 +1104,13 @@ export const PdfJuryDocument: React.FC<PdfJuryDocumentProps> = ({
   return (
     <Document>
       {/* Pages de convocation enseignants par jury */}
-      {options.includeSectionConvocProf && data.jurys.map((jury, idx) => (
+      {options.includeSectionConvocProf && data.jurys.map((jury) => (
         <JuryPage
           key={jury.juryId}
           jury={jury}
           data={data}
           options={options}
           styles={styles}
-          isFirstJury={idx === 0}
           isOralBlanc={isOralBlanc}
           qrDataUrl={qrCodes?.get(jury.juryName)}
         />
@@ -1022,6 +1147,16 @@ export const PdfJuryDocument: React.FC<PdfJuryDocumentProps> = ({
       {/* Pages non-affectés */}
       {options.includeUnassignedPage && data.unassigned.length > 0 && (
         <UnassignedPage data={data} options={options} styles={styles} />
+      )}
+
+      {/* Récapitulatif global des jurys */}
+      {options.includeSectionRecapJurys && (
+        <RecapJurysPage
+          data={data}
+          options={options}
+          styles={styles}
+          isOralBlanc={isOralBlanc}
+        />
       )}
 
       {/* Listes de porte (une par jury) */}
