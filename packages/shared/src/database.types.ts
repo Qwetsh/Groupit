@@ -77,6 +77,8 @@ export interface SessionJuryRow {
   jury_name: string;
   salle: string | null;
   mode: string;
+  enseignants_names: string | null;
+  suppleant_name: string | null;
 }
 export interface SessionJuryInsert {
   id?: string;
@@ -85,6 +87,8 @@ export interface SessionJuryInsert {
   jury_name: string;
   salle?: string | null;
   mode?: string;
+  enseignants_names?: string | null;
+  suppleant_name?: string | null;
 }
 
 // === jury_members ===

@@ -195,6 +195,10 @@ export async function uploadSessionToSupabase(
       const juryNumber = juryIdx + 1;
       const hasGroupes = jury.eleves.some(e => e.groupeOralId);
 
+      // Noms des enseignants et suppléant(s)
+      const enseignantsNames = jury.enseignants.map(e => `${e.prenom} ${e.nom}`).join(', ') || null;
+      const suppleantName = jury.suppleants?.map(e => `${e.prenom} ${e.nom}`).join(', ') || null;
+
       const { data: newJury, error: juryErr } = await supabase
         .from('session_jurys')
         .insert({
@@ -203,6 +207,8 @@ export async function uploadSessionToSupabase(
           jury_name: jury.juryName,
           salle: jury.salle || null,
           mode: hasGroupes ? 'collectif' : 'solo',
+          enseignants_names: enseignantsNames,
+          suppleant_name: suppleantName,
         })
         .select('id')
         .single();
