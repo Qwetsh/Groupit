@@ -16,10 +16,19 @@ export function StudentListScreen({ juryId, onSelectEleve, onSelectGroupe, onDis
   const [eleves, setEleves] = useState<SessionEleveRow[]>([]);
   const [scoreMap, setScoreMap] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [juryInfo, setJuryInfo] = useState<{ enseignants_names: string | null; suppleant_name: string | null } | null>(null);
 
-  // Charger les élèves + scores
+  // Charger les infos jury + élèves + scores
   useEffect(() => {
     async function load() {
+      // Charger les infos du jury (enseignants)
+      const { data: juryData } = await supabase
+        .from('session_jurys')
+        .select('enseignants_names, suppleant_name')
+        .eq('id', juryId)
+        .single();
+      if (juryData) setJuryInfo(juryData);
+
       const { data } = await supabase
         .from('session_eleves')
         .select('*')
@@ -336,6 +345,14 @@ export function StudentListScreen({ juryId, onSelectEleve, onSelectGroupe, onDis
             <button onClick={handleExportPDF} style={styles.exportBtn}>⬇ PDF</button>
           </>)}
         </div>
+        {juryInfo?.enseignants_names && (
+          <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>
+            {juryInfo.enseignants_names}
+            {juryInfo.suppleant_name && (
+              <span style={{ opacity: 0.7 }}> · Suppléant : {juryInfo.suppleant_name}</span>
+            )}
+          </div>
+        )}
         <div style={styles.progress}>
           {validated}/{total} passé{validated > 1 ? 's' : ''}
         </div>
