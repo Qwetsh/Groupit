@@ -86,7 +86,7 @@ export function JoinScreen({ onJoined }: JoinScreenProps) {
 
         const { error: memberErr } = await supabase
           .from('jury_members')
-          .insert({ jury_id: jury.id, slot });
+          .upsert({ jury_id: jury.id, slot }, { onConflict: 'jury_id,slot' });
 
         if (memberErr) {
           console.error('[JoinScreen] Erreur jury_members:', memberErr);
