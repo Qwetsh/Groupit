@@ -2387,24 +2387,24 @@
 
 /* Unassigned eleves (DraggableEleve) */
 .draggable-eleve.gender-f {
-  background: rgba(232, 170, 190, 0.18);
-  border-left: 3px solid rgba(232, 170, 190, 0.6);
+  background: rgba(234, 179, 100, 0.18);
+  border-left: 3px solid rgba(234, 179, 100, 0.6);
 }
 
 .draggable-eleve.gender-m {
-  background: rgba(130, 177, 224, 0.18);
-  border-left: 3px solid rgba(130, 177, 224, 0.6);
+  background: rgba(110, 194, 176, 0.18);
+  border-left: 3px solid rgba(110, 194, 176, 0.6);
 }
 
 /* Assigned chips (mini-eleve) */
 .mini-eleve.gender-f {
-  background: rgba(232, 170, 190, 0.25) !important;
-  border-color: rgba(232, 170, 190, 0.5) !important;
+  background: rgba(234, 179, 100, 0.25) !important;
+  border-color: rgba(234, 179, 100, 0.5) !important;
 }
 
 .mini-eleve.gender-m {
-  background: rgba(130, 177, 224, 0.25) !important;
-  border-color: rgba(130, 177, 224, 0.5) !important;
+  background: rgba(110, 194, 176, 0.25) !important;
+  border-color: rgba(110, 194, 176, 0.5) !important;
 }
 
 /* ============================================================ */
