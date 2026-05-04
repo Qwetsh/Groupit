@@ -16,6 +16,7 @@ interface DraggableJuryAffectationChipProps {
   onContextMenu: (e: React.MouseEvent, eleve: Eleve, affectation: Affectation, jury: Jury) => void;
   showGenderColor?: boolean;
   sameClassAsDragged?: boolean;
+  showClasse?: boolean;
 }
 
 const DraggableJuryAffectationChip: React.FC<DraggableJuryAffectationChipProps> = ({
@@ -25,6 +26,7 @@ const DraggableJuryAffectationChip: React.FC<DraggableJuryAffectationChipProps> 
   onContextMenu,
   showGenderColor,
   sameClassAsDragged,
+  showClasse,
 }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `jury-aff:${affectation.id}`,
@@ -56,6 +58,7 @@ const DraggableJuryAffectationChip: React.FC<DraggableJuryAffectationChipProps> 
       {...attributes}
     >
       <span className="mini-name">{display.eleve.prenom} {display.eleve.nom.charAt(0)}.</span>
+      {showClasse && <span className="mini-classe">{display.eleve.classe}</span>}
       {display.matiereEleve && (
         <span className={`mini-matiere ${display.matiereMatch ? 'match' : ''}`}>
           {display.matiereEleve.substring(0, 3)}
@@ -187,6 +190,7 @@ export const DroppableJuryTile: React.FC<DroppableJuryTileProps> = ({
   onContextMenu,
   showGenderColor,
   draggedEleveClasse,
+  showClasse,
 }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: `jury:${jury.id}`,
@@ -226,17 +230,15 @@ export const DroppableJuryTile: React.FC<DroppableJuryTileProps> = ({
             {jury.nom}
             {jury.salle && <span className="jury-salle-badge">Salle {jury.salle}</span>}
           </span>
-          <div className="jury-enseignants-list">
-            {juryEnseignants.length > 0 ? (
-              juryEnseignants.map((e) => (
+          {juryEnseignants.length > 0 && (
+            <div className="jury-enseignants-list">
+              {juryEnseignants.map((e) => (
                 <span key={e.id} className="ens-full-name" title={e.matierePrincipale}>
                   {e.prenom} {e.nom}
                 </span>
-              ))
-            ) : (
-              <span className="no-enseignants">Aucun enseignant</span>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
           {jurySuppleants.length > 0 && (
             <div className="jury-suppleants-list">
               <ShieldCheck size={12} className="suppleant-icon" />
@@ -247,11 +249,13 @@ export const DroppableJuryTile: React.FC<DroppableJuryTileProps> = ({
               ))}
             </div>
           )}
-          <div className="jury-matieres">
-            {juryMatieres.map((m, idx) => (
-              <span key={idx} className="jury-matiere-tag">{m}</span>
-            ))}
-          </div>
+          {juryMatieres.length > 0 && (
+            <div className="jury-matieres">
+              {juryMatieres.map((m, idx) => (
+                <span key={idx} className="jury-matiere-tag">{m}</span>
+              ))}
+            </div>
+          )}
         </div>
         <div className="tile-count jury-count">
           <span className={affectationsDisplay.length >= jury.capaciteMax ? 'full' : ''}>
@@ -283,6 +287,7 @@ export const DroppableJuryTile: React.FC<DroppableJuryTileProps> = ({
               onContextMenu={onContextMenu}
               showGenderColor={showGenderColor}
               sameClassAsDragged={!!draggedEleveClasse && display.eleve.classe === draggedEleveClasse}
+              showClasse={showClasse}
             />
           );
         })}

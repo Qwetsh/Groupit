@@ -189,10 +189,9 @@ export interface DraggableAffectationChipProps {
   onContextMenu: (e: React.MouseEvent, eleve: Eleve, affectation: Affectation, enseignant: Enseignant) => void;
   /** Distance en km entre l'enseignant sélectionné et le stage de l'élève (mode distance enseignant) */
   distanceFromEnseignantKm?: number;
-  /** Afficher la couleur selon le sexe */
   showGenderColor?: boolean;
-  /** L'élève est de la même classe que l'élève dragué */
   sameClassAsDragged?: boolean;
+  showClasse?: boolean;
 }
 
 export interface DroppableEnseignantTileProps {
@@ -217,8 +216,8 @@ export interface DroppableEnseignantTileProps {
   heures3e?: number;
   /** Afficher la couleur selon le sexe */
   showGenderColor?: boolean;
-  /** Classe de l'élève dragué (pour highlighting même classe) */
   draggedEleveClasse?: string | null;
+  showClasse?: boolean;
 }
 
 export interface DroppableJuryTileProps {
@@ -229,4 +228,5 @@ export interface DroppableJuryTileProps {
   onContextMenu: (e: React.MouseEvent, eleve: Eleve, affectation: Affectation, jury: Jury) => void;
   showGenderColor?: boolean;
   draggedEleveClasse?: string | null;
+  showClasse?: boolean;
 }

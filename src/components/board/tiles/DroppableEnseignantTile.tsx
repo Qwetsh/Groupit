@@ -48,6 +48,7 @@ export const DroppableEnseignantTile: React.FC<DroppableEnseignantTileProps> = (
   heures3e,
   showGenderColor,
   draggedEleveClasse,
+  showClasse,
 }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: `enseignant:${enseignant.id}`,
@@ -200,6 +201,7 @@ export const DroppableEnseignantTile: React.FC<DroppableEnseignantTileProps> = (
               distanceFromEnseignantKm={distancesByEleve?.get(eleve.id!)}
               showGenderColor={showGenderColor}
               sameClassAsDragged={!!draggedEleveClasse && eleve.classe === draggedEleveClasse}
+              showClasse={showClasse}
             />
           );
         })}
