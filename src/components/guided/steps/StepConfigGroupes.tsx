@@ -13,8 +13,6 @@ import {
   Check,
   ToggleLeft,
   ToggleRight,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react';
 import { useUIStore } from '../../../stores/uiStore';
 import { useScenarioStore } from '../../../stores/scenarioStore';
@@ -543,8 +541,6 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
           try {
             const cc = customConfig;
             const effectiveCriteres = getEffectiveCriteres('custom', createDefaultCriteres('custom'));
-            // Detect niveaux from selected students
-            const niveaux = [...new Set(cc.selectedEleveIds)] as Niveau[]; // placeholder, real niveaux computed below
 
             const scenarioData = {
               nom: `Personnalise ${new Date().toLocaleDateString('fr-FR')}`,

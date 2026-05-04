@@ -4,7 +4,7 @@
 // Réutilise scoring.ts et balancing.ts
 // ============================================================
 
-import type { Eleve, Enseignant, Scenario, Jury } from '../domain/models';
+import type { Eleve, Enseignant, Scenario } from '../domain/models';
 import type { CustomModeConfig } from '../stores/uiStore';
 
 // ============ TYPES ============
@@ -35,10 +35,6 @@ export interface CustomAffectation {
 }
 
 // ============ SCORING HELPERS ============
-
-function extractNiveau(classe: string): string {
-  return classe.replace(/[^0-9]/g, '')[0] + 'e';
-}
 
 function getEleveSexe(eleve: Eleve): 'M' | 'F' | null {
   if (eleve.sexe === 'M' || eleve.sexe === 'F') return eleve.sexe;
@@ -182,7 +178,7 @@ function scoreGroup(
 export function solveCustom(
   eleves: Eleve[],
   enseignants: Enseignant[],
-  scenario: Scenario,
+  _scenario: Scenario,
   config: CustomModeConfig
 ): CustomSolverResult {
   const startTime = performance.now();
