@@ -14,6 +14,8 @@ interface DraggableJuryAffectationChipProps {
   jury: Jury;
   affectation: Affectation;
   onContextMenu: (e: React.MouseEvent, eleve: Eleve, affectation: Affectation, jury: Jury) => void;
+  showGenderColor?: boolean;
+  sameClassAsDragged?: boolean;
 }
 
 const DraggableJuryAffectationChip: React.FC<DraggableJuryAffectationChipProps> = ({
@@ -21,6 +23,8 @@ const DraggableJuryAffectationChip: React.FC<DraggableJuryAffectationChipProps> 
   jury,
   affectation,
   onContextMenu,
+  showGenderColor,
+  sameClassAsDragged,
 }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `jury-aff:${affectation.id}`,
@@ -45,7 +49,7 @@ const DraggableJuryAffectationChip: React.FC<DraggableJuryAffectationChipProps> 
     <div
       ref={setNodeRef}
       style={style}
-      className={`mini-eleve jury-eleve ${display.matiereMatch ? 'matiere-match' : 'no-matiere-match'} ${isDragging ? 'dragging' : ''}`}
+      className={`mini-eleve jury-eleve ${display.matiereMatch ? 'matiere-match' : 'no-matiere-match'} ${isDragging ? 'dragging' : ''} ${showGenderColor ? `gender-${(display.eleve.sexe || '').toLowerCase()}` : ''} ${sameClassAsDragged ? 'same-class-highlight' : ''}`}
       title={`${display.eleve.prenom} ${display.eleve.nom} - ${display.matiereEleve || 'Matière non renseignée'}${display.matiereMatch ? ' ✓' : ''}${heureCreneau ? ` - ${heureCreneau}` : ''}`}
       onContextMenu={handleContextMenu}
       {...listeners}
@@ -181,6 +185,8 @@ export const DroppableJuryTile: React.FC<DroppableJuryTileProps> = ({
   affectationsDisplay,
   scenarioAffectations,
   onContextMenu,
+  showGenderColor,
+  draggedEleveClasse,
 }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: `jury:${jury.id}`,
@@ -275,6 +281,8 @@ export const DroppableJuryTile: React.FC<DroppableJuryTileProps> = ({
               jury={jury}
               affectation={aff}
               onContextMenu={onContextMenu}
+              showGenderColor={showGenderColor}
+              sameClassAsDragged={!!draggedEleveClasse && display.eleve.classe === draggedEleveClasse}
             />
           );
         })}

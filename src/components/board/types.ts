@@ -166,6 +166,10 @@ export interface DraggableEleveProps {
   nonAffectationInfo?: NonAffectationInfo;
   /** Distance en km entre l'enseignant sélectionné et le stage de l'élève (mode distance enseignant) */
   distanceFromEnseignantKm?: number;
+  /** Afficher la couleur selon le sexe */
+  showGenderColor?: boolean;
+  /** L'élève est de la même classe que l'élève dragué */
+  sameClassAsDragged?: boolean;
 }
 
 // ============================================================
@@ -185,12 +189,16 @@ export interface DraggableAffectationChipProps {
   onContextMenu: (e: React.MouseEvent, eleve: Eleve, affectation: Affectation, enseignant: Enseignant) => void;
   /** Distance en km entre l'enseignant sélectionné et le stage de l'élève (mode distance enseignant) */
   distanceFromEnseignantKm?: number;
+  /** Afficher la couleur selon le sexe */
+  showGenderColor?: boolean;
+  /** L'élève est de la même classe que l'élève dragué */
+  sameClassAsDragged?: boolean;
 }
 
 export interface DroppableEnseignantTileProps {
   enseignant: Enseignant;
   affectations: Affectation[];
-  eleves: Eleve[];
+  elevesById: Map<string, Eleve>;
   capacity: number;
   onContextMenu: (e: React.MouseEvent, eleve: Eleve, affectation: Affectation, enseignant: Enseignant) => void;
   /** Handler pour le menu contextuel sur la tuile enseignant (clic droit sur la tuile, pas sur un élève) */
@@ -207,6 +215,10 @@ export interface DroppableEnseignantTileProps {
   hasEleveInClass?: boolean;
   /** Heures de 3e de l'enseignant (pour indicateur de charge) */
   heures3e?: number;
+  /** Afficher la couleur selon le sexe */
+  showGenderColor?: boolean;
+  /** Classe de l'élève dragué (pour highlighting même classe) */
+  draggedEleveClasse?: string | null;
 }
 
 export interface DroppableJuryTileProps {
@@ -215,4 +227,6 @@ export interface DroppableJuryTileProps {
   affectationsDisplay: JuryAffectationDisplay[];
   scenarioAffectations: Affectation[];
   onContextMenu: (e: React.MouseEvent, eleve: Eleve, affectation: Affectation, jury: Jury) => void;
+  showGenderColor?: boolean;
+  draggedEleveClasse?: string | null;
 }

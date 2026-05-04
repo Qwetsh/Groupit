@@ -28,7 +28,7 @@ function getDistanceColorClass(distanceKm: number | undefined): string {
 /**
  * Composant élève draggable depuis la colonne "non affectés"
  */
-export const DraggableEleve: React.FC<DraggableEleveProps> = ({ eleve, onContextMenu, nonAffectationInfo, distanceFromEnseignantKm }) => {
+export const DraggableEleve: React.FC<DraggableEleveProps> = React.memo(({ eleve, onContextMenu, nonAffectationInfo, distanceFromEnseignantKm, showGenderColor, sameClassAsDragged }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `eleve:${eleve.id}`,
     data: { type: 'eleve', eleveId: eleve.id, eleve },
@@ -56,7 +56,7 @@ export const DraggableEleve: React.FC<DraggableEleveProps> = ({ eleve, onContext
     <div
       ref={setNodeRef}
       style={style}
-      className={`draggable-eleve ${isDragging ? 'dragging' : ''} ${hasTooltip ? `problem-${problemType}` : ''} ${distanceClass}`}
+      className={`draggable-eleve ${isDragging ? 'dragging' : ''} ${hasTooltip ? `problem-${problemType}` : ''} ${distanceClass} ${showGenderColor ? `gender-${(eleve.sexe || '').toLowerCase()}` : ''} ${sameClassAsDragged ? 'same-class-highlight' : ''}`}
       onContextMenu={handleContextMenu}
       title={hasTooltip ? nonAffectationInfo.raisons.join('\n') : undefined}
       {...listeners}
@@ -86,4 +86,4 @@ export const DraggableEleve: React.FC<DraggableEleveProps> = ({ eleve, onContext
       )}
     </div>
   );
-};
+});

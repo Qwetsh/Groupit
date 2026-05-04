@@ -17,12 +17,14 @@ function getDistanceColorClass(distanceKm: number | undefined): string {
 /**
  * Chip draggable représentant un élève déjà affecté à un enseignant
  */
-export const DraggableAffectationChip: React.FC<DraggableAffectationChipProps> = ({
+export const DraggableAffectationChip: React.FC<DraggableAffectationChipProps> = React.memo(({
   affectation,
   eleve,
   enseignant,
   onContextMenu,
   distanceFromEnseignantKm,
+  showGenderColor,
+  sameClassAsDragged,
 }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `affectation:${affectation.id}`,
@@ -47,7 +49,7 @@ export const DraggableAffectationChip: React.FC<DraggableAffectationChipProps> =
     <div
       ref={setNodeRef}
       style={style}
-      className={`mini-eleve ${isDragging ? 'dragging' : ''} ${distanceClass}`}
+      className={`mini-eleve ${isDragging ? 'dragging' : ''} ${distanceClass} ${showGenderColor ? `gender-${(eleve.sexe || '').toLowerCase()}` : ''} ${sameClassAsDragged ? 'same-class-highlight' : ''}`}
       title={`${eleve.prenom} ${eleve.nom} (${eleve.classe})${showDistanceBadge ? ` - ${Math.round(distanceFromEnseignantKm!)} km` : ''} - Clic droit pour le menu`}
       onContextMenu={handleContextMenu}
       {...listeners}
@@ -62,4 +64,4 @@ export const DraggableAffectationChip: React.FC<DraggableAffectationChipProps> =
       )}
     </div>
   );
-};
+});

@@ -2,7 +2,7 @@
 // COMPONENT - IMPORT CSV WIZARD
 // ============================================================
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Upload, FileSpreadsheet, ChevronRight, ChevronLeft, Check, X, AlertTriangle, RefreshCw } from 'lucide-react';
 import clsx from 'clsx';
 import type { Eleve, ColumnMapping } from '../../domain/models';
@@ -44,7 +44,11 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
   const [errors, setErrors] = useState<string[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [dragActive, setDragActive] = useState(false);
-  
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [lastMappings, setLastMappings] = useState<ColumnMapping[] | null>(null);
+  const [lastHeaders, setLastHeaders] = useState<string[] | null>(null);
+  const [importedCount, setImportedCount] = useState(0);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Détecter si la colonne "Classe" est mappée dans le CSV
@@ -55,7 +59,7 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
     setFile(selectedFile);
     setErrors([]);
     setWarnings([]);
-    
+
     try {
       // Extract class from filename
       const extracted = extractClassFromFilename(selectedFile.name);
@@ -63,21 +67,27 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
         setSuggestedClasse(extracted);
         setClasse(extracted);
       }
-      
+
       // Parse CSV
       const data = await parseCSVFile(selectedFile);
       setParsedData(data);
-      
-      // Generate auto-mapping
-      const autoMappings = generateAutoMapping(data.headers);
-      setMappings(autoMappings);
-      
+
+      // Reuse last mapping if headers match
+      const headersKey = [...data.headers].sort().join('|');
+      const lastKey = lastHeaders ? [...lastHeaders].sort().join('|') : null;
+      if (lastMappings && lastKey === headersKey) {
+        setMappings(lastMappings);
+      } else {
+        const autoMappings = generateAutoMapping(data.headers);
+        setMappings(autoMappings);
+      }
+
       // Go to mapping step
       setStep('mapping');
     } catch (error) {
       setErrors([`Erreur lors de la lecture du fichier: ${error}`]);
     }
-  }, []);
+  }, [lastMappings, lastHeaders]);
 
   // Drag & Drop handlers
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -94,20 +104,34 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
-    
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile.name.endsWith('.csv') || droppedFile.name.endsWith('.CSV')) {
-        handleFile(droppedFile);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const validFiles: File[] = [];
+      for (let i = 0; i < e.dataTransfer.files.length; i++) {
+        const f = e.dataTransfer.files[i];
+        const ext = f.name.toLowerCase();
+        if (ext.endsWith('.csv') || ext.endsWith('.xlsx') || ext.endsWith('.xls')) {
+          validFiles.push(f);
+        }
+      }
+      if (validFiles.length > 0) {
+        handleFile(validFiles[0]);
+        if (validFiles.length > 1) {
+          setPendingFiles(prev => [...prev, ...validFiles.slice(1)]);
+        }
       } else {
-        setErrors(['Veuillez sélectionner un fichier CSV']);
+        setErrors(['Veuillez sélectionner un fichier CSV ou Excel']);
       }
     }
   }, [handleFile]);
 
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFile(e.target.files[0]);
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files);
+      handleFile(files[0]);
+      if (files.length > 1) {
+        setPendingFiles(prev => [...prev, ...files.slice(1)]);
+      }
     }
   }, [handleFile]);
 
@@ -134,15 +158,34 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
   // Final import
   const finalImport = useCallback(async () => {
     setStep('importing');
-    
+
     try {
+      // Save mapping for reuse
+      if (parsedData) {
+        setLastMappings(mappings);
+        setLastHeaders(parsedData.headers);
+      }
+
       await onImport(previewEleves);
-      onClose();
+      setImportedCount(prev => prev + 1);
+
+      if (pendingFiles.length > 0) {
+        // Process next file
+        const [next, ...rest] = pendingFiles;
+        setPendingFiles(rest);
+        setPreviewEleves([]);
+        setErrors([]);
+        setWarnings([]);
+        setClasse('');
+        handleFile(next);
+      } else {
+        onClose();
+      }
     } catch (error) {
       setErrors([`Erreur lors de l'import: ${error}`]);
       setStep('preview');
     }
-  }, [previewEleves, onImport, onClose]);
+  }, [previewEleves, onImport, onClose, pendingFiles, parsedData, mappings, handleFile]);
 
   // Render step content
   const renderStepContent = () => {
@@ -160,13 +203,14 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,.CSV"
+              accept=".csv,.xlsx,.xls"
+              multiple
               onChange={handleFileInput}
               hidden
             />
             <Upload size={48} />
-            <h3>Glissez votre fichier CSV ici</h3>
-            <p>ou cliquez pour sélectionner</p>
+            <h3>Glissez vos fichiers ici</h3>
+            <p>ou cliquez pour sélectionner (multi-fichiers supporté)</p>
             <div className="supported-formats">
               <span>Formats supportés : CSV (séparateur ; ou ,)</span>
               <span>Encodage : UTF-8 avec ou sans BOM</span>
@@ -405,7 +449,15 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
     <div className="import-wizard-overlay">
       <div className="import-wizard">
         <div className="wizard-header">
-          <h2>Importer des élèves</h2>
+          <h2>
+            Importer des élèves
+            {(pendingFiles.length > 0 || importedCount > 0) && (
+              <span style={{ fontSize: '0.8rem', fontWeight: 400, marginLeft: '0.75rem', color: '#94a3b8' }}>
+                {importedCount > 0 && `${importedCount} fichier${importedCount > 1 ? 's' : ''} importé${importedCount > 1 ? 's' : ''}`}
+                {pendingFiles.length > 0 && ` · ${pendingFiles.length} en attente`}
+              </span>
+            )}
+          </h2>
           <button className="close-btn" onClick={onClose}>
             <X size={20} />
           </button>

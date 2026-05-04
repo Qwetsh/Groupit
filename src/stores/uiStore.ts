@@ -10,7 +10,45 @@ type Modal = 'import' | 'importMatiereOral' | 'editEleve' | 'editEnseignant' | '
 
 // Guided mode types
 export type GuidedScenarioType = 'suivi_stage' | 'oral_dnb' | 'personnalise' | 'libre' | null;
-export type GuidedStep = 'welcome' | 'scenario' | 'eleves' | 'stages' | 'themes' | 'groupes' | 'enseignants' | 'configuration' | 'salles' | 'recap' | 'results';
+export type GuidedStep = 'welcome' | 'scenario' | 'eleves' | 'stages' | 'themes' | 'groupes' | 'enseignants' | 'configuration' | 'salles' | 'recap' | 'results' | 'selection' | 'adultes' | 'parametres';
+
+export interface CustomModeConfig {
+  selectedEleveIds: string[];
+  useAdultes: boolean;
+  adulteRole: string;
+  selectedEnseignantIds: string[];
+  tailleGroupeMin: number;
+  tailleGroupeMax: number;
+  tailleGroupeFixe: boolean;
+  critereParity: 'off' | 'low' | 'normal' | 'high' | 'required';
+  critereEnseignantAEleve: 'off' | 'prefer' | 'avoid';
+  critereMemeClasse: 'off' | 'prefer' | 'avoid';
+  critereLV: 'off' | 'same' | 'mixed';
+  critereVolumeHoraire: boolean;
+  useTimeSlots: boolean;
+  demiJournees: string[];
+  heureDebutMatin: string;
+  heureDebutAprem: string;
+}
+
+export const DEFAULT_CUSTOM_CONFIG: CustomModeConfig = {
+  selectedEleveIds: [],
+  useAdultes: true,
+  adulteRole: 'Enseignant',
+  selectedEnseignantIds: [],
+  tailleGroupeMin: 10,
+  tailleGroupeMax: 15,
+  tailleGroupeFixe: false,
+  critereParity: 'normal',
+  critereEnseignantAEleve: 'off',
+  critereMemeClasse: 'off',
+  critereLV: 'off',
+  critereVolumeHoraire: false,
+  useTimeSlots: false,
+  demiJournees: [],
+  heureDebutMatin: '08:15',
+  heureDebutAprem: '13:35',
+};
 
 export interface GuidedModeState {
   isActive: boolean;
@@ -21,6 +59,7 @@ export interface GuidedModeState {
   importedEnseignantsCount: number;
   importedStagesCount: number;
   createdScenarioId: string | null;
+  customConfig: CustomModeConfig;
 }
 
 // Dashboard card visibility preferences
@@ -47,6 +86,7 @@ const DEFAULT_GUIDED_MODE: GuidedModeState = {
   importedEnseignantsCount: 0,
   importedStagesCount: 0,
   createdScenarioId: null,
+  customConfig: DEFAULT_CUSTOM_CONFIG,
 };
 
 interface Notification {
@@ -123,6 +163,8 @@ interface UIState {
   setGuidedImportedEnseignants: (count: number) => void;
   setGuidedImportedStages: (count: number) => void;
   setGuidedCreatedScenarioId: (id: string | null) => void;
+  updateCustomConfig: (patch: Partial<CustomModeConfig>) => void;
+  resetCustomConfig: () => void;
   markWelcomeSeen: () => void;
   resetGuidedMode: () => void;
   showWelcomeScreen: () => void;
@@ -266,6 +308,19 @@ export const useUIStore = create<UIState>((set, get) => ({
   setGuidedCreatedScenarioId: (id) => {
     set(state => ({
       guidedMode: { ...state.guidedMode, createdScenarioId: id }
+    }));
+  },
+  updateCustomConfig: (patch) => {
+    set(state => ({
+      guidedMode: {
+        ...state.guidedMode,
+        customConfig: { ...state.guidedMode.customConfig, ...patch },
+      }
+    }));
+  },
+  resetCustomConfig: () => {
+    set(state => ({
+      guidedMode: { ...state.guidedMode, customConfig: DEFAULT_CUSTOM_CONFIG }
     }));
   },
   markWelcomeSeen: () => {

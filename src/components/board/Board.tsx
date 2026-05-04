@@ -21,7 +21,7 @@ import { calculateDistance, recalcTimeSlotsForJurys } from '../../algorithms';
 import type { Eleve, Enseignant, Affectation, Jury, MatchingResultDNB, Stage } from '../../domain/models';
 import { calculateCapacitesStage, getHeuresMatiere } from '../../domain/models';
 import { filterEleves, filterEnseignants } from '../../utils/filteringUtils';
-import { Info, UserX, Users, MapPin, MapPinOff } from 'lucide-react';
+import { Info, UserX, Users, MapPin, MapPinOff, Palette, Eye } from 'lucide-react';
 import { OverlayProgress } from '../ui/ProgressIndicator';
 import { HelpTooltip, HELP_TEXTS } from '../ui/Tooltip';
 import { ConfirmModal } from '../ui/ConfirmModal';
@@ -97,8 +97,11 @@ export const Board: React.FC = () => {
 
   // Scenario type flags
   const isStageScenario = activeScenario?.type === 'suivi_stage';
+  const isCustomScenario = activeScenario?.type === 'custom';
   // Pour oral_dnb, utiliser le mode jury par défaut (true si non défini)
-  const isJuryMode = activeScenario?.type === 'oral_dnb' && (activeScenario?.parametres?.oralDnb?.utiliserJurys ?? true);
+  // Pour custom, toujours utiliser le mode jury (groupes)
+  const isJuryMode = (activeScenario?.type === 'oral_dnb' && (activeScenario?.parametres?.oralDnb?.utiliserJurys ?? true))
+    || isCustomScenario;
 
   // Scenario jurys
   const scenarioJurys = useMemo(() => {
@@ -127,6 +130,8 @@ export const Board: React.FC = () => {
   const [selectedTeacherForMap, setSelectedTeacherForMap] = useState<Enseignant | null>(null);
   const [validationSuccess, setValidationSuccess] = useState<ValidationSuccess | null>(null);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showGenderColor, setShowGenderColor] = useState(false);
+  const [showClassHighlight, setShowClassHighlight] = useState(false);
 
   // Confirm modal hook
   const { confirmState, handleConfirm: handleConfirmReset, handleCancel: handleCancelReset } = useConfirmReset();
@@ -146,12 +151,19 @@ export const Board: React.FC = () => {
 
   // Filter eleves/enseignants based on scenario
   const scenarioEleves = useMemo(() => {
+    // Custom scenario with selected students: show only those
+    const customSelectedIds = activeScenario?.parametres?.custom?.selectedEleveIds;
+    if (customSelectedIds && customSelectedIds.length > 0) {
+      const idSet = new Set(customSelectedIds);
+      return eleves.filter(e => idSet.has(e.id!));
+    }
     const filters = activeScenario?.parametres?.filtresEleves;
     const defaultNiveaux = isStageScenario ? ['3e'] as const : [];
     return filterEleves(eleves, filters, [...defaultNiveaux]);
   }, [eleves, activeScenario, isStageScenario]);
 
   const scenarioEnseignants = useMemo(() => {
+    if (activeScenario?.parametres?.custom?.sansAdultes) return [];
     return filterEnseignants(enseignants, activeScenario?.parametres?.filtresEnseignants);
   }, [enseignants, activeScenario]);
 
@@ -388,6 +400,13 @@ export const Board: React.FC = () => {
 
     return enseignantIds;
   }, [activeData, enseignants]);
+
+  // Classe de l'élève dragué (pour highlighting même classe)
+  const draggedEleveClasse = useMemo(() => {
+    if (!showClassHighlight || !activeData) return null;
+    const eleve = 'eleve' in activeData ? activeData.eleve : undefined;
+    return eleve?.classe || null;
+  }, [activeData, showClassHighlight]);
 
   // Calcul des distances depuis l'enseignant sélectionné vers TOUS les élèves (mode distance enseignant)
   const distancesByEleveFromEnseignant = useMemo(() => {
@@ -803,6 +822,25 @@ export const Board: React.FC = () => {
         <ExportButtons scenario={activeScenario} filteredEleveIds={scenarioEleves.map(e => e.id!)} />
       )}
 
+      <div className="board-visual-toggles">
+        <button
+          className={`btn-toggle ${showGenderColor ? 'active' : ''}`}
+          onClick={() => setShowGenderColor(v => !v)}
+          title="Colorer par sexe (F / M)"
+        >
+          <Palette size={16} />
+          Sexe
+        </button>
+        <button
+          className={`btn-toggle ${showClassHighlight ? 'active' : ''}`}
+          onClick={() => setShowClassHighlight(v => !v)}
+          title="Surligner les élèves de la même classe lors du drag"
+        >
+          <Eye size={16} />
+          Même classe
+        </button>
+      </div>
+
       <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd} autoScroll={false}>
         <div className="board-columns">
           {/* Unassigned column */}
@@ -820,7 +858,7 @@ export const Board: React.FC = () => {
             )}
             <UnassignedDropZone>
               {unassignedEleves.map(eleve => (
-                <DraggableEleve key={eleve.id} eleve={eleve} onContextMenu={handleContextMenuUnassigned} nonAffectationInfo={computedNonAffectesInfo.get(eleve.id!)} distanceFromEnseignantKm={distancesByEleveFromEnseignant.get(eleve.id!)} />
+                <DraggableEleve key={eleve.id} eleve={eleve} onContextMenu={handleContextMenuUnassigned} nonAffectationInfo={computedNonAffectesInfo.get(eleve.id!)} distanceFromEnseignantKm={distancesByEleveFromEnseignant.get(eleve.id!)} showGenderColor={showGenderColor} sameClassAsDragged={!!draggedEleveClasse && eleve.classe === draggedEleveClasse} />
               ))}
               {unassignedEleves.length === 0 && (
                 <div className="empty-state success"><p>✓ Tous les élèves sont affectés</p></div>
@@ -858,6 +896,8 @@ export const Board: React.FC = () => {
                       scenarioAffectations={scenarioAffectations}
                       enseignants={enseignants}
                       onContextMenu={handleContextMenuJury}
+                      showGenderColor={showGenderColor}
+                      draggedEleveClasse={draggedEleveClasse}
                     />
                   ))
                 ) : (
@@ -878,7 +918,7 @@ export const Board: React.FC = () => {
                       key={enseignant.id}
                       enseignant={enseignant}
                       affectations={affectationsByEnseignant.get(enseignant.id!) || []}
-                      eleves={eleves}
+                      elevesById={elevesById}
                       capacity={enseignantCapacity}
                       onContextMenu={handleContextMenuAffected}
                       onTileContextMenu={handleEnseignantContextMenu}
@@ -889,6 +929,8 @@ export const Board: React.FC = () => {
                       distancesByEleve={distancesByEleveFromEnseignant}
                       hasEleveInClass={enseignantsWithDraggedEleveClass.has(enseignant.id!)}
                       heures3e={heures3eParEnseignant.get(enseignant.id!)}
+                      showGenderColor={showGenderColor}
+                      draggedEleveClasse={draggedEleveClasse}
                     />
                   );
                 })

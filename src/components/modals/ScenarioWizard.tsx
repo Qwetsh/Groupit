@@ -154,7 +154,7 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
         if (selectedType === 'custom' && selectedNiveaux.size === 0) return false;
         return nom.trim().length > 0;
       case 3:
-        return selectedEnseignantIds.size > 0;
+        return selectedType === 'custom' || selectedEnseignantIds.size > 0;
       case 4:
         return true;
       case 5:

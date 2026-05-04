@@ -35,7 +35,7 @@ function getChargeColorClass(nbEleves: number, heures3e: number | undefined): st
 export const DroppableEnseignantTile: React.FC<DroppableEnseignantTileProps> = ({
   enseignant,
   affectations,
-  eleves,
+  elevesById,
   capacity: _capacity,
   onContextMenu,
   onTileContextMenu,
@@ -46,6 +46,8 @@ export const DroppableEnseignantTile: React.FC<DroppableEnseignantTileProps> = (
   distancesByEleve,
   hasEleveInClass,
   heures3e,
+  showGenderColor,
+  draggedEleveClasse,
 }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: `enseignant:${enseignant.id}`,
@@ -186,7 +188,7 @@ export const DroppableEnseignantTile: React.FC<DroppableEnseignantTileProps> = (
       </div>
       <div className="tile-eleves">
         {affectations.map(aff => {
-          const eleve = eleves.find(e => e.id === aff.eleveId);
+          const eleve = elevesById.get(aff.eleveId);
           if (!eleve) return null;
           return (
             <DraggableAffectationChip
@@ -196,6 +198,8 @@ export const DroppableEnseignantTile: React.FC<DroppableEnseignantTileProps> = (
               enseignant={enseignant}
               onContextMenu={onContextMenu}
               distanceFromEnseignantKm={distancesByEleve?.get(eleve.id!)}
+              showGenderColor={showGenderColor}
+              sameClassAsDragged={!!draggedEleveClasse && eleve.classe === draggedEleveClasse}
             />
           );
         })}

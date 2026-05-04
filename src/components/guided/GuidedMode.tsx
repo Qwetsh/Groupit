@@ -15,12 +15,16 @@ import { StepConfiguration } from './steps/StepConfiguration';
 import { StepSalles } from './steps/StepSalles';
 import { StepRecap } from './steps/StepRecap';
 import { StepResults } from './steps/StepResults';
+import { StepSelectEleves } from './steps/StepSelectEleves';
+import { StepSelectAdultes } from './steps/StepSelectAdultes';
+import { StepConfigGroupes } from './steps/StepConfigGroupes';
 import './GuidedMode.css';
 
 // Steps for each wizard path
 const STEPS_BASE: GuidedStep[] = ['eleves', 'enseignants', 'configuration', 'recap', 'results'];
 const STEPS_ORAL_DNB: GuidedStep[] = ['eleves', 'themes', 'groupes', 'enseignants', 'configuration', 'salles', 'recap', 'results'];
 const STEPS_STAGE: GuidedStep[] = ['eleves', 'stages', 'enseignants', 'configuration', 'recap', 'results'];
+const STEPS_CUSTOM: GuidedStep[] = ['eleves', 'selection', 'adultes', 'parametres', 'recap', 'results'];
 
 const STEP_LABELS: Record<GuidedStep, string> = {
   welcome: 'Bienvenue',
@@ -32,6 +36,9 @@ const STEP_LABELS: Record<GuidedStep, string> = {
   enseignants: 'Enseignants',
   configuration: 'Configuration',
   salles: 'Salles',
+  selection: 'Selection',
+  adultes: 'Adultes',
+  parametres: 'Parametres',
   recap: 'Recapitulatif',
   results: 'Resultats',
 };
@@ -43,6 +50,7 @@ export function GuidedMode() {
   const activeSteps = useMemo(() => {
     if (guidedMode.scenarioType === 'oral_dnb') return STEPS_ORAL_DNB;
     if (guidedMode.scenarioType === 'suivi_stage') return STEPS_STAGE;
+    if (guidedMode.scenarioType === 'personnalise') return STEPS_CUSTOM;
     return STEPS_BASE;
   }, [guidedMode.scenarioType]);
 
@@ -82,6 +90,12 @@ export function GuidedMode() {
         return <StepConfiguration onNext={handleNext} onBack={handleBack} />;
       case 'salles':
         return <StepSalles onNext={handleNext} onBack={handleBack} />;
+      case 'selection':
+        return <StepSelectEleves onNext={handleNext} onBack={handleBack} />;
+      case 'adultes':
+        return <StepSelectAdultes onNext={handleNext} onBack={handleBack} />;
+      case 'parametres':
+        return <StepConfigGroupes onNext={handleNext} onBack={handleBack} />;
       case 'recap':
         return <StepRecap onNext={handleNext} onBack={handleBack} />;
       case 'results':
@@ -93,7 +107,7 @@ export function GuidedMode() {
 
   return (
     <div className="guided-overlay">
-      <div className={`guided-container ${['themes', 'groupes', 'enseignants', 'configuration', 'salles'].includes(currentStep) ? 'guided-container-wide' : ''}`}>
+      <div className={`guided-container ${['themes', 'groupes', 'enseignants', 'configuration', 'salles', 'selection', 'adultes', 'parametres'].includes(currentStep) ? 'guided-container-wide' : ''}`}>
         {/* Header */}
         <div className="guided-header">
           {currentStepIndex > 0 && currentStep !== 'results' && (
