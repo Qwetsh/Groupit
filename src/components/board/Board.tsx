@@ -21,7 +21,7 @@ import { calculateDistance, recalcTimeSlotsForJurys } from '../../algorithms';
 import type { Eleve, Enseignant, Affectation, Jury, MatchingResultDNB, Stage } from '../../domain/models';
 import { calculateCapacitesStage, getHeuresMatiere } from '../../domain/models';
 import { filterEleves, filterEnseignants } from '../../utils/filteringUtils';
-import { Info, UserX, Users, MapPin, MapPinOff, Palette, Eye } from 'lucide-react';
+import { Info, UserX, Users, MapPin, MapPinOff, Palette, Eye, Tag } from 'lucide-react';
 import { OverlayProgress } from '../ui/ProgressIndicator';
 import { HelpTooltip, HELP_TEXTS } from '../ui/Tooltip';
 import { ConfirmModal } from '../ui/ConfirmModal';
@@ -132,6 +132,7 @@ export const Board: React.FC = () => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [showGenderColor, setShowGenderColor] = useState(false);
   const [showClassHighlight, setShowClassHighlight] = useState(false);
+  const [showClasse, setShowClasse] = useState(false);
 
   // Confirm modal hook
   const { confirmState, handleConfirm: handleConfirmReset, handleCancel: handleCancelReset } = useConfirmReset();
@@ -839,6 +840,14 @@ export const Board: React.FC = () => {
           <Eye size={16} />
           Même classe
         </button>
+        <button
+          className={`btn-toggle ${showClasse ? 'active' : ''}`}
+          onClick={() => setShowClasse(v => !v)}
+          title="Afficher la classe sur les élèves dans les résultats"
+        >
+          <Tag size={16} />
+          Classe
+        </button>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd} autoScroll={false}>
@@ -898,6 +907,7 @@ export const Board: React.FC = () => {
                       onContextMenu={handleContextMenuJury}
                       showGenderColor={showGenderColor}
                       draggedEleveClasse={draggedEleveClasse}
+                      showClasse={showClasse}
                     />
                   ))
                 ) : (
@@ -931,6 +941,7 @@ export const Board: React.FC = () => {
                       heures3e={heures3eParEnseignant.get(enseignant.id!)}
                       showGenderColor={showGenderColor}
                       draggedEleveClasse={draggedEleveClasse}
+                      showClasse={showClasse}
                     />
                   );
                 })

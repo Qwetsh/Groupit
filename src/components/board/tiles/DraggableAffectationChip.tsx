@@ -25,6 +25,7 @@ export const DraggableAffectationChip: React.FC<DraggableAffectationChipProps> =
   distanceFromEnseignantKm,
   showGenderColor,
   sameClassAsDragged,
+  showClasse,
 }) => {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `affectation:${affectation.id}`,
@@ -56,7 +57,7 @@ export const DraggableAffectationChip: React.FC<DraggableAffectationChipProps> =
       {...attributes}
     >
       <span className="mini-name">{eleve.prenom} {eleve.nom.charAt(0)}.</span>
-      <span className="mini-classe">{eleve.classe}</span>
+      {showClasse && <span className="mini-classe">{eleve.classe}</span>}
       {showDistanceBadge && (
         <span className={`mini-distance ${distanceClass}`}>
           {distanceFromEnseignantKm! < 1 ? '<1' : Math.round(distanceFromEnseignantKm!)}km
