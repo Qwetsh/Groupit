@@ -116,10 +116,9 @@ export function StepRecap({ onBack }: StepRecapProps) {
           juryId: juryIdMap.get(aff.juryId) || '',
           scenarioId: scenario.id!,
           type: 'autre' as const,
-          metadata: {},
-          score: aff.score,
+          metadata: {} as Record<string, unknown>,
+          scoreTotal: aff.score,
           scoreDetail: aff.scoreDetail,
-          explication: aff.explication,
         }));
 
         const savedAffectations = await addAffectations(affectationsToAdd);

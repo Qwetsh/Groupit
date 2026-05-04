@@ -2,7 +2,7 @@
 // COMPONENT - IMPORT CSV WIZARD
 // ============================================================
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Upload, FileSpreadsheet, ChevronRight, ChevronLeft, Check, X, AlertTriangle, RefreshCw } from 'lucide-react';
 import clsx from 'clsx';
 import type { Eleve, ColumnMapping } from '../../domain/models';

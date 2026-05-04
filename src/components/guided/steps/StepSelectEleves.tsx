@@ -142,11 +142,6 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
     );
   }, [eleves, searchQuery]);
 
-  const filteredEleveIds = useMemo(
-    () => new Set(filteredEleves.map(e => e.id)),
-    [filteredEleves]
-  );
-
   const filteredByClasse = useMemo(() => {
     const map = new Map<string, Eleve[]>();
     for (const eleve of filteredEleves) {
