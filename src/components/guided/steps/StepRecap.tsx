@@ -12,7 +12,7 @@ import { useEnseignantStore } from '../../../stores/enseignantStore';
 import { useJuryStore } from '../../../stores/juryStore';
 import { useAffectationStore } from '../../../stores/affectationStore';
 import { useStageStore } from '../../../stores/stageStore';
-import { solveOralDnbComplete, solveStageMatching, toStageGeoInfo, toEnseignantGeoInfo, assignTimeSlots, type DistributionMode } from '../../../algorithms';
+import { solveOralDnbComplete, solveStageMatching, solveCustom, toStageGeoInfo, toEnseignantGeoInfo, assignTimeSlots, type DistributionMode } from '../../../algorithms';
 import { computeRoutePairs, geocodeAddressWithFallback } from '../../../infrastructure/geo/stageGeoWorkflow';
 import { DistributionModeModal } from '../../modals/DistributionModeModal';
 import '../GuidedMode.css';
@@ -86,7 +86,59 @@ export function StepRecap({ onBack }: StepRecapProps) {
       // Small delay for visual effect
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      if (scenario.type === 'oral_dnb') {
+      if (scenario.type === 'custom') {
+        // === MODE PERSONNALISE ===
+        const customConfig = guidedMode.customConfig;
+        const result = solveCustom(eleves, enseignants, scenario, customConfig);
+
+        // Create jurys from groups
+        const { addJury } = useJuryStore.getState();
+        for (const g of result.groups) {
+          await addJury({
+            scenarioId: scenario.id!,
+            nom: g.nom,
+            enseignantIds: g.enseignantIds,
+            capaciteMax: g.capaciteMax,
+          });
+        }
+
+        // Reload jurys to get IDs
+        const freshJurys = useJuryStore.getState().getJurysByScenario(scenario.id!);
+        const juryIdMap = new Map<string, string>();
+        for (const g of result.groups) {
+          const match = freshJurys.find(j => j.nom === g.nom);
+          if (match) juryIdMap.set(g.id, match.id!);
+        }
+
+        const affectationsToAdd = result.affectations.map(aff => ({
+          eleveId: aff.eleveId,
+          enseignantId: aff.enseignantId || '',
+          juryId: juryIdMap.get(aff.juryId) || '',
+          scenarioId: scenario.id!,
+          type: 'autre' as const,
+          metadata: {},
+          score: aff.score,
+          scoreDetail: aff.scoreDetail,
+          explication: aff.explication,
+        }));
+
+        const savedAffectations = await addAffectations(affectationsToAdd);
+        setAffectationCount(affectationsToAdd.length);
+
+        // Time slots if enabled
+        if (customConfig.useTimeSlots && customConfig.demiJournees.length > 0) {
+          const selectedEleves = eleves.filter(e => customConfig.selectedEleveIds.includes(e.id));
+          if (customConfig.demiJournees.length > 1) {
+            setPendingAffectations(savedAffectations);
+            setState('choosing_distribution');
+          } else {
+            await applyTimeSlotsCustom(savedAffectations, freshJurys, selectedEleves, customConfig);
+            setState('success');
+          }
+        } else {
+          setState('success');
+        }
+      } else if (scenario.type === 'oral_dnb') {
         // === ORAL DNB ===
         const result = solveOralDnbComplete(
           eleves3e,
@@ -286,6 +338,23 @@ export function StepRecap({ onBack }: StepRecapProps) {
     }
   }, [scenario, eleves3e, enseignants, scenarioJurys, stages, addAffectations, updateStageGeoExtended, setStageGeoError, updateEnseignant, loadStages]);
 
+  const applyTimeSlotsCustom = useCallback(async (
+    savedAffectations: Awaited<ReturnType<typeof addAffectations>>,
+    jurys: ReturnType<typeof getJurysByScenario>,
+    selectedEleves: typeof eleves,
+    customConfig: typeof guidedMode.customConfig
+  ) => {
+    const updates = assignTimeSlots(
+      jurys, savedAffectations, selectedEleves, customConfig.demiJournees, 'fill_first',
+      customConfig.heureDebutMatin, customConfig.heureDebutAprem
+    );
+    for (const [affId, meta] of updates) {
+      await updateAffectation(affId, {
+        metadata: { dateCreneau: meta.dateCreneau, heureCreneau: meta.heureCreneau },
+      });
+    }
+  }, [updateAffectation, assignTimeSlots]);
+
   const applyTimeSlots = useCallback(async (
     savedAffectations: Awaited<ReturnType<typeof addAffectations>>,
     demiJournees: string[],
@@ -322,9 +391,12 @@ export function StepRecap({ onBack }: StepRecapProps) {
   }, [scenario, pendingAffectations, applyTimeSlots, updateParametres]);
 
   const handleViewResults = useCallback(() => {
+    if (scenario?.id) {
+      useScenarioStore.getState().setCurrentScenario(scenario.id);
+    }
     exitGuidedMode();
     navigate('/board');
-  }, [exitGuidedMode, navigate]);
+  }, [exitGuidedMode, navigate, scenario]);
 
   if (!scenario) {
     return (
@@ -354,6 +426,8 @@ export function StepRecap({ onBack }: StepRecapProps) {
         <p className="step-subtitle">
           {scenario?.type === 'suivi_stage'
             ? `${affectationCount} eleves ont ete affectes a des enseignants tuteurs.`
+            : scenario?.type === 'custom'
+            ? `${affectationCount} eleves ont ete repartis dans ${scenarioJurys.length} groupes.`
             : `${affectationCount} eleves ont ete repartis dans ${scenarioJurys.length} jurys.`}
         </p>
 
@@ -366,7 +440,7 @@ export function StepRecap({ onBack }: StepRecapProps) {
           <div className="success-stat">
             {scenario?.type === 'suivi_stage' ? <Briefcase size={24} /> : <GraduationCap size={24} />}
             <span className="stat-value">{scenario?.type === 'suivi_stage' ? affectationCount : scenarioJurys.length}</span>
-            <span className="stat-label">{scenario?.type === 'suivi_stage' ? 'stages' : 'jurys'}</span>
+            <span className="stat-label">{scenario?.type === 'suivi_stage' ? 'stages' : scenario?.type === 'custom' ? 'groupes' : 'jurys'}</span>
           </div>
         </div>
 
@@ -458,6 +532,39 @@ export function StepRecap({ onBack }: StepRecapProps) {
       </p>
 
       <div className="recap-cards">
+        {scenario.type === 'custom' ? (
+          <>
+            <div className="recap-card">
+              <div className="recap-icon">
+                <Users size={28} />
+              </div>
+              <div className="recap-value">{guidedMode.customConfig.selectedEleveIds.length}</div>
+              <div className="recap-label">eleves selectionnes</div>
+            </div>
+            {guidedMode.customConfig.useAdultes && (
+              <div className="recap-card">
+                <div className="recap-icon jury">
+                  <GraduationCap size={28} />
+                </div>
+                <div className="recap-value">{guidedMode.customConfig.selectedEnseignantIds.length}</div>
+                <div className="recap-label">{guidedMode.customConfig.adulteRole.toLowerCase()}s</div>
+              </div>
+            )}
+            <div className="recap-card">
+              <div className="recap-icon config">
+                <Settings size={28} />
+              </div>
+              <div className="recap-value">{scenario.nom}</div>
+              <div className="recap-label">configuration</div>
+              <div className="recap-detail">
+                {guidedMode.customConfig.tailleGroupeFixe
+                  ? `${guidedMode.customConfig.tailleGroupeMin} eleves/groupe`
+                  : `${guidedMode.customConfig.tailleGroupeMin}-${guidedMode.customConfig.tailleGroupeMax} eleves/groupe`}
+              </div>
+            </div>
+          </>
+        ) : (
+        <>
         <div className="recap-card">
           <div className="recap-icon">
             <Users size={28} />
@@ -503,11 +610,15 @@ export function StepRecap({ onBack }: StepRecapProps) {
           <div className="recap-value">{scenario.nom}</div>
           <div className="recap-label">configuration</div>
         </div>
+        </>
+        )}
       </div>
 
       <div className="launch-section">
         <p className="launch-hint">
-          {scenario.type === 'suivi_stage'
+          {scenario.type === 'custom'
+            ? "L'algorithme va repartir les eleves dans des groupes en optimisant les criteres configures."
+            : scenario.type === 'suivi_stage'
             ? "L'algorithme va affecter les enseignants tuteurs aux stages en optimisant les trajets et l'equilibrage."
             : "L'algorithme va repartir les eleves dans les jurys en optimisant l'equilibrage et les correspondances de matieres."}
         </p>

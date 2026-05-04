@@ -19,7 +19,6 @@ import {
   Briefcase,
   Sliders,
   MousePointerClick,
-  Lock,
   FolderOpen,
   Play,
   RotateCcw,
@@ -54,10 +53,10 @@ export const DashboardPage: React.FC = () => {
   }, [loadArchives, loadStages]);
 
   // Launch a guided wizard
-  const handleLaunchMode = useCallback((type: 'oral_dnb' | 'suivi_stage') => {
+  const handleLaunchMode = useCallback((type: 'oral_dnb' | 'suivi_stage' | 'personnalise') => {
     setGuidedScenarioType(type);
     setGuidedModeActive(true);
-    setGuidedStep('eleves'); // Skip scenario choice since type is already set
+    setGuidedStep('eleves');
   }, [setGuidedScenarioType, setGuidedModeActive, setGuidedStep]);
 
   // Archive handlers
@@ -149,6 +148,16 @@ export const DashboardPage: React.FC = () => {
     return null;
   }, [scenarios, affectations]);
 
+  const inProgressCustom = useMemo(() => {
+    const customScenarios = scenarios.filter(s => s.type === 'custom');
+    for (const s of customScenarios) {
+      const hasJurys = jurys.some(j => j.scenarioId === s.id);
+      const hasAffectations = affectations.some(a => a.scenarioId === s.id);
+      if (hasJurys || hasAffectations) return s;
+    }
+    return null;
+  }, [scenarios, jurys, affectations]);
+
   const handleResumeScenario = useCallback((scenarioId: string) => {
     setCurrentScenario(scenarioId);
     navigate('/board');
@@ -231,16 +240,26 @@ export const DashboardPage: React.FC = () => {
           )}
         </div>
 
-        <div className="mode-card disabled" title="Disponible dans une prochaine version">
-          <div className="mode-icon custom">
-            <Sliders size={32} />
-          </div>
-          <h3>Mode Personnalise</h3>
-          <p>Criteres d'affectation automatique personnalisables.</p>
-          <span className="mode-badge">
-            <Lock size={12} />
-            Bientot
-          </span>
+        <div className="mode-card-wrapper">
+          <button
+            className={`mode-card active ${inProgressCustom ? 'has-session' : ''}`}
+            onClick={() => inProgressCustom ? handleResumeScenario(inProgressCustom.id!) : handleLaunchMode('personnalise')}
+          >
+            <div className="mode-icon custom">
+              <Sliders size={32} />
+            </div>
+            <h3>{inProgressCustom ? 'Reprendre l\'affectation' : 'Mode Personnalise'}</h3>
+            <p>Criteres d'affectation automatique personnalisables.</p>
+            {inProgressCustom && (
+              <span className="mode-resume-badge"><Play size={12} /> En cours</span>
+            )}
+          </button>
+          {inProgressCustom && (
+            <button className="mode-new-link" onClick={() => handleLaunchMode('personnalise')}>
+              <RotateCcw size={11} />
+              Nouvelle constitution
+            </button>
+          )}
         </div>
 
         <button className="mode-card active" onClick={() => navigate('/libre')}>

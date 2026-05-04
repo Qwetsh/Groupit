@@ -311,7 +311,11 @@ export function stripWrappingQuotes(content: string): string {
   const lines = content.split(/\r?\n/);
   if (lines.length < 2) return content;
 
-  // Compter les lignes de données (non vides, après le header) qui sont entre guillemets
+  // Compter les lignes de données qui sont VRAIMENT wrappées entre guillemets
+  // (ligne entière entre guillemets, SANS guillemets intérieurs)
+  // Distinguer du quoting CSV standard où chaque champ est quoté individuellement :
+  //   Wrapping:  "DUPONT;Jean;3A"         → pas de " entre les guillemets extérieurs
+  //   Standard:  "DUPONT";"Jean";"3A"      → contient des " intérieurs
   let quotedCount = 0;
   let dataCount = 0;
   for (let i = 1; i < lines.length; i++) {
@@ -319,17 +323,23 @@ export function stripWrappingQuotes(content: string): string {
     if (trimmed === '') continue;
     dataCount++;
     if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
-      quotedCount++;
+      const inner = trimmed.slice(1, -1);
+      if (!inner.includes('"')) {
+        quotedCount++;
+      }
     }
   }
 
-  // Si la majorité des lignes de données sont entre guillemets, les strip
+  // Si la majorité des lignes de données sont des vraies wrapping quotes, les strip
   if (dataCount > 0 && quotedCount >= dataCount * 0.8) {
     return lines.map((line, i) => {
       if (i === 0) return line; // garder le header tel quel
       const trimmed = line.trim();
       if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
-        return trimmed.slice(1, -1);
+        const inner = trimmed.slice(1, -1);
+        if (!inner.includes('"')) {
+          return inner;
+        }
       }
       return line;
     }).join('\n');

@@ -36,6 +36,12 @@ export {
   toEnseignantGeoInfo,
 } from './stageSolver';
 export {
+  solveCustom,
+  type CustomGroup,
+  type CustomSolverResult,
+  type CustomAffectation,
+} from './solverCustom';
+export {
   assignTimeSlots,
   recalcTimeSlotsForJurys,
   getTimeSlotsForDemiJournee,

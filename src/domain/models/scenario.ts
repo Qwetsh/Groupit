@@ -95,7 +95,7 @@ export interface ScenarioParametres {
     utiliserCapaciteCalculee?: boolean;
   };
 
-  // Spécifique custom (configuration libre)
+  // Spécifique custom (mode personnalisé)
   custom?: {
     /** Utiliser des jurys (groupes d'enseignants) au lieu d'enseignants individuels */
     utiliserJurys: boolean;
@@ -103,6 +103,36 @@ export interface ScenarioParametres {
     capaciteDefaut: number;
     /** Niveaux concernés */
     niveaux: Niveau[];
+    /** Taille de groupe min */
+    tailleGroupeMin: number;
+    /** Taille de groupe max */
+    tailleGroupeMax: number;
+    /** Taille fixe (min === max) */
+    tailleGroupeFixe: boolean;
+    /** Rôle des adultes (ex: "Tuteur", "Jury") */
+    adulteRole: string;
+    /** Pas d'adultes dans les groupes */
+    sansAdultes: boolean;
+    /** Critère parité */
+    critereParity: 'off' | 'low' | 'normal' | 'high' | 'required';
+    /** Critère enseignant a l'élève en classe */
+    critereEnseignantAEleve: 'off' | 'prefer' | 'avoid';
+    /** Critère même classe */
+    critereMemeClasse: 'off' | 'prefer' | 'avoid';
+    /** Critère LV */
+    critereLV: 'off' | 'same' | 'mixed';
+    /** Pondération par volume horaire */
+    critereVolumeHoraire: boolean;
+    /** Activer les passages horaires */
+    useTimeSlots: boolean;
+    /** Demi-journées sélectionnées */
+    demiJournees: string[];
+    /** Heure début matin */
+    heureDebutMatin: string;
+    /** Heure début après-midi */
+    heureDebutAprem: string;
+    /** IDs des élèves sélectionnés (si vide = tous) */
+    selectedEleveIds?: string[];
   };
 
   // Contraintes globales

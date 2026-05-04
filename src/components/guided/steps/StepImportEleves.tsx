@@ -2,7 +2,7 @@
 // GUIDED STEP - IMPORT ELEVES (Multi-file support)
 // ============================================================
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Upload, FileSpreadsheet, Check, Plus, Trash2, Users, ChevronRight, RotateCcw } from 'lucide-react';
 import clsx from 'clsx';
 import { useUIStore } from '../../../stores/uiStore';
@@ -54,6 +54,9 @@ export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
   const [mappings, setMappings] = useState<ColumnMapping[]>([]);
   const [classe, setClasse] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [lastMappings, setLastMappings] = useState<ColumnMapping[] | null>(null);
+  const [lastHeaders, setLastHeaders] = useState<string[] | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -75,8 +78,15 @@ export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
       const data = await parseCSVFile(file);
       setParsedData(data);
 
-      const autoMappings = generateAutoMapping(data.headers);
-      setMappings(autoMappings);
+      // Reuse last mapping if headers match
+      const headersKey = [...data.headers].sort().join('|');
+      const lastKey = lastHeaders ? [...lastHeaders].sort().join('|') : null;
+      if (lastMappings && lastKey === headersKey) {
+        setMappings(lastMappings);
+      } else {
+        const autoMappings = generateAutoMapping(data.headers);
+        setMappings(autoMappings);
+      }
 
       setShowMapping(true);
     } catch (error) {
@@ -84,7 +94,17 @@ export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
     } finally {
       setProcessing(false);
     }
-  }, []);
+  }, [lastMappings, lastHeaders]);
+
+  // Process next file in queue
+  const processNextPending = useCallback(() => {
+    setPendingFiles(prev => {
+      if (prev.length === 0) return prev;
+      const [next, ...rest] = prev;
+      handleFile(next);
+      return rest;
+    });
+  }, [handleFile]);
 
   // Drag & Drop handlers
   const handleDrag = useCallback((e: React.DragEvent) => {
@@ -102,18 +122,31 @@ export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
     e.stopPropagation();
     setDragActive(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const droppedFile = e.dataTransfer.files[0];
-      const ext = droppedFile.name.toLowerCase();
-      if (ext.endsWith('.csv') || ext.endsWith('.xlsx') || ext.endsWith('.xls')) {
-        handleFile(droppedFile);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const validFiles: File[] = [];
+      for (let i = 0; i < e.dataTransfer.files.length; i++) {
+        const f = e.dataTransfer.files[i];
+        const ext = f.name.toLowerCase();
+        if (ext.endsWith('.csv') || ext.endsWith('.xlsx') || ext.endsWith('.xls')) {
+          validFiles.push(f);
+        }
+      }
+      if (validFiles.length > 0) {
+        handleFile(validFiles[0]);
+        if (validFiles.length > 1) {
+          setPendingFiles(validFiles.slice(1));
+        }
       }
     }
   }, [handleFile]);
 
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFile(e.target.files[0]);
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files);
+      handleFile(files[0]);
+      if (files.length > 1) {
+        setPendingFiles(files.slice(1));
+      }
     }
   }, [handleFile]);
 
@@ -160,6 +193,10 @@ export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
         setGuidedImportedEleves(totalImported + result.eleves.length);
       }
 
+      // Save mapping for reuse on next files with same headers
+      setLastMappings(mappings);
+      setLastHeaders(parsedData.headers);
+
       // Reset for next file
       setShowMapping(false);
       setCurrentFile(null);
@@ -190,6 +227,13 @@ export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
     setClasse('');
   }, []);
 
+  // Auto-process next pending file when current one is done
+  useEffect(() => {
+    if (!showMapping && !processing && !currentFile && pendingFiles.length > 0) {
+      processNextPending();
+    }
+  }, [showMapping, processing, currentFile, pendingFiles.length, processNextPending]);
+
   // Remove imported file (note: doesn't remove from DB, just from list)
   const handleRemoveFile = useCallback((id: string) => {
     setImportedFiles(prev => prev.filter(f => f.id !== id));
@@ -215,6 +259,11 @@ export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
         <h1 className="step-title">Configuration de l'import</h1>
         <p className="step-subtitle">
           Fichier : <strong>{currentFile?.name}</strong>
+          {pendingFiles.length > 0 && (
+            <span style={{ marginLeft: '0.5rem', color: '#94a3b8', fontSize: '0.85rem' }}>
+              ({pendingFiles.length} fichier{pendingFiles.length > 1 ? 's' : ''} en attente)
+            </span>
+          )}
         </p>
 
         <div className="mapping-section">
@@ -306,6 +355,7 @@ export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
           ref={fileInputRef}
           type="file"
           accept=".csv,.xlsx,.xls"
+          multiple
           onChange={handleFileInput}
           hidden
         />

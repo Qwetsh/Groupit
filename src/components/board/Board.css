@@ -2345,3 +2345,80 @@
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ============================================================ */
+/* VISUAL TOGGLES BAR                                           */
+/* ============================================================ */
+
+.board-visual-toggles {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 8px;
+}
+
+.btn-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+.btn-toggle.active {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: rgba(99, 102, 241, 0.5);
+  color: #a5b4fc;
+}
+
+/* ============================================================ */
+/* GENDER COLOR CLASSES                                         */
+/* ============================================================ */
+
+/* Unassigned eleves (DraggableEleve) */
+.draggable-eleve.gender-f {
+  background: rgba(232, 170, 190, 0.18);
+  border-left: 3px solid rgba(232, 170, 190, 0.6);
+}
+
+.draggable-eleve.gender-m {
+  background: rgba(130, 177, 224, 0.18);
+  border-left: 3px solid rgba(130, 177, 224, 0.6);
+}
+
+/* Assigned chips (mini-eleve) */
+.mini-eleve.gender-f {
+  background: rgba(232, 170, 190, 0.25) !important;
+  border-color: rgba(232, 170, 190, 0.5) !important;
+}
+
+.mini-eleve.gender-m {
+  background: rgba(130, 177, 224, 0.25) !important;
+  border-color: rgba(130, 177, 224, 0.5) !important;
+}
+
+/* ============================================================ */
+/* SAME CLASS HIGHLIGHT (on drag)                               */
+/* ============================================================ */
+
+.draggable-eleve.same-class-highlight {
+  outline: 2px solid #a78bfa;
+  outline-offset: -1px;
+  background: rgba(167, 139, 250, 0.12);
+}
+
+.mini-eleve.same-class-highlight {
+  outline: 2px solid #a78bfa;
+  outline-offset: -1px;
+  background: rgba(167, 139, 250, 0.2) !important;
+}
