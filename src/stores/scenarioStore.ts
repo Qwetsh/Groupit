@@ -7,6 +7,28 @@ import type { Scenario, ScenarioMode, ScenarioType, ScenarioParametres, CritereC
 import { scenarioRepository, affectationRepository, groupeRepository, juryRepository } from '../infrastructure/repositories';
 import { extractErrorMessage } from '../utils/errorUtils';
 
+// Le scénario courant est mémorisé pour qu'un rechargement de la page rouvre
+// l'affectation en cours, et non le premier scénario de la liste.
+const CURRENT_SCENARIO_KEY = 'groupit_currentScenarioId';
+
+function readSavedScenarioId(): string | null {
+  try {
+    return typeof localStorage === 'undefined' ? null : localStorage.getItem(CURRENT_SCENARIO_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function saveScenarioId(id: string | null): void {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    if (id) localStorage.setItem(CURRENT_SCENARIO_KEY, id);
+    else localStorage.removeItem(CURRENT_SCENARIO_KEY);
+  } catch {
+    // Stockage indisponible (navigation privée) : la sélection reste en mémoire.
+  }
+}
+
 interface ScenarioState {
   scenarios: Scenario[];
   currentScenarioId: string | null;
@@ -46,9 +68,11 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       const scenarios = await scenarioRepository.getAll();
       set({ scenarios, loading: false });
 
-      // Sélectionner le premier scénario par défaut s'il y en a
+      // Reprendre le scénario mémorisé s'il existe encore, sinon le premier
       if (scenarios.length > 0 && !get().currentScenarioId) {
-        set({ currentScenarioId: scenarios[0].id });
+        const savedId = readSavedScenarioId();
+        const saved = scenarios.find(s => s.id === savedId);
+        set({ currentScenarioId: saved ? saved.id : scenarios[0].id });
       }
     } catch (error) {
       set({ error: extractErrorMessage(error), loading: false });
@@ -163,6 +187,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
         const newCurrentId = state.currentScenarioId === id
           ? (newScenarios.length > 0 ? newScenarios[0].id : null)
           : state.currentScenarioId;
+        if (newCurrentId !== state.currentScenarioId) saveScenarioId(newCurrentId);
         return {
           scenarios: newScenarios,
           currentScenarioId: newCurrentId,
@@ -180,10 +205,12 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
   },
 
   setCurrentScenario: (id) => {
+    saveScenarioId(id);
     set({ currentScenarioId: id });
   },
 
   setActiveScenario: (id) => {
+    saveScenarioId(id);
     set({ currentScenarioId: id });
   },
 

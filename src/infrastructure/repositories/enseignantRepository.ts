@@ -81,14 +81,17 @@ export class EnseignantRepository {
   async restoreFromBackup(enseignants: Enseignant[]): Promise<Enseignant[]> {
     const { unique } = dedupeEnseignants(enseignants);
 
+    // Conserver les identifiants d'origine : les affectations, jurys et stages
+    // y font référence. `bulkPut` rend aussi la restauration idempotente si elle
+    // est déclenchée deux fois (double montage en StrictMode).
     const restored = unique.map(e => ({
       ...e,
-      id: uuidv4(),
+      id: e.id || uuidv4(),
       classesEnCharge: e.classesEnCharge || [],
       tags: e.tags || [],
     } as Enseignant));
 
-    await db.enseignants.bulkAdd(restored);
+    await db.enseignants.bulkPut(restored);
     return restored;
   }
 

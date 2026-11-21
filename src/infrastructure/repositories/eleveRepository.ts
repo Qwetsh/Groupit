@@ -130,15 +130,18 @@ export class EleveRepository {
   async restoreFromBackup(eleves: Eleve[]): Promise<Eleve[]> {
     const { unique } = dedupeEleves(eleves);
 
+    // Conserver les identifiants d'origine : les affectations, jurys et stages
+    // y font référence. `bulkPut` rend aussi la restauration idempotente si elle
+    // est déclenchée deux fois (double montage en StrictMode).
     const restored = unique.map(e => ({
       ...e,
-      id: uuidv4(),
+      id: e.id || uuidv4(),
       options: e.options || [],
       tags: e.tags || [],
       contraintes: e.contraintes || [],
     } as Eleve));
 
-    await db.eleves.bulkAdd(restored);
+    await db.eleves.bulkPut(restored);
     return restored;
   }
 
