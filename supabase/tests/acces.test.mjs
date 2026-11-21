@@ -130,7 +130,16 @@ try {
   check('lit les évaluations et la note', rows(await dash.c.from('evaluations').select('id')) === 1 && rows(await dash.c.from('final_scores').select('id')) === 1);
   check('ne peut pas noter', denied(await dash.c.from('final_scores').upsert({ eleve_id: e2, total: 3 }, { onConflict: 'eleve_id' })));
   check('ne peut pas changer le code', denied(await dash.c.from('exam_sessions').update({ code: 'ZZHACK01' }).eq('id', sessionId)));
-  check('enregistre la grille de critères', rows(await dash.c.from('exam_sessions').update({ criteria_config: { test: true } }).eq('id', sessionId).select('id')) === 1);
+  const grille = {
+    categories: [{ id: 'oral', label: 'Oral' }],
+    criteria: [{ id: 'c1', label: 'Critère', desc: '', categoryId: 'oral', max: 2, levels: [{ label: 'Acquis', shortLabel: 'A', value: 2 }] }],
+  };
+  const setGrille = g => dash.c.from('exam_sessions').update({ criteria_config: g }).eq('id', sessionId).select('id');
+  check('grille mal formée refusée', denied(await setGrille({ test: true })));
+  check('grille sans niveaux refusée', denied(await setGrille({ ...grille, criteria: [{ ...grille.criteria[0], levels: [] }] })));
+  check('grille au mauvais format refusée', denied(await setGrille({ categories: 'x', criteria: 3 })));
+  check('enregistre une grille valide', rows(await setGrille(grille)) === 1);
+  check('revient à la grille par défaut', rows(await setGrille(null)) === 1);
   check('verrouille la session', rows(await dash.c.from('exam_sessions').update({ locked: true }).eq('id', sessionId).select('id')) === 1);
 
   console.log('Session verrouillée');
