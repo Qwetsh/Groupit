@@ -1,15 +1,69 @@
-import React from 'react';
-import { Settings, SlidersHorizontal, Database, Trash2, Compass } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { Settings, SlidersHorizontal, Database, Trash2, Compass, Users, Download, Upload } from 'lucide-react';
 import { useUIStore } from '../stores/uiStore';
+import { useEnseignantStore } from '../stores/enseignantStore';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { useConfirm } from '../hooks/useConfirm';
+import {
+  parseEnseignantsFile,
+  serializeEnseignants,
+  splitNewEnseignants,
+} from '../services/enseignantFileService';
+import { extractErrorMessage } from '../utils/errorUtils';
 import './InfoPage.css';
+
+type FileFeedback = { kind: 'success' | 'error'; text: string };
+
+const plural = (n: number, singular: string, pluralForm: string) => `${n} ${n > 1 ? pluralForm : singular}`;
 
 export const ParametresPage: React.FC = () => {
   const resetGuidedMode = useUIStore(state => state.resetGuidedMode);
+  const enseignants = useEnseignantStore(state => state.enseignants);
+  const addEnseignants = useEnseignantStore(state => state.addEnseignants);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+  const [feedback, setFeedback] = useState<FileFeedback | null>(null);
 
   // Confirm modal
   const { confirmState, confirm, handleConfirm, handleCancel } = useConfirm();
+
+  const handleExportEnseignants = () => {
+    const blob = new Blob([serializeEnseignants(enseignants)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `enseignants-${new Date().toISOString().slice(0, 10)}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setFeedback({
+      kind: 'success',
+      text: `${plural(enseignants.length, 'enseignant exporté', 'enseignants exportés')}. Gardez ce fichier dans un endroit privé.`,
+    });
+  };
+
+  const handleImportEnseignants = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = ''; // permet de réimporter le même fichier
+    if (!file) return;
+
+    setImporting(true);
+    setFeedback(null);
+    try {
+      const records = parseEnseignantsFile(await file.text());
+      const { toAdd, skipped } = splitNewEnseignants(records, enseignants);
+      if (toAdd.length > 0) {
+        await addEnseignants(toAdd);
+      }
+      const added = plural(toAdd.length, 'enseignant ajouté', 'enseignants ajoutés');
+      const ignored = skipped > 0 ? ` ${plural(skipped, 'déjà présent, ignoré', 'déjà présents, ignorés')}.` : '';
+      setFeedback({ kind: 'success', text: `${added}.${ignored}` });
+    } catch (error) {
+      setFeedback({ kind: 'error', text: `Import impossible. ${extractErrorMessage(error)}` });
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const handleClearData = async () => {
     const confirmed = await confirm({
@@ -46,6 +100,55 @@ export const ParametresPage: React.FC = () => {
             Lancer l'assistant
           </button>
         </div>
+      </div>
+
+      {/* Liste des enseignants : fichier privé */}
+      <div className="info-card settings-card">
+        <div className="card-title">
+          <Users size={18} />
+          <span>Liste des enseignants</span>
+        </div>
+        <p className="info-note">
+          {enseignants.length > 0
+            ? `${plural(enseignants.length, 'enseignant enregistré', 'enseignants enregistrés')} dans ce navigateur.`
+            : 'Aucun enseignant dans ce navigateur.'}{' '}
+          Exportez la liste complète (adresses, classes, indisponibilités) dans un fichier,
+          puis importez-le sur un autre poste. Ce fichier contient des données personnelles :
+          conservez-le dans un espace privé.
+        </p>
+        <div className="button-group">
+          <button
+            className="btn-secondary"
+            onClick={handleExportEnseignants}
+            disabled={enseignants.length === 0}
+          >
+            <Download size={16} />
+            Exporter la liste
+          </button>
+          <button
+            className="btn-primary"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={importing}
+          >
+            <Upload size={16} />
+            {importing ? 'Import en cours…' : 'Importer un fichier'}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json,application/json"
+            onChange={handleImportEnseignants}
+            aria-label="Fichier d'enseignants à importer"
+            hidden
+          />
+        </div>
+        <p
+          className="info-note"
+          role="status"
+          style={{ marginTop: 12, color: feedback?.kind === 'error' ? '#f87171' : '#34d399' }}
+        >
+          {feedback?.text}
+        </p>
       </div>
 
       <div className="info-card">

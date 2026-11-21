@@ -22,3 +22,17 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Données personnelles : ne jamais versionner (RGPD)
+# Données locales de l'établissement (enseignants, élèves)
+src/data/local/
+/donnees-locales/
+# Exports et captures à la racine (listes d'élèves, copies d'écran)
+/*.csv
+/*.xlsx
+/*.xls
+/*.png
+/*.jpg
+
+# Artefacts de build TypeScript
+*.tsbuildinfo

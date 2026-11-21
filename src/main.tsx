@@ -2,15 +2,18 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import { clearAndReseedDatabase } from './data/seed'
+import { seedLocalDataIfEmpty } from './data/seed'
+import { scenarioRepository } from './infrastructure/repositories'
 
-// Attendre le reseed AVANT de render l'app pour éviter les race conditions
+// Préparer la base AVANT de render l'app pour éviter les race conditions.
+// Rien n'est jamais supprimé ici : les données de l'utilisateur doivent
+// survivre à un rechargement de la page.
 async function initApp() {
   try {
-    await clearAndReseedDatabase();
-    console.log('Database reseeded with latest defaults');
+    await scenarioRepository.ensureDefaults();
+    await seedLocalDataIfEmpty();
   } catch (err) {
-    console.error('Failed to seed database:', err);
+    console.error('Failed to prepare database:', err);
     // Continue anyway - the app can still work with existing data
   }
 
