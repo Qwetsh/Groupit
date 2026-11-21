@@ -435,3 +435,117 @@ describe('Stage Solver - Cas limites', () => {
     expect(result.tempsCalculMs).toBeGreaterThanOrEqual(0);
   });
 });
+
+// ============================================================
+// REPLIS : CONTRAINTES ET INTÉGRITÉ DU RÉSULTAT
+// ============================================================
+
+describe('Stage Solver - Replis', () => {
+  it('ne contourne jamais une exclusion élève, même en repli', () => {
+    const stages = [makeStage('s1', 49.1, 6.1)];
+    const enseignants = [
+      makeEnseignant('e1', 49.2, 6.2, {
+        exclusions: [{ type: 'eleve', value: 'eleve-s1', reason: 'conflit' }],
+      }),
+    ];
+    const pairs = [makePair('s1', 'e1', 5, 10)];
+
+    const result = solveStageMatching(stages, enseignants, pairs, {
+      collegeGeo: { lat: 49.15, lon: 6.15 },
+    });
+
+    expect(result.affectations).toHaveLength(0);
+    expect(result.nonAffectes).toHaveLength(1);
+    expect(result.nonAffectes[0].raisons.join(' ')).toContain('Exclusion élève');
+  });
+
+  it('ne contourne jamais une exclusion de zone, même en repli', () => {
+    const stages = [makeStage('s1', 49.1, 6.1, { address: '3 rue des Lilas, 57140 Woippy' })];
+    const enseignants = [
+      makeEnseignant('e1', 49.2, 6.2, {
+        exclusions: [{ type: 'zone', value: 'Woippy' }],
+      }),
+    ];
+
+    const result = solveStageMatching(stages, enseignants, [makePair('s1', 'e1', 5, 10)]);
+
+    expect(result.affectations).toHaveLength(0);
+    expect(result.nonAffectes).toHaveLength(1);
+  });
+
+  it('affecte ailleurs le stage quand seul un enseignant est exclu', () => {
+    const stages = [makeStage('s1', 49.1, 6.1)];
+    const enseignants = [
+      makeEnseignant('e1', 49.2, 6.2, {
+        exclusions: [{ type: 'eleve', value: 'eleve-s1' }],
+      }),
+      makeEnseignant('e2', 49.3, 6.3),
+    ];
+    // Aucun trajet calculé : seule la voie de repli peut affecter
+    const result = solveStageMatching(stages, enseignants, []);
+
+    expect(result.affectations).toHaveLength(1);
+    expect(result.affectations[0].enseignantId).toBe('e2');
+  });
+
+  it('un stage sans géolocalisation affecté en repli figure dans le résultat', () => {
+    const stages: StageGeoInfo[] = [
+      { stageId: 's1', eleveId: 'eleve-s1', address: 'Adresse inconnue', geoStatus: 'error' },
+    ];
+    const enseignants = [makeEnseignant('e1', 49.2, 6.2)];
+
+    const result = solveStageMatching(stages, enseignants, []);
+
+    expect(result.affectations).toHaveLength(1);
+    expect(result.affectations[0].enseignantId).toBe('e1');
+    expect(result.stats.chargeParEnseignant['e1']).toBe(1);
+  });
+
+  it('signale un trajet hors limite et reporte sa distance réelle', () => {
+    const stages = [makeStage('s1', 49.1, 6.1)];
+    const enseignants = [makeEnseignant('e1', 49.2, 6.2)];
+    const pairs = [makePair('s1', 'e1', 80, 95)];
+
+    const result = solveStageMatching(stages, enseignants, pairs, {
+      dureeMaxMin: 30,
+      distanceMaxKm: 20,
+    });
+
+    expect(result.affectations).toHaveLength(1);
+    expect(result.affectations[0].distanceKm).toBe(80);
+    expect(result.affectations[0].durationMin).toBe(95);
+    expect(result.affectations[0].explication).toContain('hors limite de trajet');
+  });
+
+  it('chaque stage est soit affecté, soit non affecté — jamais perdu', () => {
+    const stages: StageGeoInfo[] = [
+      makeStage('s1', 49.10, 6.10),
+      makeStage('s2', 49.11, 6.40),
+      { stageId: 's3', eleveId: 'eleve-s3', address: 'Sans géoloc', geoStatus: 'error' },
+      makeStage('s4', 49.30, 6.20, { eleveOptions: ['Espagnol'] }),
+      makeStage('s5', 49.12, 6.12),
+    ];
+    const enseignants = [
+      makeEnseignant('e1', 49.2, 6.2, { capacityMax: 2 }),
+      makeEnseignant('e2', 49.1, 6.1, {
+        capacityMax: 1,
+        exclusions: [{ type: 'eleve', value: 'eleve-s5' }],
+      }),
+    ];
+    const pairs = [makePair('s1', 'e1', 4, 8), makePair('s2', 'e1', 90, 100), makePair('s5', 'e2', 2, 5)];
+
+    const result = solveStageMatching(stages, enseignants, pairs, { dureeMaxMin: 30 });
+
+    const vus = [...result.affectations.map(a => a.stageId), ...result.nonAffectes.map(n => n.stageId)].sort();
+    expect(vus).toEqual(['s1', 's2', 's3', 's4', 's5']);
+    expect(result.stats.totalAffectes + result.stats.totalNonAffectes).toBe(result.stats.totalStages);
+
+    // La charge annoncée correspond aux affectations réellement listées
+    const chargeListee = result.affectations.length;
+    const chargeAnnoncee = Object.values(result.stats.chargeParEnseignant).reduce((a, b) => a + b, 0);
+    expect(chargeAnnoncee).toBe(chargeListee);
+
+    // Aucune affectation ne viole une exclusion
+    expect(result.affectations.find(a => a.stageId === 's5' && a.enseignantId === 'e2')).toBeUndefined();
+  });
+});

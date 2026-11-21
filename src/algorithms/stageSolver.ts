@@ -260,6 +260,53 @@ function computeCandidateScore(
 }
 
 /**
+ * Vérifie les exclusions déclarées par l'enseignant (élève ou zone).
+ *
+ * Une exclusion n'est jamais relâchée : elle s'applique aussi aux affectations
+ * de repli, contrairement aux limites de trajet.
+ */
+function checkExclusions(
+  enseignant: EnseignantGeoInfo,
+  stage: StageGeoInfo
+): { valid: boolean; reason?: string } {
+  if (!enseignant.exclusions) return { valid: true };
+
+  for (const exclusion of enseignant.exclusions) {
+    if (exclusion.type === 'eleve' && exclusion.value === stage.eleveId) {
+      return { valid: false, reason: `Exclusion élève: ${exclusion.reason || 'Non spécifié'}` };
+    }
+
+    // Exclusion par secteur (basé sur l'adresse ou le code postal)
+    if (exclusion.type === 'secteur' || exclusion.type === 'zone') {
+      const addr = stage.address.toLowerCase();
+      if (addr.includes(exclusion.value.toLowerCase())) {
+        return { valid: false, reason: `Exclusion zone: ${exclusion.value}` };
+      }
+    }
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Contraintes qui restent valables pour une affectation de repli :
+ * compatibilité option/matière et exclusions.
+ */
+function isEligibleForFallback(enseignant: EnseignantGeoInfo, stage: StageGeoInfo): boolean {
+  if (!isEleveOptionCompatible(stage.eleveOptions, enseignant.matierePrincipale).compatible) return false;
+  return checkExclusions(enseignant, stage).valid;
+}
+
+/**
+ * Indique si un trajet connu dépasse les limites configurées.
+ */
+function exceedsTravelLimits(pair: TeacherStagePair, options: StageMatchingOptions): boolean {
+  if (options.dureeMaxMin && pair.durationMin > options.dureeMaxMin) return true;
+  if (options.distanceMaxKm && pair.distanceKm > options.distanceMaxKm) return true;
+  return false;
+}
+
+/**
  * Vérifie si un enseignant peut prendre un stage (contraintes dures)
  */
 function checkHardConstraints(
@@ -291,24 +338,7 @@ function checkHardConstraints(
   }
 
   // Exclusions
-  if (enseignant.exclusions) {
-    for (const exclusion of enseignant.exclusions) {
-      // Exclusion par élève (on ne connaît pas l'élève ici, mais on peut vérifier le stage)
-      if (exclusion.type === 'eleve' && exclusion.value === stage.eleveId) {
-        return { valid: false, reason: `Exclusion élève: ${exclusion.reason || 'Non spécifié'}` };
-      }
-
-      // Exclusion par secteur (basé sur l'adresse ou le code postal)
-      if (exclusion.type === 'secteur' || exclusion.type === 'zone') {
-        const addr = stage.address.toLowerCase();
-        if (addr.includes(exclusion.value.toLowerCase())) {
-          return { valid: false, reason: `Exclusion zone: ${exclusion.value}` };
-        }
-      }
-    }
-  }
-
-  return { valid: true };
+  return checkExclusions(enseignant, stage);
 }
 
 // ============================================================
@@ -645,9 +675,8 @@ function fallbackCollegeAssignment(
         const currentLoad = state.loads.get(e.enseignantId) || 0;
         if (currentLoad >= e.capacityMax) return false;
 
-        // Vérifier compatibilité options
-        const optionCheck = isEleveOptionCompatible(stage.eleveOptions, e.matierePrincipale);
-        if (!optionCheck.compatible) return false;
+        // Options et exclusions restent des contraintes dures, même en repli
+        if (!isEligibleForFallback(e, stage)) return false;
 
         // Vérifier si dans le cône
         return isInDirectionalCone(collegeGeo, e.homeGeo, stage.geo!, maxAngleDeg);
@@ -713,9 +742,8 @@ function fallbackRandomAssignment(
         const currentLoad = state.loads.get(e.enseignantId) || 0;
         if (currentLoad >= e.capacityMax) return false;
 
-        // Vérifier compatibilité options
-        const optionCheck = isEleveOptionCompatible(stage.eleveOptions, e.matierePrincipale);
-        return optionCheck.compatible;
+        // Options et exclusions restent des contraintes dures, même en repli
+        return isEligibleForFallback(e, stage);
       })
       .map(e => ({
         enseignant: e,
@@ -820,7 +848,6 @@ export function solveStageMatching(
       const ens = enseignants.find(e => e.enseignantId === enseignantId);
       const isNormalAffectation = affectationsAvantFallback.has(stage.stageId);
       const isFallbackCollege = !isNormalAffectation && affectationsApresCollegeFallback.has(stage.stageId);
-      const isFallbackRandom = !isNormalAffectation && !isFallbackCollege;
 
       if (ens) {
         // Cas normal avec paire existante (proximité domicile)
@@ -864,16 +891,23 @@ export function solveStageMatching(
             explication: `${ens.prenom} ${ens.nom} - 📍 Proche collège (${Math.round(distanceFromCollege)}km)`,
           });
         }
-        // Cas fallback aléatoire (distribution équilibrée)
-        else if (isFallbackRandom && stage.geo) {
+        // Tous les autres cas : repli par équilibrage de charge (dernier recours).
+        // Branche finale volontairement inconditionnelle : un stage affecté doit
+        // toujours figurer dans le résultat, même sans géolocalisation.
+        else {
+          const horsLimite = pair ? exceedsTravelLimits(pair, opts) : false;
+          const detail = !pair
+            ? 'trajet inconnu'
+            : `${Math.round(pair.distanceKm)}km, ${Math.round(pair.durationMin)}min${horsLimite ? ' — hors limite de trajet' : ''}`;
+
           affectations.push({
             stageId: stage.stageId,
             eleveId: stage.eleveId,
             enseignantId,
-            distanceKm: 0,
-            durationMin: 0,
+            distanceKm: pair ? pair.distanceKm : 0,
+            durationMin: pair ? pair.durationMin : 0,
             score: 95, // Score élevé = moins bon (dernier recours)
-            explication: `${ens.prenom} ${ens.nom} - 🎲 Affectation équilibrée`,
+            explication: `${ens.prenom} ${ens.nom} - 🎲 Affectation équilibrée (${detail})`,
           });
         }
       }
