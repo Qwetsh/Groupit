@@ -1,14 +1,30 @@
 import { useState } from 'react';
-import { joinJury, ACCESS_DENIED_MESSAGES } from '@groupit/shared';
+import { joinJury, sanitizeSessionCode, ACCESS_DENIED_MESSAGES } from '@groupit/shared';
 import type { CriteriaConfig } from '@groupit/shared';
 
 interface JoinScreenProps {
   onJoined: (juryId: string, sessionId: string, criteriaConfig: CriteriaConfig | null) => void;
 }
 
+/**
+ * Le QR code d'une convocation ouvre l'application avec `?session=CODE&jury=N` :
+ * les deux champs sont préremplis, l'enseignant n'a plus qu'à valider.
+ */
+function readInvitation(): { sessionCode: string; juryNumber: string } {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const sessionCode = sanitizeSessionCode(params.get('session') ?? '');
+    const jury = params.get('jury') ?? '';
+    return { sessionCode, juryNumber: /^\d{1,3}$/.test(jury) ? jury : '' };
+  } catch {
+    return { sessionCode: '', juryNumber: '' };
+  }
+}
+
 export function JoinScreen({ onJoined }: JoinScreenProps) {
-  const [sessionCode, setSessionCode] = useState('');
-  const [juryNumber, setJuryNumber] = useState('');
+  const [invitation] = useState(readInvitation);
+  const [sessionCode, setSessionCode] = useState(invitation.sessionCode);
+  const [juryNumber, setJuryNumber] = useState(invitation.juryNumber);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -52,8 +68,9 @@ export function JoinScreen({ onJoined }: JoinScreenProps) {
           style={styles.input}
           placeholder="Ex: ABC123"
           value={sessionCode}
-          onChange={(e) => setSessionCode(e.target.value.toUpperCase())}
-          maxLength={8}
+          onChange={(e) => setSessionCode(sanitizeSessionCode(e.target.value))}
+          maxLength={12}
+          aria-label="Code de session"
           autoFocus
         />
 

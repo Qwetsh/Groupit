@@ -27,7 +27,7 @@ export interface SessionData {
   error: string | null;
 }
 
-export function useSessionData(sessionCode: string): SessionData & { refresh: () => void; toggleLocked: () => Promise<void> } {
+export function useSessionData(sessionCode: string, directionCode = ''): SessionData & { refresh: () => void; toggleLocked: () => Promise<void> } {
   const [sessionId, setSessionId] = useState('');
   const [scenarioName, setScenarioName] = useState('');
   const [dateOral, setDateOral] = useState<string | null>(null);
@@ -44,9 +44,11 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
 
     try {
       // 1. Présenter le code : le serveur ouvre l'accès à cette session
-      const access = await openDashboard(sessionCode);
+      const access = await openDashboard(sessionCode, directionCode);
       if (!access.ok) {
-        setError(access.reason === 'invalid_code' ? 'Session introuvable' : ACCESS_DENIED_MESSAGES[access.reason]);
+        setError(access.reason === 'invalid_code'
+          ? 'Code de session ou code direction invalide.'
+          : ACCESS_DENIED_MESSAGES[access.reason]);
         setLoading(false);
         return;
       }
@@ -129,7 +131,7 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
     } finally {
       setLoading(false);
     }
-  }, [sessionCode]);
+  }, [sessionCode, directionCode]);
 
   useEffect(() => { loadData(); }, [loadData]);
 

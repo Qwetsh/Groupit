@@ -4,7 +4,7 @@
 
 export { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase';
 export {
-  ensureSignedIn, joinJury, openDashboard, isWriteRefused,
+  ensureSignedIn, joinJury, openDashboard, isWriteRefused, sanitizeSessionCode,
   ACCESS_DENIED_MESSAGES, WRITE_REFUSED_MESSAGE,
 } from './access';
 export type { AccessDeniedReason, JoinJuryResult, OpenDashboardResult } from './access';

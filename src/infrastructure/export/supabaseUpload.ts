@@ -90,6 +90,27 @@ export async function checkSessionHasScores(sessionCode: string): Promise<{ hasS
   }
 }
 
+/** Résultat de la mise en ligne d'une session. */
+export interface OnlineSessionResult {
+  success: boolean;
+  error?: string;
+  /** Code à réserver à la direction : il ouvre le tableau de bord depuis un autre poste. */
+  directionCode?: string;
+}
+
+/**
+ * Retrouve le code direction d'une session créée depuis ce navigateur.
+ * Renvoie `null` si le code est inconnu ou appartient à quelqu'un d'autre.
+ */
+export async function getDirectionCode(sessionCode: string): Promise<string | null> {
+  await ensureSignedIn();
+  const { data, error } = await supabase.rpc('get_direction_code', {
+    p_code: sessionCode.toUpperCase().slice(0, 8),
+  });
+  if (error) throw new Error(error.message);
+  return typeof data === 'string' && data ? data : null;
+}
+
 /**
  * Upload les données d'une session vers Supabase pour la PWA jury et le dashboard.
  * Crée la session, les jurys et les élèves pseudonymisés.
@@ -99,7 +120,7 @@ export async function checkSessionHasScores(sessionCode: string): Promise<{ hasS
 export async function uploadSessionToSupabase(
   data: ExportResultData,
   options: PdfExportOptions & { sessionCode: string }
-): Promise<{ success: boolean; error?: string }> {
+): Promise<OnlineSessionResult> {
   try {
     // 1. Connexion anonyme (réutilisée d'un export à l'autre)
     await ensureSignedIn();
@@ -125,6 +146,7 @@ export async function uploadSessionToSupabase(
     }
 
     const sessionId: string = claim.session_id;
+    const directionCode: string | undefined = claim.direction_code ?? undefined;
 
     // 3. Pré-calculer les tailles de groupes pour inclure groupe_oral_id dès l'INSERT
     const groupSizes = new Map<string, number>();
@@ -181,7 +203,7 @@ export async function uploadSessionToSupabase(
       };
     }
 
-    return { success: true };
+    return { success: true, directionCode };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erreur inconnue';
     console.error('[supabaseUpload] Erreur:', err);

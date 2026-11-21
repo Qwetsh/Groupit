@@ -37,7 +37,14 @@ import {
   DEFAULT_STAGE_PDF_OPTIONS,
   type StageExportResultData,
 } from '../../infrastructure/export';
-import { checkSessionHasScores } from '../../infrastructure/export/supabaseUpload';
+import { checkSessionHasScores, getDirectionCode } from '../../infrastructure/export/supabaseUpload';
+import type { OnlineSessionResult } from '../../infrastructure/export/supabaseUpload';
+import {
+  SESSION_CODE_MIN_LENGTH,
+  formatCodeForDisplay,
+  generateSessionCode,
+  sanitizeSessionCode,
+} from '../../infrastructure/export/sessionCode';
 import './ExportPanel.css';
 
 interface ExportButtonsProps {
@@ -88,6 +95,37 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
   const [typeOral, setTypeOral] = useState<'dnb' | 'oral_blanc'>('dnb');
   const [sessionCode, setSessionCode] = useState('');
   const [showPdfModal, setShowPdfModal] = useState(false);
+
+  // Notation en ligne : résultat de la mise en ligne, et recherche du code direction
+  const [onlineResult, setOnlineResult] = useState<(OnlineSessionResult & { sessionCode: string }) | null>(null);
+  const [directionLookup, setDirectionLookup] = useState<
+    { status: 'idle' | 'loading' | 'none' | 'error' } | { status: 'found'; code: string }
+  >({ status: 'idle' });
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+
+  const changeSessionCode = useCallback((value: string) => {
+    setSessionCode(sanitizeSessionCode(value));
+    setDirectionLookup({ status: 'idle' });
+  }, []);
+
+  const handleFindDirectionCode = useCallback(async () => {
+    setDirectionLookup({ status: 'loading' });
+    try {
+      const code = await getDirectionCode(sessionCode);
+      setDirectionLookup(code ? { status: 'found', code } : { status: 'none' });
+    } catch {
+      setDirectionLookup({ status: 'error' });
+    }
+  }, [sessionCode]);
+
+  const handleCopyCode = useCallback(async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopiedCode(code);
+    } catch {
+      setCopiedCode(null); // presse-papiers indisponible : le code reste affiché
+    }
+  }, []);
 
   // Sections PDF à inclure
   const [sectionConvocEleve, setSectionConvocEleve] = useState(true);
@@ -264,7 +302,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
         if (hasScores) {
           const confirmed = window.confirm(
             `${count} note(s) déjà enregistrée(s) pour la session "${sessionCode.toUpperCase()}". ` +
-            `Ré-exporter écrasera ces notes. Continuer ?`
+            `Le PDF sera généré, mais la session en ligne et ses notes ne seront pas modifiées. Continuer ?`
           );
           if (!confirmed) return;
         }
@@ -285,7 +323,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
         });
       } else {
         const pdfData = exportData as ExportResultData;
-        await downloadExportPdf(pdfData, `${baseFilename}.pdf`, {
+        const online = await downloadExportPdf(pdfData, `${baseFilename}.pdf`, {
           ...pdfOptions,
           headerScenarioName: scenario.nom,
           dateOral: dateOral || undefined,
@@ -297,6 +335,10 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
           includeSectionFeuillesPorte: sectionFeuillesPorte,
           includeSectionRecapJurys: sectionRecapJurys,
         });
+        if (online && sessionCode) {
+          setCopiedCode(null);
+          setOnlineResult({ ...online, sessionCode });
+        }
       }
       setPdfStatus('success');
       addTimeout(() => setPdfStatus('idle'), 2000);
@@ -697,18 +739,53 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
 
             <div className="pdf-modal-field">
               <label className="pdf-modal-label">QR Code — Notation en ligne (optionnel)</label>
-              <input
-                type="text"
-                className="pdf-modal-date"
-                value={sessionCode}
-                placeholder="Code session (ex: ORAL2026)"
-                maxLength={8}
-                onChange={e => setSessionCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-              />
-              {sessionCode && (
-                <span style={{ fontSize: 11, color: '#64748b', marginTop: 4, display: 'block' }}>
-                  Un QR code sera ajouté sur chaque convocation enseignant pour accéder à la notation en ligne.
+              <div className="pdf-modal-code-row">
+                <input
+                  type="text"
+                  className="pdf-modal-date"
+                  value={sessionCode}
+                  placeholder="Code de session"
+                  maxLength={8}
+                  aria-label="Code de session"
+                  onChange={e => changeSessionCode(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => changeSessionCode(generateSessionCode())}
+                >
+                  Générer
+                </button>
+              </div>
+              <span className="pdf-modal-hint">
+                {sessionCode
+                  ? 'Un QR code sera ajouté sur chaque convocation enseignant : les jurys n\'ont pas à saisir le code.'
+                  : 'Laissez vide pour un PDF sans notation en ligne. Un code généré est plus sûr qu\'un code choisi à la main.'}
+              </span>
+              {sessionCode.length > 0 && sessionCode.length < SESSION_CODE_MIN_LENGTH && (
+                <span className="pdf-modal-hint pdf-modal-hint-warning">
+                  Le code doit comporter au moins {SESSION_CODE_MIN_LENGTH} caractères.
                 </span>
+              )}
+              {sessionCode.length >= SESSION_CODE_MIN_LENGTH && (
+                <div className="pdf-modal-hint" role="status">
+                  {directionLookup.status === 'found' ? (
+                    <>Code direction de cette session : <strong className="pdf-modal-code-inline">{formatCodeForDisplay(directionLookup.code)}</strong></>
+                  ) : directionLookup.status === 'none' ? (
+                    'Aucune session en ligne n\'a été créée depuis ce navigateur avec ce code.'
+                  ) : directionLookup.status === 'error' ? (
+                    'Recherche impossible. Vérifiez votre connexion.'
+                  ) : (
+                    <button
+                      type="button"
+                      className="pdf-modal-link"
+                      onClick={handleFindDirectionCode}
+                      disabled={directionLookup.status === 'loading'}
+                    >
+                      {directionLookup.status === 'loading' ? 'Recherche…' : 'Retrouver le code direction de cette session'}
+                    </button>
+                  )}
+                </div>
               )}
             </div>
 
@@ -719,9 +796,83 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
               <button
                 className="btn btn-primary"
                 onClick={doExportPdf}
-                disabled={!sectionConvocEleve && !sectionConvocProf && !sectionEmargement && !sectionFeuillesPorte && !sectionRecapJurys}
+                disabled={
+                  (!sectionConvocEleve && !sectionConvocProf && !sectionEmargement && !sectionFeuillesPorte && !sectionRecapJurys)
+                  || (sessionCode.length > 0 && sessionCode.length < SESSION_CODE_MIN_LENGTH)
+                }
               >
                 Générer le PDF
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Résultat de la mise en ligne de la session */}
+      {onlineResult && createPortal(
+        <div className="pdf-modal-overlay" onClick={() => setOnlineResult(null)}>
+          <div
+            className="pdf-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="online-result-title"
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="pdf-modal-title" id="online-result-title">Notation en ligne</h3>
+
+            {onlineResult.success ? (
+              <>
+                <p className="pdf-modal-text">
+                  Le PDF est téléchargé et la session en ligne est prête.
+                </p>
+
+                <div className="pdf-modal-field">
+                  <span className="pdf-modal-label">Code de session — pour les jurys</span>
+                  <div className="pdf-modal-code">{onlineResult.sessionCode}</div>
+                  <span className="pdf-modal-hint">
+                    Déjà dans les QR codes des convocations enseignants.
+                  </span>
+                </div>
+
+                {onlineResult.directionCode && (
+                  <div className="pdf-modal-field">
+                    <span className="pdf-modal-label">Code direction — pour le tableau de bord</span>
+                    <div className="pdf-modal-code-row">
+                      <div className="pdf-modal-code">{formatCodeForDisplay(onlineResult.directionCode)}</div>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => handleCopyCode(onlineResult.directionCode!)}
+                      >
+                        {copiedCode === onlineResult.directionCode ? 'Copié' : 'Copier'}
+                      </button>
+                    </div>
+                    <span className="pdf-modal-hint">
+                      Il donne accès à toutes les notes et au verrouillage de la session : ne le
+                      transmettez qu'à la direction. Il n'est pas imprimé dans le PDF. Sur ce poste,
+                      le tableau de bord s'ouvre sans lui, et vous pouvez le retrouver depuis cette
+                      fenêtre d'export.
+                    </span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <p className="pdf-modal-text">
+                  Le PDF est téléchargé, mais la session en ligne n'a pas été créée :
+                  les QR codes de ce PDF ne fonctionneront pas.
+                </p>
+                <div className="menu-error" role="alert">
+                  <AlertCircle size={12} />
+                  {onlineResult.error ?? 'Erreur inconnue.'}
+                </div>
+              </>
+            )}
+
+            <div className="pdf-modal-actions">
+              <button className="btn btn-primary" onClick={() => setOnlineResult(null)}>
+                Fermer
               </button>
             </div>
           </div>

@@ -66,6 +66,8 @@ try {
   r = await owner.c.rpc('claim_session', { p_code: code, p_scenario_name: 'Test fictif', p_date_oral: '2027-06-15' });
   check('session créée', r.data?.ok === true && r.data.created === true, JSON.stringify(r));
   const sessionId = r.data.session_id;
+  const direction = r.data.direction_code;
+  check('code direction remis à la création', /^[A-HJKMNP-Z2-9]{8}$/.test(direction ?? ''), JSON.stringify(r.data));
   check('insertion directe d\'une session refusée', denied(await owner.c.from('exam_sessions').insert({ code: 'ZZDIRECT', expires_at: new Date().toISOString() })));
 
   const j1 = await owner.c.from('session_jurys').insert({ session_id: sessionId, jury_number: 1, jury_name: 'Jury 1', mode: 'solo' }).select('id').single();
@@ -91,6 +93,7 @@ try {
   check('ne peut pas reprendre la session', r.data?.reason === 'not_owner', JSON.stringify(r));
   check('ne peut pas s\'inscrire directement dans un jury', denied(await stranger.c.from('jury_members').insert({ jury_id: j1.data.id, slot: 'A' })));
   check('ne peut pas noter', denied(await stranger.c.from('final_scores').insert({ eleve_id: e1, total: 20 })));
+  check('ne peut pas obtenir le code direction', (await stranger.c.rpc('get_direction_code', { p_code: code })).data === null);
 
   console.log('Jurés');
   r = await juryA.c.rpc('join_jury', { p_code: code.toLowerCase(), p_jury_number: 1 });
@@ -117,13 +120,25 @@ try {
   check('juré A ne note pas l\'élève d\'un autre jury', denied(await juryA.c.from('final_scores').upsert({ eleve_id: e4, total: 20 }, { onConflict: 'eleve_id' })));
   check('juré B lit la note finale de son jury', rows(await juryB.c.from('final_scores').select('id')) === 1);
   check('juré A ne peut pas supprimer une note', denied(await juryA.c.from('final_scores').delete().eq('eleve_id', e1)));
+  r = await juryA.c.rpc('open_dashboard', { p_code: code });
+  check("juré A n'ouvre pas le tableau de bord avec le seul code de session", r.data?.reason === 'direction_code_required', JSON.stringify(r));
+  check('juré A ne voit toujours que son jury', rows(await juryA.c.from('session_jurys').select('id')) === 1);
   check('juré A ne peut pas verrouiller la session', rows(await juryA.c.from('exam_sessions').update({ locked: true }).eq('id', sessionId).select('id')) === 0);
 
   console.log('Tableau de bord');
   r = await dash.c.rpc('open_dashboard', { p_code: 'ZZNOPE99' });
-  check('code inconnu refusé', r.data?.reason === 'invalid_code');
+  const unknown = r.data?.reason;
   r = await dash.c.rpc('open_dashboard', { p_code: code });
-  check('ouverture avec le bon code', r.data?.ok && r.data.session_id === sessionId, JSON.stringify(r));
+  check('sans code direction, même refus que la session existe ou non', unknown === 'direction_code_required' && r.data?.reason === 'direction_code_required', JSON.stringify(r));
+  check("rien n'est lisible avant le code direction", rows(await dash.c.from('session_eleves').select('id')) === 0);
+  r = await dash.c.rpc('open_dashboard', { p_code: 'ZZNOPE99', p_direction_code: direction });
+  check('code de session inconnu refusé', r.data?.reason === 'invalid_code');
+  r = await dash.c.rpc('open_dashboard', { p_code: code, p_direction_code: 'AAAAAAAA' });
+  check('mauvais code direction refusé', r.data?.reason === 'invalid_code');
+  r = await dash.c.rpc('open_dashboard', { p_code: code, p_direction_code: ` ${direction.slice(0, 4).toLowerCase()}-${direction.slice(4)} ` });
+  check('ouverture avec le code direction (minuscules et tiret tolérés)', r.data?.ok && r.data.session_id === sessionId, JSON.stringify(r));
+  r = await dash.c.rpc('open_dashboard', { p_code: code });
+  check("le poste déjà autorisé n'a plus à ressaisir le code direction", r.data?.ok === true);
   check('lit la session', rows(await dash.c.from('exam_sessions').select('*').eq('id', sessionId)) === 1);
   check('lit les 2 jurys', rows(await dash.c.from('session_jurys').select('id')) === 2);
   check('lit les 4 élèves', rows(await dash.c.from('session_eleves').select('id')) === 4);
@@ -164,6 +179,9 @@ try {
   check('l\'inconnu n\'apprend rien du compteur', r.data === 0);
   r = await owner.c.rpc('claim_session', { p_code: code, p_scenario_name: 'Test fictif', p_date_oral: null });
   check('réexport refusé tant qu\'il y a des notes', r.data?.reason === 'has_scores' && r.data.score_count === 2, JSON.stringify(r));
+  r = await owner.c.rpc('open_dashboard', { p_code: code });
+  check('ouvre le tableau de bord sans code direction', r.data?.ok === true, JSON.stringify(r));
+  check('retrouve son code direction', (await owner.c.rpc('get_direction_code', { p_code: code })).data === direction);
   check('ne peut pas supprimer la session directement', denied(await owner.c.from('exam_sessions').delete().eq('id', sessionId)));
 
   console.log('Limitation des essais');
@@ -179,6 +197,7 @@ try {
   const s2 = r.data.session_id;
   await owner.c.from('session_jurys').insert({ session_id: s2, jury_number: 1, jury_name: 'Jury 1' });
   r = await owner.c.rpc('claim_session', { p_code: code2, p_scenario_name: 'Test 2 bis', p_date_oral: null });
+  check('la reprise conserve le code direction', r.data?.direction_code === (await owner.c.rpc('get_direction_code', { p_code: code2 })).data && !!r.data?.direction_code);
   check('reprise acceptée, anciens jurys retirés', r.data?.ok && r.data.created === false && rows(await owner.c.from('session_jurys').select('id').eq('session_id', s2)) === 0, JSON.stringify(r));
   console.log(`CODES ${code} ${code2}`);
 } catch (err) {

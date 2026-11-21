@@ -14,12 +14,14 @@ export type AccessDeniedReason =
   | 'invalid_code'
   | 'jury_not_found'
   | 'locked'
+  | 'direction_code_required'
   | 'too_many_attempts';
 
 export const ACCESS_DENIED_MESSAGES: Record<AccessDeniedReason, string> = {
   invalid_code: 'Code de session invalide',
   jury_not_found: 'Numéro de jury introuvable',
   locked: 'Cette session est verrouillée par la direction. La notation n\'est plus possible.',
+  direction_code_required: 'Le code direction est nécessaire pour ouvrir cette session depuis ce poste.',
   too_many_attempts: 'Trop d\'essais. Patientez une dizaine de minutes avant de réessayer.',
 };
 
@@ -62,10 +64,17 @@ export type OpenDashboardResult =
   | { ok: true; sessionId: string }
   | { ok: false; reason: AccessDeniedReason };
 
-/** Ouvre le tableau de bord d'une session avec son code. */
-export async function openDashboard(code: string): Promise<OpenDashboardResult> {
+/**
+ * Ouvre le tableau de bord d'une session.
+ * Le code direction est inutile sur le poste qui a créé la session, et sur
+ * un poste où il a déjà été saisi.
+ */
+export async function openDashboard(code: string, directionCode?: string): Promise<OpenDashboardResult> {
   await ensureSignedIn();
-  const { data, error } = await supabase.rpc('open_dashboard', { p_code: code });
+  const { data, error } = await supabase.rpc('open_dashboard', {
+    p_code: code,
+    p_direction_code: directionCode?.trim() || null,
+  });
   if (error || !data) throw new Error('Impossible d\'ouvrir la session');
   if (!data.ok) return { ok: false, reason: data.reason as AccessDeniedReason };
   return { ok: true, sessionId: data.session_id };
@@ -81,4 +90,12 @@ export const WRITE_REFUSED_MESSAGE =
  */
 export function isWriteRefused(error: unknown): boolean {
   return typeof error === 'object' && error !== null && (error as { code?: unknown }).code === '42501';
+}
+
+/**
+ * Nettoie un code de session saisi ou collé : majuscules, sans espace ni
+ * tiret, 8 caractères au plus.
+ */
+export function sanitizeSessionCode(input: string): string {
+  return input.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
 }

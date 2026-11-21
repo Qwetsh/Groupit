@@ -415,3 +415,117 @@
     width: 100%;
   }
 }
+
+/* ===== Notation en ligne : codes de session et de direction ===== */
+.pdf-modal-code-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.pdf-modal-code-row .pdf-modal-date,
+.pdf-modal-code-row .pdf-modal-code {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Les styles globaux de .btn-secondary changent la couleur du texte au survol :
+   on fixe ici les deux états. */
+.pdf-modal .pdf-modal-code-row .btn,
+.pdf-modal .pdf-modal-code-row .btn:hover,
+.pdf-modal .pdf-modal-code-row .btn:focus {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 13px;
+  cursor: pointer;
+  transform: none;
+  box-shadow: none;
+}
+
+.pdf-modal .pdf-modal-code-row .btn:hover {
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+.pdf-modal .pdf-modal-code-row .btn:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.pdf-modal-code {
+  flex: 1;
+  min-width: 0;
+}
+
+.pdf-modal-code-row .btn {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid #cbd5e1;
+  background: white;
+  color: #334155;
+}
+
+.pdf-modal-code-row .btn:hover {
+  background: #f1f5f9;
+}
+
+.pdf-modal-code {
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  user-select: all;
+}
+
+.pdf-modal-code-inline {
+  font-family: ui-monospace, 'SF Mono', Consolas, monospace;
+  letter-spacing: 0.08em;
+  color: #0f172a;
+  user-select: all;
+}
+
+.pdf-modal-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #64748b;
+}
+
+.pdf-modal-hint-warning {
+  color: #b45309;
+}
+
+.pdf-modal-text {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #334155;
+}
+
+.pdf-modal-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #2563eb;
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.pdf-modal-link:disabled {
+  color: #94a3b8;
+  cursor: default;
+}

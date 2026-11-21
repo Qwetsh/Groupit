@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { sanitizeSessionCode } from '@groupit/shared';
 import { useSessionData } from './hooks/useSessionData';
 import { useStats } from './hooks/useStats';
 import { StatsCards } from './components/StatsCards';
@@ -9,10 +10,18 @@ import { CriteriaConfigModal } from './components/CriteriaConfigModal';
 
 export default function App() {
   const [sessionCode, setSessionCode] = useState('');
+  const [directionCode, setDirectionCode] = useState('');
   const [activeCode, setActiveCode] = useState('');
+  const [activeDirection, setActiveDirection] = useState('');
+
+  const submitLogin = () => {
+    if (!sessionCode.trim()) return;
+    setActiveDirection(directionCode.trim());
+    setActiveCode(sessionCode.trim());
+  };
   const [showConfigModal, setShowConfigModal] = useState(false);
 
-  const { jurys, allFinalScores, scenarioName, dateOral, criteriaConfig, sessionId, locked, loading, error, refresh, toggleLocked } = useSessionData(activeCode);
+  const { jurys, allFinalScores, scenarioName, dateOral, criteriaConfig, sessionId, locked, loading, error, refresh, toggleLocked } = useSessionData(activeCode, activeDirection);
   const { globalStats, juryStats, parcoursStats, critereStats, distribution, dureeDistribution, dureeNoteData, maxTotal, maxByCategory } = useStats(jurys, allFinalScores, criteriaConfig);
 
   const isConnected = activeCode && !error && !loading;
@@ -30,13 +39,28 @@ export default function App() {
             style={styles.loginInput}
             placeholder="Code de session (ex: ABC123)"
             value={sessionCode}
-            onChange={(e) => setSessionCode(e.target.value.toUpperCase())}
-            onKeyDown={(e) => e.key === 'Enter' && sessionCode.trim() && setActiveCode(sessionCode.trim())}
-            maxLength={8}
+            onChange={(e) => setSessionCode(sanitizeSessionCode(e.target.value))}
+            onKeyDown={(e) => e.key === 'Enter' && submitLogin()}
+            maxLength={12}
+            aria-label="Code de session"
             autoFocus
           />
+          <input
+            style={{ ...styles.loginInput, marginTop: 10 }}
+            placeholder="Code direction"
+            value={directionCode}
+            onChange={(e) => setDirectionCode(e.target.value.toUpperCase())}
+            onKeyDown={(e) => e.key === 'Enter' && submitLogin()}
+            maxLength={12}
+            aria-label="Code direction"
+            autoComplete="off"
+          />
+          <div style={{ ...styles.loginSub, fontSize: 12, marginTop: 8, marginBottom: 16 }}>
+            Le code direction est remis à la personne qui a créé la session.
+            Il est inutile sur le poste qui l'a créée.
+          </div>
           <button
-            onClick={() => sessionCode.trim() && setActiveCode(sessionCode.trim())}
+            onClick={submitLogin}
             disabled={!sessionCode.trim()}
             style={{
               ...styles.loginBtn,

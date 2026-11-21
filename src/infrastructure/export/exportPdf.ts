@@ -10,6 +10,7 @@ import { DEFAULT_PDF_OPTIONS } from './types';
 import { downloadBlob } from '../utils/download';
 import { generateAllJuryQRCodes } from './qrcode';
 import { uploadSessionToSupabase } from './supabaseUpload';
+import type { OnlineSessionResult } from './supabaseUpload';
 
 /**
  * Génère un Blob PDF à partir des données d'export
@@ -46,36 +47,33 @@ export function downloadPdf(blob: Blob, filename: string): void {
 }
 
 /**
- * Export complet avec téléchargement
+ * Export complet avec téléchargement.
+ *
+ * Si un code de session est fourni, la session est aussi mise en ligne pour
+ * la notation ; le résultat de cette mise en ligne est renvoyé pour être
+ * montré à l'utilisateur. Un échec de mise en ligne n'empêche pas le PDF.
  */
 export async function downloadExportPdf(
   data: ExportResultData,
   filename: string = 'export_jurys.pdf',
   options: Partial<PdfExportOptions> = {}
-): Promise<void> {
+): Promise<OnlineSessionResult | undefined> {
   try {
-    // Upload vers Supabase si un code session est fourni (en parallèle du PDF)
+    // Mise en ligne en parallèle de la génération du PDF
     const opts = { ...DEFAULT_PDF_OPTIONS, ...options };
-    let uploadPromise: Promise<unknown> | undefined;
-    console.log('[exportPdf] sessionCode:', opts.sessionCode || '(vide)');
+    let uploadPromise: Promise<OnlineSessionResult> | undefined;
     if (opts.sessionCode) {
-      console.log('[exportPdf] Lancement upload Supabase...');
       uploadPromise = uploadSessionToSupabase(data, opts as PdfExportOptions & { sessionCode: string })
-        .then(result => {
-          if (!result.success) {
-            console.warn('[exportPdf] Upload Supabase échoué:', result.error);
-          } else {
-            console.log('[exportPdf] Session uploadée vers Supabase');
-          }
-        })
-        .catch(err => console.warn('[exportPdf] Upload Supabase erreur:', err));
+        .catch((err): OnlineSessionResult => ({
+          success: false,
+          error: err instanceof Error ? err.message : 'Erreur inconnue',
+        }));
     }
 
     const blob = await exportPdfJuries(data, options);
     downloadPdf(blob, filename);
 
-    // Attendre la fin de l'upload (non-bloquant pour le PDF)
-    if (uploadPromise) await uploadPromise;
+    return uploadPromise ? await uploadPromise : undefined;
   } catch (error) {
     console.error('[exportPdf] Erreur génération PDF:', error);
     throw error;
