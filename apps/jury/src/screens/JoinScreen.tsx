@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '@groupit/shared';
+import { joinJury, ACCESS_DENIED_MESSAGES } from '@groupit/shared';
 import type { CriteriaConfig } from '@groupit/shared';
 
 interface JoinScreenProps {
@@ -17,88 +17,17 @@ export function JoinScreen({ onJoined }: JoinScreenProps) {
     setLoading(true);
 
     try {
-      // 1. Auth anonyme
-      const { error: authError } = await supabase.auth.signInAnonymously();
-      if (authError) throw new Error('Erreur de connexion');
-
-      // 2. Trouver la session par code (inclut criteria_config + locked)
-      const { data: session, error: sessionError } = await supabase
-        .from('exam_sessions')
-        .select('id, criteria_config, locked')
-        .eq('code', sessionCode.trim().toUpperCase())
-        .single();
-
-      if (sessionError || !session) {
-        throw new Error('Code de session invalide');
+      // Le serveur vérifie le code, trouve le jury et attribue l'emplacement
+      // (A ou B) en une seule opération.
+      const result = await joinJury(sessionCode, parseInt(juryNumber, 10));
+      if (!result.ok) {
+        throw new Error(ACCESS_DENIED_MESSAGES[result.reason] ?? 'Impossible de rejoindre le jury');
       }
 
-      if ((session as Record<string, unknown>).locked) {
-        throw new Error('Cette session est verrouillée par la direction. La notation n\'est plus possible.');
-      }
+      // Sauvegarder l'emplacement pour les écrans de notation
+      try { sessionStorage.setItem('jury-my-slot', result.slot); } catch { /* ignore */ }
 
-      // 3. Trouver le jury
-      const { data: jury, error: juryError } = await supabase
-        .from('session_jurys')
-        .select('id')
-        .eq('session_id', session.id)
-        .eq('jury_number', parseInt(juryNumber))
-        .single();
-
-      if (juryError || !jury) {
-        throw new Error('Numéro de jury introuvable');
-      }
-
-      // 4. Créer/réutiliser le jury_member (lie auth.uid() au jury + slot)
-      const { data: authData } = await supabase.auth.getUser();
-      const userId = authData?.user?.id;
-      if (!userId) throw new Error('Erreur d\'authentification');
-
-      // Vérifier si déjà membre de ce jury
-      const { data: existingMember } = await supabase
-        .from('jury_members')
-        .select('id, slot')
-        .eq('jury_id', jury.id)
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      let mySlot: string;
-      if (existingMember) {
-        mySlot = existingMember.slot;
-      } else {
-        // Trouver le prochain slot disponible (A, puis B)
-        const { data: members } = await supabase
-          .from('jury_members')
-          .select('id, slot, joined_at')
-          .eq('jury_id', jury.id)
-          .order('joined_at', { ascending: true });
-
-        const takenSlots = (members || []).map(m => m.slot);
-        let slot = !takenSlots.includes('A') ? 'A' : !takenSlots.includes('B') ? 'B' : null;
-
-        // Si les 2 slots sont pris, remplacer le membre le plus ancien
-        if (!slot && members && members.length >= 2) {
-          const oldest = members[0]!;
-          await supabase.from('jury_members').delete().eq('id', oldest.id);
-          slot = oldest.slot;
-        }
-
-        if (!slot) throw new Error('Impossible de rejoindre le jury');
-
-        const { error: memberErr } = await supabase
-          .from('jury_members')
-          .upsert({ jury_id: jury.id, slot }, { onConflict: 'jury_id,slot' });
-
-        if (memberErr) {
-          console.error('[JoinScreen] Erreur jury_members:', memberErr);
-          throw new Error('Impossible de rejoindre le jury');
-        }
-        mySlot = slot;
-      }
-
-      // Sauvegarder le slot pour les écrans de notation
-      try { sessionStorage.setItem('jury-my-slot', mySlot); } catch { /* ignore */ }
-
-      onJoined(jury.id, session.id, (session as Record<string, unknown>).criteria_config as CriteriaConfig | null);
+      onJoined(result.juryId, result.sessionId, result.criteriaConfig);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur inconnue');
     } finally {

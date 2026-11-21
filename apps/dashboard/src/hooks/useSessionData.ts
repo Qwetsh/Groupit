@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase, DEFAULT_CRITERIA_CONFIG } from '@groupit/shared';
+import { supabase, openDashboard, ACCESS_DENIED_MESSAGES, DEFAULT_CRITERIA_CONFIG } from '@groupit/shared';
 import type {
   SessionJuryRow,
   SessionEleveRow,
@@ -43,17 +43,19 @@ export function useSessionData(sessionCode: string): SessionData & { refresh: ()
     if (!sessionCode) return;
 
     try {
-      // 1. Auth anonyme
-      const { data: { session: authSession } } = await supabase.auth.getSession();
-      if (!authSession) {
-        await supabase.auth.signInAnonymously();
+      // 1. Présenter le code : le serveur ouvre l'accès à cette session
+      const access = await openDashboard(sessionCode);
+      if (!access.ok) {
+        setError(access.reason === 'invalid_code' ? 'Session introuvable' : ACCESS_DENIED_MESSAGES[access.reason]);
+        setLoading(false);
+        return;
       }
 
-      // 2. Trouver la session (inclut criteria_config)
+      // 2. Charger la session (inclut criteria_config)
       const { data: session, error: sessErr } = await supabase
         .from('exam_sessions')
         .select('*')
-        .eq('code', sessionCode.toUpperCase())
+        .eq('id', access.sessionId)
         .single();
 
       if (sessErr || !session) {

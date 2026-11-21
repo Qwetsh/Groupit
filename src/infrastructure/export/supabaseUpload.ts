@@ -42,41 +42,49 @@ async function hashEleve(nom: string, prenom: string, classe: string): Promise<s
 }
 
 /**
- * Vérifie si une session a déjà des notes enregistrées (final_scores).
+ * Garantit une connexion anonyme en réutilisant celle du navigateur.
+ * Cette identité est la « propriétaire » des sessions créées ici : c'est
+ * elle qui a le droit de les réexporter.
+ */
+async function ensureSignedIn(): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) return;
+  const { error } = await supabase.auth.signInAnonymously();
+  if (error) throw new Error(`Connexion impossible : ${error.message}`);
+}
+
+/** Messages affichés quand le serveur refuse de créer ou de reprendre une session. */
+function claimRefusalMessage(reason: string, scoreCount = 0): string {
+  switch (reason) {
+    case 'invalid_code_format':
+      return 'Le code de session doit comporter entre 4 et 8 lettres ou chiffres.';
+    case 'not_owner':
+      return 'Ce code de session est déjà utilisé depuis un autre navigateur. Choisissez un autre code.';
+    case 'has_scores':
+      return `Cette session contient ${scoreCount} note(s) déjà enregistrée(s). Utilisez un nouveau code de session pour ne pas les perdre.`;
+    case 'too_many_attempts':
+      return "Trop d'essais. Patientez une dizaine de minutes avant de réessayer.";
+    case 'too_many_sessions':
+      return 'Trop de sessions ouvertes depuis ce navigateur.';
+    default:
+      return 'Le serveur a refusé la création de la session.';
+  }
+}
+
+/**
+ * Vérifie si une session créée depuis ce navigateur a déjà des notes
+ * enregistrées. Un code inconnu ou appartenant à quelqu'un d'autre compte
+ * pour zéro : le serveur ne dit rien des sessions des autres.
  */
 export async function checkSessionHasScores(sessionCode: string): Promise<{ hasScores: boolean; count: number }> {
   try {
-    const code = sessionCode.toUpperCase().slice(0, 8);
-    const { data: session } = await supabase
-      .from('exam_sessions')
-      .select('id')
-      .eq('code', code)
-      .single();
-
-    if (!session) return { hasScores: false, count: 0 };
-
-    const { data: jurys } = await supabase
-      .from('session_jurys')
-      .select('id')
-      .eq('session_id', session.id);
-
-    if (!jurys || jurys.length === 0) return { hasScores: false, count: 0 };
-
-    const juryIds = jurys.map(j => j.id);
-    const { data: eleves } = await supabase
-      .from('session_eleves')
-      .select('id')
-      .in('jury_id', juryIds);
-
-    if (!eleves || eleves.length === 0) return { hasScores: false, count: 0 };
-
-    const eleveIds = eleves.map(e => e.id);
-    const { count } = await supabase
-      .from('final_scores')
-      .select('id', { count: 'exact', head: true })
-      .in('eleve_id', eleveIds);
-
-    return { hasScores: (count ?? 0) > 0, count: count ?? 0 };
+    await ensureSignedIn();
+    const { data, error } = await supabase.rpc('owned_session_score_count', {
+      p_code: sessionCode.toUpperCase().slice(0, 8),
+    });
+    if (error) return { hasScores: false, count: 0 };
+    const count = typeof data === 'number' ? data : 0;
+    return { hasScores: count > 0, count };
   } catch {
     return { hasScores: false, count: 0 };
   }
@@ -93,88 +101,30 @@ export async function uploadSessionToSupabase(
   options: PdfExportOptions & { sessionCode: string }
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    // 1. Auth anonyme
-    const { data: { session: authSession } } = await supabase.auth.getSession();
-    console.log('[supabaseUpload] Session auth existante:', !!authSession);
-    if (!authSession) {
-      const { error: authErr } = await supabase.auth.signInAnonymously();
-      if (authErr) {
-        console.error('[supabaseUpload] Auth anonyme échouée:', authErr);
-        return { success: false, error: `Auth échouée: ${authErr.message}` };
-      }
-      console.log('[supabaseUpload] Auth anonyme OK');
-    }
+    // 1. Connexion anonyme (réutilisée d'un export à l'autre)
+    await ensureSignedIn();
 
     // Code session limité à 8 chars (VARCHAR(8) en DB)
     const sessionCode = options.sessionCode.toUpperCase().slice(0, 8);
-    console.log(`[supabaseUpload] Début upload session "${sessionCode}" — ${data.jurys.length} jurys, URL: ${SUPABASE_URL}`);
 
-    // 2. Vérifier si la session existe déjà
-    const { data: existingSession } = await supabase
-      .from('exam_sessions')
-      .select('id')
-      .eq('code', sessionCode)
-      .maybeSingle();
+    // 2. Créer la session, ou la reprendre si elle nous appartient.
+    // Le serveur refuse la reprise si des notes existent, et retire les
+    // anciens jurys sinon (les élèves partent avec, en cascade).
+    const { data: claim, error: claimErr } = await supabase.rpc('claim_session', {
+      p_code: sessionCode,
+      p_scenario_name: data.scenarioName,
+      p_date_oral: options.dateOral || null,
+    });
 
-    let sessionId: string;
-
-    if (existingSession) {
-      // Session existe → mettre à jour les métadonnées
-      sessionId = existingSession.id;
-
-      // Vérifier si des notes existent avant de supprimer en cascade
-      const { hasScores, count } = await checkSessionHasScores(sessionCode);
-      if (hasScores) {
-        return {
-          success: false,
-          error: `Cette session contient ${count} note(s) déjà enregistrée(s). Supprimez-les d'abord via le dashboard ou utilisez un nouveau code de session.`,
-        };
-      }
-
-      const { error: updErr } = await supabase.from('exam_sessions').update({
-        scenario_name: data.scenarioName,
-        date_oral: options.dateOral || null,
-      }).eq('id', sessionId);
-
-      if (updErr) {
-        console.warn('[supabaseUpload] Update session:', updErr.message);
-      }
-
-      // Supprimer les anciens jurys (CASCADE supprimera session_eleves, evaluations, etc.)
-      const { error: delErr } = await supabase
-        .from('session_jurys')
-        .delete()
-        .eq('session_id', sessionId);
-
-      if (delErr) {
-        console.warn('[supabaseUpload] Delete anciens jurys:', delErr.message);
-      }
-    } else {
-      // Créer la session
-      const now = new Date();
-      const expiryYear = now.getMonth() >= 6 ? now.getFullYear() + 1 : now.getFullYear();
-      const expiresAt = new Date(expiryYear, 6, 3).toISOString(); // 3 juillet
-
-      console.log('[supabaseUpload] Création session...');
-      const { data: newSession, error: sessErr } = await supabase
-        .from('exam_sessions')
-        .insert({
-          code: sessionCode,
-          scenario_name: data.scenarioName,
-          date_oral: options.dateOral || null,
-          expires_at: expiresAt,
-        })
-        .select('id')
-        .single();
-
-      if (sessErr || !newSession) {
-        console.error('[supabaseUpload] Erreur insert exam_sessions:', sessErr);
-        return { success: false, error: `Erreur création session: ${sessErr?.message}` };
-      }
-
-      console.log('[supabaseUpload] Session créée:', newSession.id);
-      sessionId = newSession.id;
+    if (claimErr || !claim) {
+      console.error('[supabaseUpload] Erreur claim_session:', claimErr);
+      return { success: false, error: `Erreur création session: ${claimErr?.message ?? 'réponse vide'}` };
     }
+    if (!claim.ok) {
+      return { success: false, error: claimRefusalMessage(claim.reason, claim.score_count) };
+    }
+
+    const sessionId: string = claim.session_id;
 
     // 3. Pré-calculer les tailles de groupes pour inclure groupe_oral_id dès l'INSERT
     const groupSizes = new Map<string, number>();
@@ -190,6 +140,7 @@ export async function uploadSessionToSupabase(
     }
 
     // 4. Créer les jurys et élèves (avec groupe_oral_id directement dans l'INSERT)
+    const failures: string[] = [];
     for (let juryIdx = 0; juryIdx < data.jurys.length; juryIdx++) {
       const jury = data.jurys[juryIdx]!;
       const juryNumber = juryIdx + 1;
@@ -215,13 +166,21 @@ export async function uploadSessionToSupabase(
 
       if (juryErr || !newJury) {
         console.error(`[supabaseUpload] Erreur jury ${jury.juryName}:`, juryErr);
+        failures.push(jury.juryName);
         continue;
       }
 
-      await uploadJuryEleves(newJury.id, jury);
+      const elevesOk = await uploadJuryEleves(newJury.id, jury);
+      if (!elevesOk) failures.push(jury.juryName);
     }
 
-    console.log(`[supabaseUpload] Session ${sessionCode} uploadée: ${data.jurys.length} jurys`);
+    if (failures.length > 0) {
+      return {
+        success: false,
+        error: `La session est incomplète : ${failures.join(', ')} n'a pas pu être enregistré. Relancez l'export.`,
+      };
+    }
+
     return { success: true };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erreur inconnue';
@@ -238,8 +197,8 @@ export async function uploadSessionToSupabase(
 async function uploadJuryEleves(
   juryId: string,
   jury: ExportJuryData,
-): Promise<void> {
-  if (jury.eleves.length === 0) return;
+): Promise<boolean> {
+  if (jury.eleves.length === 0) return true;
 
   const rows = await Promise.all(
     jury.eleves.map(async (eleve: ExportEleveData, idx: number) => {
@@ -266,5 +225,7 @@ async function uploadJuryEleves(
 
   if (error) {
     console.error(`[supabaseUpload] Erreur élèves jury ${jury.juryName}:`, error);
+    return false;
   }
+  return true;
 }

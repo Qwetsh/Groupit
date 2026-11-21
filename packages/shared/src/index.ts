@@ -3,6 +3,11 @@
 // ============================================================
 
 export { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase';
+export {
+  ensureSignedIn, joinJury, openDashboard, isWriteRefused,
+  ACCESS_DENIED_MESSAGES, WRITE_REFUSED_MESSAGE,
+} from './access';
+export type { AccessDeniedReason, JoinJuryResult, OpenDashboardResult } from './access';
 export type { Database } from './database.types';
 export type {
   ExamSessionRow, SessionJuryRow, JuryMemberRow,

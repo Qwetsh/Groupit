@@ -9,6 +9,7 @@ import {
   toCriterion,
 } from '@groupit/shared';
 import type { SessionEleveRow } from '@groupit/shared';
+import { isWriteRefused, WRITE_REFUSED_MESSAGE } from '@groupit/shared';
 import { Timer } from '../components/Timer';
 import { CriterionRow } from '../components/CriterionRow';
 import { useCriteriaConfig } from '../context/CriteriaContext';
@@ -27,6 +28,8 @@ async function withRetry(
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     const result = await fn();
     if (!result.error) return result;
+    // Refus du serveur (session verrouillée) : réessayer ne changera rien.
+    if (isWriteRefused(result.error)) return result;
     if (attempt < maxRetries) {
       await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
     } else {
@@ -271,7 +274,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
       }, { onConflict: 'eleve_id,juror_slot' }));
 
       if (evalErr) {
-        setSubmitError(`Erreur pour ${eleve.display_name}. Réessayez.`);
+        setSubmitError(isWriteRefused(evalErr) ? WRITE_REFUSED_MESSAGE : `Erreur pour ${eleve.display_name}. Réessayez.`);
         console.error('[BinomeEvaluate] upsert evaluation:', evalErr);
         setSubmitting(false);
         return;
@@ -289,7 +292,7 @@ export function BinomeEvaluateScreen({ eleves, juryId: _juryId, onDone, onBack }
       }, { onConflict: 'eleve_id' }));
 
       if (fsErr) {
-        setSubmitError(`Erreur pour ${eleve.display_name}. Réessayez.`);
+        setSubmitError(isWriteRefused(fsErr) ? WRITE_REFUSED_MESSAGE : `Erreur pour ${eleve.display_name}. Réessayez.`);
         console.error('[BinomeEvaluate] upsert final_scores:', fsErr);
         setSubmitting(false);
         return;
