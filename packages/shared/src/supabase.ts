@@ -6,9 +6,8 @@ import { createClient } from '@supabase/supabase-js';
 
 // Variables d'environnement Vite (VITE_*) — OBLIGATOIRES
 // Accès direct pour que Vite puisse les remplacer statiquement au build
-// @ts-expect-error Vite injecte import.meta.env au build
+// (typage dans ./env.d.ts)
 const SUPABASE_URL: string = import.meta.env.VITE_SUPABASE_URL ?? '';
-// @ts-expect-error Vite injecte import.meta.env au build
 const SUPABASE_ANON_KEY: string = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {

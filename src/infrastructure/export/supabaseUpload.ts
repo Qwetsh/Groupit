@@ -2,23 +2,10 @@
 // SUPABASE UPLOAD — Push session data for jury PWA + dashboard
 // ============================================================
 
-import { createClient } from '@supabase/supabase-js';
+// Client Supabase, connexion anonyme et nettoyage des codes : une seule
+// définition pour les trois applications, dans packages/shared.
+import { supabase, ensureSignedIn as ensureSharedSignIn, SignInError, sanitizeSessionCode } from '@groupit/shared';
 import type { ExportResultData, ExportJuryData, ExportEleveData, PdfExportOptions } from './types';
-
-// Variables d'environnement Vite — OBLIGATOIRES (pas de fallback hardcodé)
-// Accès direct pour que Vite puisse les remplacer statiquement au build
-const SUPABASE_URL: string = import.meta.env.VITE_SUPABASE_URL ?? '';
-const SUPABASE_ANON_KEY: string = import.meta.env.VITE_SUPABASE_ANON_KEY ?? '';
-
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error(
-    '[supabaseUpload] Variables d\'environnement manquantes: VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY sont obligatoires.'
-  );
-}
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  db: { schema: 'groupit' },
-});
 
 /**
  * Pseudonymise un élève : "Prénom N."
@@ -47,10 +34,13 @@ async function hashEleve(nom: string, prenom: string, classe: string): Promise<s
  * elle qui a le droit de les réexporter.
  */
 async function ensureSignedIn(): Promise<void> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session) return;
-  const { error } = await supabase.auth.signInAnonymously();
-  if (error) throw new Error(`Connexion impossible : ${error.message}`);
+  try {
+    await ensureSharedSignIn();
+  } catch (err) {
+    // Ici, on montre le détail à la personne qui exporte.
+    const detail = err instanceof SignInError ? err.detail : err instanceof Error ? err.message : String(err);
+    throw new Error(`Connexion impossible : ${detail}`);
+  }
 }
 
 /** Messages affichés quand le serveur refuse de créer ou de reprendre une session. */
@@ -80,7 +70,7 @@ export async function checkSessionHasScores(sessionCode: string): Promise<{ hasS
   try {
     await ensureSignedIn();
     const { data, error } = await supabase.rpc('owned_session_score_count', {
-      p_code: sessionCode.toUpperCase().slice(0, 8),
+      p_code: sanitizeSessionCode(sessionCode),
     });
     if (error) return { hasScores: false, count: 0 };
     const count = typeof data === 'number' ? data : 0;
@@ -105,7 +95,7 @@ export interface OnlineSessionResult {
 export async function getDirectionCode(sessionCode: string): Promise<string | null> {
   await ensureSignedIn();
   const { data, error } = await supabase.rpc('get_direction_code', {
-    p_code: sessionCode.toUpperCase().slice(0, 8),
+    p_code: sanitizeSessionCode(sessionCode),
   });
   if (error) throw new Error(error.message);
   return typeof data === 'string' && data ? data : null;
@@ -126,7 +116,7 @@ export async function uploadSessionToSupabase(
     await ensureSignedIn();
 
     // Code session limité à 8 chars (VARCHAR(8) en DB)
-    const sessionCode = options.sessionCode.toUpperCase().slice(0, 8);
+    const sessionCode = sanitizeSessionCode(options.sessionCode);
 
     // 2. Créer la session, ou la reprendre si elle nous appartient.
     // Le serveur refuse la reprise si des notes existent, et retire les

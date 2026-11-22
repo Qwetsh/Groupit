@@ -25,6 +25,17 @@ export const ACCESS_DENIED_MESSAGES: Record<AccessDeniedReason, string> = {
   too_many_attempts: 'Trop d\'essais. Patientez une dizaine de minutes avant de réessayer.',
 };
 
+/** Échec de la connexion anonyme. `detail` porte le message du serveur. */
+export class SignInError extends Error {
+  readonly detail: string;
+
+  constructor(detail: string) {
+    super('Erreur de connexion');
+    this.name = 'SignInError';
+    this.detail = detail;
+  }
+}
+
 /**
  * Garantit une connexion anonyme, en réutilisant celle du navigateur si elle
  * existe. Ne jamais se reconnecter d'office : l'identité anonyme porte les
@@ -35,7 +46,7 @@ export async function ensureSignedIn(): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
   if (session) return;
   const { error } = await supabase.auth.signInAnonymously();
-  if (error) throw new Error('Erreur de connexion');
+  if (error) throw new SignInError(error.message);
 }
 
 export type JoinJuryResult =
@@ -90,12 +101,4 @@ export const WRITE_REFUSED_MESSAGE =
  */
 export function isWriteRefused(error: unknown): boolean {
   return typeof error === 'object' && error !== null && (error as { code?: unknown }).code === '42501';
-}
-
-/**
- * Nettoie un code de session saisi ou collé : majuscules, sans espace ni
- * tiret, 8 caractères au plus.
- */
-export function sanitizeSessionCode(input: string): string {
-  return input.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
 }

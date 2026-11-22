@@ -12,30 +12,13 @@ import { isWriteRefused, WRITE_REFUSED_MESSAGE } from '@groupit/shared';
 import { Timer } from '../components/Timer';
 import { CriterionRow } from '../components/CriterionRow';
 import { useCriteriaConfig } from '../context/criteriaConfig';
+import { withRetry } from '../lib/withRetry';
 
 interface GroupeEvaluateScreenProps {
   eleves: SessionEleveRow[];
   juryId: string;
   onDone: () => void;
   onBack: () => void;
-}
-
-async function withRetry(
-  fn: () => PromiseLike<{ error: unknown }>,
-  maxRetries = 3
-): Promise<{ error: unknown }> {
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    const result = await fn();
-    if (!result.error) return result;
-    // Refus du serveur (session verrouillée) : réessayer ne changera rien.
-    if (isWriteRefused(result.error)) return result;
-    if (attempt < maxRetries) {
-      await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
-    } else {
-      return result;
-    }
-  }
-  return fn();
 }
 
 const STORAGE_KEY = (id: string) => `jury-scores-${id}`;

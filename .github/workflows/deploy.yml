@@ -1,4 +1,4 @@
-# Workflow pour déployer Groupit + PWA Jury sur GitHub Pages
+# Workflow pour déployer Groupit + PWA Jury + tableau de bord sur GitHub Pages
 name: Deploy to GitHub Pages
 
 on:
@@ -28,17 +28,10 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies (root)
+      # Workspaces npm : une seule installation pour l'application principale,
+      # apps/jury, apps/dashboard et packages/shared (un seul package-lock.json).
+      - name: Install dependencies
         run: npm ci
-
-      - name: Install dependencies (shared)
-        run: cd packages/shared && npm ci
-
-      - name: Install dependencies (jury)
-        run: cd apps/jury && npm ci
-
-      - name: Install dependencies (dashboard)
-        run: cd apps/dashboard && npm ci
 
       # Contrôles : un échec ici arrête le job, donc le déploiement.
       # ESLint est lancé depuis la racine et couvre aussi apps/ et packages/.
@@ -48,29 +41,25 @@ jobs:
       - name: Typecheck (Groupit, jury, dashboard)
         run: |
           npm run typecheck
-          (cd apps/jury && npx tsc -b)
-          (cd apps/dashboard && npx tsc -b)
+          npm run typecheck:apps
 
       - name: Tests
         run: npm run test:run
 
-      # Build Groupit (app principale)
       - name: Build Groupit
         run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
-      # Build PWA Jury
       - name: Build PWA Jury
-        run: cd apps/jury && npm run build
+        run: npm run build:jury
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
-      # Build Dashboard
       - name: Build Dashboard
-        run: cd apps/dashboard && npm run build
+        run: npm run build:dashboard
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}

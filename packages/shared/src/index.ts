@@ -4,9 +4,10 @@
 
 export { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from './supabase';
 export {
-  ensureSignedIn, joinJury, openDashboard, isWriteRefused, sanitizeSessionCode,
+  ensureSignedIn, joinJury, openDashboard, isWriteRefused, SignInError,
   ACCESS_DENIED_MESSAGES, WRITE_REFUSED_MESSAGE,
 } from './access';
+export { sanitizeSessionCode, SESSION_CODE_MAX_LENGTH } from './sessionCode';
 export type { AccessDeniedReason, JoinJuryResult, OpenDashboardResult } from './access';
 export type { Database } from './database.types';
 export type {

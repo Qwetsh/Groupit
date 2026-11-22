@@ -6,10 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "typecheck": "tsc -b",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@groupit/shared": "file:../../packages/shared",
+    "@groupit/shared": "*",
     "@supabase/supabase-js": "^2.49.4",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
