@@ -7,46 +7,14 @@
  */
 
 import { 
-  getUniqueEnseignantAddresses, 
   getUniqueStageAddresses, 
   getRandomCompanyName,
   formatFullAddress,
-  COLLEGE_REFERENCE,
 } from './fakeAddresses';
-import type { Enseignant, Eleve, Stage } from '../domain/models';
+import type { Eleve, Stage } from '../domain/models';
 
 // Marqueur pour identifier les stages générés automatiquement
 export const FAKE_STAGE_MARKER = '[TEST]';
-
-/**
- * Génère une adresse complète pour un enseignant
- */
-export interface GeneratedEnseignantAddress {
-  enseignantId: string;
-  adresseDomicile: string;
-  // Coordonnées approximatives (pour référence, le géocodage fera le travail réel)
-  latApprox?: number;
-  lngApprox?: number;
-}
-
-/**
- * Génère des adresses fictives pour une liste d'enseignants
- */
-export function generateEnseignantAddresses(
-  enseignants: Enseignant[]
-): GeneratedEnseignantAddress[] {
-  const addresses = getUniqueEnseignantAddresses(enseignants.length);
-  
-  return enseignants.map((ens, index) => {
-    const addr = addresses[index];
-    return {
-      enseignantId: ens.id!,
-      adresseDomicile: formatFullAddress(addr),
-      latApprox: addr.lat,
-      lngApprox: addr.lng,
-    };
-  });
-}
 
 /**
  * Génère un stage fictif pour un élève
@@ -121,46 +89,3 @@ export function isFakeStage(stage: Stage): boolean {
   return nomEntreprise.includes(FAKE_STAGE_MARKER) || stage.isTest === true;
 }
 
-/**
- * Filtre les stages pour ne garder que les stages de test
- */
-export function filterFakeStages(stages: Stage[]): Stage[] {
-  return stages.filter(isFakeStage);
-}
-
-/**
- * Filtre les stages pour exclure les stages de test
- */
-export function filterRealStages(stages: Stage[]): Stage[] {
-  return stages.filter(stage => !isFakeStage(stage));
-}
-
-/**
- * Statistiques sur les données de test
- */
-export interface TestDataStats {
-  enseignantsAvecAdresse: number;
-  enseignantsSansAdresse: number;
-  stagesTest: number;
-  stagesReels: number;
-  collegeReference: typeof COLLEGE_REFERENCE;
-}
-
-/**
- * Calcule les statistiques sur les données de test
- */
-export function getTestDataStats(
-  enseignants: Enseignant[],
-  stages: Stage[]
-): TestDataStats {
-  const enseignantsAvecAdresse = enseignants.filter(e => e.adresse && e.adresse.trim() !== '').length;
-  const stagesTest = stages.filter(isFakeStage).length;
-  
-  return {
-    enseignantsAvecAdresse,
-    enseignantsSansAdresse: enseignants.length - enseignantsAvecAdresse,
-    stagesTest,
-    stagesReels: stages.length - stagesTest,
-    collegeReference: COLLEGE_REFERENCE,
-  };
-}

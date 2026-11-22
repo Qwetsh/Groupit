@@ -179,21 +179,3 @@ export async function exportStagePdf(
     await downloadStagePdf(data, pdfOptions);
   }
 }
-
-// ============================================================
-// PRÉVISUALISATION (ouvre dans un nouvel onglet)
-// ============================================================
-
-/**
- * Génère et ouvre le PDF dans un nouvel onglet pour prévisualisation
- */
-export async function previewStagePdf(
-  data: StageExportResultData,
-  options: Partial<StagePdfExportOptions> = {}
-): Promise<void> {
-  const blob = await generateStagePdf(data, options);
-  const url = URL.createObjectURL(blob);
-  window.open(url, '_blank');
-  // Révoquer l'URL après un délai pour laisser le temps au navigateur de charger
-  setTimeout(() => URL.revokeObjectURL(url), 60000);
-}

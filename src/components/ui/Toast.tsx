@@ -47,17 +47,3 @@ export function ToastContainer() {
 }
 
 // Hook utilitaire pour faciliter l'usage
-export function useToast() {
-  const addNotification = useUIStore(state => state.addNotification);
-
-  return {
-    success: (message: string, duration?: number) =>
-      addNotification({ type: 'success', message, duration }),
-    error: (message: string, duration?: number) =>
-      addNotification({ type: 'error', message, duration: duration ?? 8000 }),
-    warning: (message: string, duration?: number) =>
-      addNotification({ type: 'warning', message, duration }),
-    info: (message: string, duration?: number) =>
-      addNotification({ type: 'info', message, duration }),
-  };
-}

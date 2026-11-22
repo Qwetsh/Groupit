@@ -2,7 +2,7 @@
 // ROUTE PROVIDERS - Interface et implémentations de routing
 // ============================================================
 
-import type { IRouteProvider, RouteResult, GeoPoint, RouteMetrics } from './types';
+import type { IRouteProvider, RouteResult, GeoPoint } from './types';
 import { haversineDistance } from './hash';
 
 // ============================================================
@@ -63,15 +63,6 @@ export function getRouteConfig(): RouteConfig {
     // Ignore parse errors
   }
   return DEFAULT_ROUTE_CONFIG;
-}
-
-/**
- * Sauvegarde la configuration routing
- */
-export function setRouteConfig(config: Partial<RouteConfig>): void {
-  const current = getRouteConfig();
-  const merged = { ...current, ...config };
-  localStorage.setItem('groupit_route_config', JSON.stringify(merged));
 }
 
 // ============================================================
@@ -348,76 +339,4 @@ export function getRouteProvider(): IRouteProvider {
     activeRouteProvider = createRouteProvider();
   }
   return activeRouteProvider;
-}
-
-export function resetRouteProvider(): void {
-  activeRouteProvider = null;
-}
-
-// ============================================================
-// BATCH ROUTING
-// ============================================================
-
-export interface BatchRouteRequest {
-  id: string;
-  from: GeoPoint;
-  to: GeoPoint;
-}
-
-export interface BatchRouteResult {
-  id: string;
-  success: boolean;
-  metrics?: RouteMetrics;
-  errorMessage?: string;
-}
-
-/**
- * Calcule plusieurs routes en batch avec throttling
- */
-export async function batchGetRoutes(
-  requests: BatchRouteRequest[],
-  provider: IRouteProvider,
-  options?: {
-    delayMs?: number;
-    onProgress?: (current: number, total: number) => void;
-    abortSignal?: AbortSignal;
-  }
-): Promise<BatchRouteResult[]> {
-  const results: BatchRouteResult[] = [];
-  const delayMs = options?.delayMs ?? 100;
-  
-  for (let i = 0; i < requests.length; i++) {
-    // Vérifier l'annulation
-    if (options?.abortSignal?.aborted) {
-      break;
-    }
-    
-    const req = requests[i];
-    
-    try {
-      const result = await provider.getRoute(req.from, req.to);
-      results.push({
-        id: req.id,
-        success: result.success,
-        metrics: result.metrics,
-        errorMessage: result.errorMessage,
-      });
-    } catch (error) {
-      results.push({
-        id: req.id,
-        success: false,
-        errorMessage: error instanceof Error ? error.message : 'Erreur',
-      });
-    }
-    
-    // Callback de progression
-    options?.onProgress?.(i + 1, requests.length);
-    
-    // Délai entre requêtes (sauf la dernière)
-    if (i < requests.length - 1) {
-      await delay(delayMs);
-    }
-  }
-  
-  return results;
 }

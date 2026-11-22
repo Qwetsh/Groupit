@@ -15,24 +15,6 @@ export interface ConstraintViolation {
 
 // ============ RÉSULTATS MATCHING STANDARD ============
 
-export interface MatchingResult {
-  eleveId: string;
-  enseignantId: string;
-  score: number;
-  scoreDetail: Record<string, number>;
-  violations: ConstraintViolation[];
-  isValid: boolean;
-}
-
-export interface SolverResult {
-  affectations: MatchingResult[];
-  nonAffectes: string[]; // eleveIds sans affectation
-  conflits: ConstraintViolation[];
-  scoreGlobal: number;
-  tempsCalculMs: number;
-  iterations: number;
-}
-
 // ============ RÉSULTATS MATCHING ORAL DNB ============
 
 export interface MatchingResultDNB {

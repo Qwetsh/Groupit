@@ -265,67 +265,7 @@ export function priorityToWeight(priority: PriorityLevel): number {
   }
 }
 
-/**
- * Convertit un poids numérique en niveau de priorité
- */
-export function weightToPriority(weight: number): PriorityLevel {
-  if (weight <= 0) return 'off';
-  if (weight <= 30) return 'low';
-  if (weight <= 70) return 'normal';
-  return 'high';
-}
-
 // ============ CONVERSION VERS OPTIONS DES MOTEURS ============
-
-/**
- * Options pour l'algorithme de matching stage
- */
-export interface StageMatchingOptionsFromCriteria {
-  poidsDuree: number;
-  poidsDistance: number;
-  poidsEquilibrage: number;
-  poidsProfPrincipal: number;
-  poidsElevesEnCours: number;
-  distanceMaxKm?: number;
-  dureeMaxMin?: number;
-  // Option équilibrage pondéré
-  equilibrageWeightByHours: boolean;
-}
-
-/**
- * Convertit les critères V2 en options pour le moteur de matching Stage
- */
-export function criteresToStageOptions(
-  criteres: CritereInstance[],
-  stageConfig?: { distanceMaxKm?: number; dureeMaxMin?: number }
-): StageMatchingOptionsFromCriteria {
-  // Récupérer les critères actifs
-  const getCritereWeight = (id: string): number => {
-    const critere = criteres.find(c => c.id === id);
-    if (!critere || critere.priority === 'off') return 0;
-    return priorityToWeight(critere.priority);
-  };
-  
-  // Le critère forcé "distance_trajet" mappe vers duree + distance
-  const poidsDistanceTrajet = getCritereWeight('distance_trajet');
-  
-  // Récupérer l'option weightByHours pour l'équilibrage
-  const equilibrageCritere = criteres.find(c => c.id === 'equilibrage');
-  
-  return {
-    // Distance/durée sont regroupés sous "distance_trajet"
-    poidsDuree: poidsDistanceTrajet * 0.6, // 60% pour la durée
-    poidsDistance: poidsDistanceTrajet * 0.4, // 40% pour la distance
-    poidsEquilibrage: getCritereWeight('equilibrage'),
-    poidsProfPrincipal: getCritereWeight('prof_principal'),
-    poidsElevesEnCours: getCritereWeight('eleves_en_cours'),
-    // Contraintes dures depuis la config
-    distanceMaxKm: stageConfig?.distanceMaxKm,
-    dureeMaxMin: stageConfig?.dureeMaxMin,
-    // Option équilibrage pondéré
-    equilibrageWeightByHours: equilibrageCritere?.weightByHours ?? false,
-  };
-}
 
 /**
  * Options pour l'algorithme de matching Oral DNB
@@ -378,16 +318,3 @@ export function getCritereDefinition(id: string): CritereDefinition | undefined 
   return CRITERE_DEFINITIONS.find(c => c.id === id);
 }
 
-/**
- * Vérifie si un critère est actif (priority !== 'off')
- */
-export function isCritereActive(critere: CritereInstance): boolean {
-  return critere.priority !== 'off';
-}
-
-/**
- * Récupère les critères actifs uniquement
- */
-export function getActiveCriteres(criteres: CritereInstance[]): CritereInstance[] {
-  return criteres.filter(isCritereActive);
-}

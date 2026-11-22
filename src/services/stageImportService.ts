@@ -1062,26 +1062,3 @@ export function analyzeAddressQuality(rows: MatchedStageRow[]): AddressQualitySt
   return stats;
 }
 
-/**
- * Génère un résumé textuel de la qualité des adresses
- */
-export function formatAddressQualitySummary(stats: AddressQualityStats): string {
-  const lines: string[] = [];
-
-  const totalWithAddress = stats.total - stats.empty;
-  const geocodablePercent = totalWithAddress > 0
-    ? Math.round(((stats.complete + stats.partial) / totalWithAddress) * 100)
-    : 0;
-
-  lines.push(`📊 Analyse de ${stats.total} adresses:`);
-  lines.push(`  ✅ Complètes: ${stats.complete} (géocodage précis attendu)`);
-  lines.push(`  🟡 Partielles: ${stats.partial} (géocodage approximatif)`);
-  lines.push(`  🟠 Minimales: ${stats.minimal} (géocodage au niveau ville)`);
-  lines.push(`  ❌ Invalides: ${stats.invalid}`);
-  lines.push(`  ⚪ Vides: ${stats.empty}`);
-  lines.push('');
-  lines.push(`🌍 Par pays: France ${stats.byCountry.FR}, Luxembourg ${stats.byCountry.LU}, Inconnu ${stats.byCountry.unknown}`);
-  lines.push(`📈 Taux de géocodabilité estimé: ${geocodablePercent}%`);
-
-  return lines.join('\n');
-}

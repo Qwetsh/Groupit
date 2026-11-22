@@ -2,49 +2,16 @@
 // ALGORITHMS INDEX - Export centralisé
 // ============================================================
 
-export { calculateDistance, distanceToScore, communeProximityScore } from './distance';
-export {
-  calculateEnseignantCapacity,
-  calculateChargeScore,
-  hasAvailableCapacity,
-  calculateChargeStats,
-  calculateEquilibrageScore,
-} from './capacity';
-export {
-  validateHardConstraints,
-  scorePair,
-  evaluateAllPairs,
-  findBestMatchesForEleve,
-  type ScoringContext,
-  type ValidationResult,
-  type ScoreResult,
-} from './scoring';
-export {
-  solveGreedy,
-  improveWithLocalSearch,
-  solveMatching,
-  convertToAffectations,
-} from './solver';
-export {
-  solveOralDnb,
-  solveOralDnbComplete,
-  improveOralDnbWithSwaps,
-} from './solverDnb';
+export { calculateDistance } from './distance';
+export { solveOralDnbComplete } from './solverDnb';
 export {
   solveStageMatching,
   toStageGeoInfo,
   toEnseignantGeoInfo,
 } from './stageSolver';
-export {
-  solveCustom,
-  type CustomGroup,
-  type CustomSolverResult,
-  type CustomAffectation,
-} from './solverCustom';
+export { solveCustom } from './solverCustom';
 export {
   assignTimeSlots,
   recalcTimeSlotsForJurys,
-  getTimeSlotsForDemiJournee,
-  getDemiJourneeLabel,
   type DistributionMode,
 } from './timeSlots';

@@ -118,29 +118,6 @@ export interface RouteResult {
 }
 
 /**
- * Configuration d'un provider de géocodage
- */
-export interface GeoProviderConfig {
-  name: string;
-  apiKey?: string;
-  baseUrl?: string;
-  rateLimit?: number;             // Requêtes par seconde
-  timeout?: number;               // Timeout en ms
-}
-
-/**
- * Configuration d'un provider de routing
- */
-export interface RouteProviderConfig {
-  name: string;
-  apiKey?: string;
-  baseUrl?: string;
-  rateLimit?: number;
-  timeout?: number;
-  profile?: 'car' | 'bike' | 'foot';
-}
-
-/**
  * Interface abstraite pour un provider de géocodage
  */
 export interface IGeoProvider {

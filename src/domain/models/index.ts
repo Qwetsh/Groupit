@@ -18,10 +18,7 @@ export {
   createDefaultCriteres,
   getEffectiveCriteres,
   priorityToWeight,
-  weightToPriority,
   getCritereDefinition,
-  isCritereActive,
-  getActiveCriteres,
 } from '../criteriaConfig';
 
 // ============ TYPES DE BASE ============
@@ -37,14 +34,12 @@ export type {
 export { NIVEAUX, isNiveau, extractNiveau } from './types';
 
 // ============ MATIÈRES ============
-export type { MatiereHeuresRef, ParcoursOralDNB, LangueEtrangere } from './matieres';
+export type { MatiereHeuresRef } from './matieres';
 export { MATIERES_HEURES_3E, PARCOURS_ORAL_DNB, LANGUES_ETRANGERES, getHeuresMatiere, getPoidsPedagogiqueNormalise } from './matieres';
 
 // ============ CAPACITÉ ============
 export {
   calculateCapacitesStage,
-  getCapaciteStageCalculee,
-  getEnseignantCapacite,
 } from './capacite';
 
 // ============ ÉLÈVE ============
@@ -87,14 +82,12 @@ export type {
 // ============ MATCHING ============
 export type {
   ConstraintViolation,
-  MatchingResult,
-  SolverResult,
   MatchingResultDNB,
   SolverResultDNB,
 } from './matching';
 
 // ============ IMPORT ============
-export type { ColumnMapping, EnseignantColumnMapping, ImportResult, ImportMatiereOralResult } from './import';
+export type { ColumnMapping, EnseignantColumnMapping, ImportResult } from './import';
 
 // ============ FIELD DEFINITION ============
 export type { FieldType, EntityType, FieldDefinition } from './field';

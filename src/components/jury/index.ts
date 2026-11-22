@@ -1,1 +1,0 @@
-export { JuryManager } from './JuryManager';

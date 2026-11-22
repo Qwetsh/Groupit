@@ -8,15 +8,6 @@
  */
 
 // Coordonnées du collège (centre de référence)
-export const COLLEGE_REFERENCE = {
-  nom: 'Collège Pierre Mendes France',
-  adresse: '1 rue Jean Laurain',
-  codePostal: '57140',
-  ville: 'Woippy',
-  lat: 49.1547,
-  lng: 6.1517,
-};
-
 // Type pour une adresse fictive
 export interface FakeAddress {
   adresse: string;
@@ -28,70 +19,6 @@ export interface FakeAddress {
   // Distance approximative du collège en km
   distanceApproxKm?: number;
 }
-
-/**
- * Liste d'adresses réelles autour de Woippy (rayon ~50km)
- * Classées par distance approximative du collège
- */
-export const FAKE_ADDRESSES_ENSEIGNANTS: FakeAddress[] = [
-  // Woippy et environs immédiats (0-5km)
-  { adresse: '15 rue de Briey', codePostal: '57140', ville: 'Woippy', lat: 49.1523, lng: 6.1489, distanceApproxKm: 1 },
-  { adresse: '8 avenue de Thionville', codePostal: '57140', ville: 'Woippy', lat: 49.1561, lng: 6.1534, distanceApproxKm: 1 },
-  { adresse: '22 rue du Général de Gaulle', codePostal: '57140', ville: 'Woippy', lat: 49.1538, lng: 6.1502, distanceApproxKm: 1 },
-  
-  // Metz (3-5km)
-  { adresse: '45 rue Serpenoise', codePostal: '57000', ville: 'Metz', lat: 49.1193, lng: 6.1757, distanceApproxKm: 4 },
-  { adresse: '12 place Saint-Louis', codePostal: '57000', ville: 'Metz', lat: 49.1175, lng: 6.1778, distanceApproxKm: 4 },
-  { adresse: '3 avenue Foch', codePostal: '57000', ville: 'Metz', lat: 49.1108, lng: 6.1756, distanceApproxKm: 5 },
-  { adresse: '28 rue des Clercs', codePostal: '57000', ville: 'Metz', lat: 49.1198, lng: 6.1745, distanceApproxKm: 4 },
-  { adresse: '7 rue du Pont des Morts', codePostal: '57000', ville: 'Metz', lat: 49.1231, lng: 6.1689, distanceApproxKm: 4 },
-  
-  // Maizières-lès-Metz (5-8km)
-  { adresse: '18 rue de la Gare', codePostal: '57280', ville: 'Maizières-lès-Metz', lat: 49.2089, lng: 6.1631, distanceApproxKm: 6 },
-  { adresse: '5 place de la Mairie', codePostal: '57280', ville: 'Maizières-lès-Metz', lat: 49.2103, lng: 6.1612, distanceApproxKm: 6 },
-  
-  // Hagondange (8-12km)
-  { adresse: '24 rue de Verdun', codePostal: '57300', ville: 'Hagondange', lat: 49.2456, lng: 6.1642, distanceApproxKm: 10 },
-  { adresse: '11 avenue de la Liberté', codePostal: '57300', ville: 'Hagondange', lat: 49.2478, lng: 6.1598, distanceApproxKm: 10 },
-  
-  // Amnéville (10-15km)
-  { adresse: '6 rue des Thermes', codePostal: '57360', ville: 'Amnéville', lat: 49.2567, lng: 6.1378, distanceApproxKm: 12 },
-  { adresse: '33 rue du Casino', codePostal: '57360', ville: 'Amnéville', lat: 49.2589, lng: 6.1356, distanceApproxKm: 12 },
-  
-  // Thionville (20-25km)
-  { adresse: '14 place du Marché', codePostal: '57100', ville: 'Thionville', lat: 49.3578, lng: 6.1656, distanceApproxKm: 23 },
-  { adresse: '29 avenue Albert 1er', codePostal: '57100', ville: 'Thionville', lat: 49.3601, lng: 6.1623, distanceApproxKm: 23 },
-  { adresse: '8 rue de Paris', codePostal: '57100', ville: 'Thionville', lat: 49.3589, lng: 6.1678, distanceApproxKm: 23 },
-  { adresse: '51 route de Luxembourg', codePostal: '57100', ville: 'Thionville', lat: 49.3612, lng: 6.1712, distanceApproxKm: 24 },
-  
-  // Briey (25-30km)
-  { adresse: '17 rue Raymond Poincaré', codePostal: '54150', ville: 'Briey', lat: 49.2489, lng: 5.9401, distanceApproxKm: 27 },
-  { adresse: '4 place de la République', codePostal: '54150', ville: 'Briey', lat: 49.2501, lng: 5.9412, distanceApproxKm: 27 },
-  
-  // Pont-à-Mousson (25-30km)
-  { adresse: '21 place Duroc', codePostal: '54700', ville: 'Pont-à-Mousson', lat: 48.9067, lng: 6.0534, distanceApproxKm: 28 },
-  { adresse: '9 rue Victor Hugo', codePostal: '54700', ville: 'Pont-à-Mousson', lat: 48.9078, lng: 6.0512, distanceApproxKm: 28 },
-  
-  // Boulay-Moselle (30-35km)
-  { adresse: '13 Grand Rue', codePostal: '57220', ville: 'Boulay-Moselle', lat: 49.1834, lng: 6.4923, distanceApproxKm: 32 },
-  { adresse: '6 rue de l\'Église', codePostal: '57220', ville: 'Boulay-Moselle', lat: 49.1845, lng: 6.4901, distanceApproxKm: 32 },
-  
-  // Moyeuvre-Grande (15-20km)
-  { adresse: '19 rue de Metz', codePostal: '57250', ville: 'Moyeuvre-Grande', lat: 49.2567, lng: 6.0423, distanceApproxKm: 18 },
-  { adresse: '2 place Jeanne d\'Arc', codePostal: '57250', ville: 'Moyeuvre-Grande', lat: 49.2578, lng: 6.0445, distanceApproxKm: 18 },
-  
-  // Rombas (12-15km)
-  { adresse: '31 rue de la Mine', codePostal: '57120', ville: 'Rombas', lat: 49.2512, lng: 6.0934, distanceApproxKm: 14 },
-  { adresse: '7 avenue Jean Jaurès', codePostal: '57120', ville: 'Rombas', lat: 49.2523, lng: 6.0912, distanceApproxKm: 14 },
-  
-  // Sarrebourg (45-50km)
-  { adresse: '25 rue de la Gare', codePostal: '57400', ville: 'Sarrebourg', lat: 48.7345, lng: 7.0534, distanceApproxKm: 48 },
-  { adresse: '10 Grand Rue', codePostal: '57400', ville: 'Sarrebourg', lat: 48.7356, lng: 7.0512, distanceApproxKm: 48 },
-  
-  // Forbach (45-50km)
-  { adresse: '16 rue Nationale', codePostal: '57600', ville: 'Forbach', lat: 49.1878, lng: 6.9023, distanceApproxKm: 50 },
-  { adresse: '3 place de l\'Hôtel de Ville', codePostal: '57600', ville: 'Forbach', lat: 49.1889, lng: 6.9001, distanceApproxKm: 50 },
-];
 
 /**
  * Liste d'adresses pour les lieux de stage des élèves
@@ -245,22 +172,6 @@ export const FAKE_COMPANY_NAMES: string[] = [
 ];
 
 /**
- * Retourne une adresse aléatoire pour un enseignant
- */
-export function getRandomEnseignantAddress(): FakeAddress {
-  const index = Math.floor(Math.random() * FAKE_ADDRESSES_ENSEIGNANTS.length);
-  return FAKE_ADDRESSES_ENSEIGNANTS[index];
-}
-
-/**
- * Retourne une adresse aléatoire pour un stage
- */
-export function getRandomStageAddress(): FakeAddress {
-  const index = Math.floor(Math.random() * FAKE_ADDRESSES_STAGES.length);
-  return FAKE_ADDRESSES_STAGES[index];
-}
-
-/**
  * Retourne un nom d'entreprise aléatoire
  */
 export function getRandomCompanyName(): string {
@@ -273,19 +184,6 @@ export function getRandomCompanyName(): string {
  */
 export function formatFullAddress(addr: FakeAddress): string {
   return `${addr.adresse}, ${addr.codePostal} ${addr.ville}`;
-}
-
-/**
- * Retourne une liste d'adresses uniques pour N enseignants
- */
-export function getUniqueEnseignantAddresses(count: number): FakeAddress[] {
-  const shuffled = [...FAKE_ADDRESSES_ENSEIGNANTS].sort(() => Math.random() - 0.5);
-  // Si on demande plus d'adresses qu'il n'y en a, on réutilise
-  const result: FakeAddress[] = [];
-  for (let i = 0; i < count; i++) {
-    result.push(shuffled[i % shuffled.length]);
-  }
-  return result;
 }
 
 /**

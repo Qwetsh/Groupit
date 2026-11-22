@@ -120,63 +120,6 @@ function toRadians(degrees: number): number {
 }
 
 /**
- * Calcule une bounding box autour d'un point
- * @param lat Latitude du centre
- * @param lon Longitude du centre
- * @param radiusKm Rayon en kilomètres
- * @returns {minLat, maxLat, minLon, maxLon}
- */
-export function getBoundingBox(
-  lat: number,
-  lon: number,
-  radiusKm: number
-): { minLat: number; maxLat: number; minLon: number; maxLon: number } {
-  // Approximation: 1 degré de latitude ≈ 111 km
-  const latDelta = radiusKm / 111;
-  // 1 degré de longitude varie selon la latitude
-  const lonDelta = radiusKm / (111 * Math.cos(toRadians(lat)));
-  
-  return {
-    minLat: lat - latDelta,
-    maxLat: lat + latDelta,
-    minLon: lon - lonDelta,
-    maxLon: lon + lonDelta,
-  };
-}
-
-/**
- * Vérifie si un point est dans une bounding box
- */
-export function isInBoundingBox(
-  lat: number,
-  lon: number,
-  box: { minLat: number; maxLat: number; minLon: number; maxLon: number }
-): boolean {
-  return lat >= box.minLat && lat <= box.maxLat &&
-         lon >= box.minLon && lon <= box.maxLon;
-}
-
-/**
- * Filtre les points proches d'un point de référence
- * Utile pour limiter les calculs de routing
- */
-export function filterNearbyPoints<T extends { lat: number; lon: number }>(
-  refLat: number,
-  refLon: number,
-  points: T[],
-  maxDistanceKm: number
-): T[] {
-  // D'abord filtrage par bounding box (très rapide)
-  const box = getBoundingBox(refLat, refLon, maxDistanceKm);
-  const inBox = points.filter(p => isInBoundingBox(p.lat, p.lon, box));
-  
-  // Puis filtrage exact par Haversine
-  return inBox.filter(p => 
-    haversineDistance(refLat, refLon, p.lat, p.lon) <= maxDistanceKm
-  );
-}
-
-/**
  * Trie les points par distance croissante d'un point de référence
  */
 export function sortByDistance<T extends { lat: number; lon: number }>(

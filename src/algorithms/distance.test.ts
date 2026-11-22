@@ -3,7 +3,7 @@
 // ============================================================
 
 import { describe, it, expect } from 'vitest';
-import { calculateDistance, distanceToScore, communeProximityScore } from './distance';
+import { calculateDistance } from './distance';
 
 describe('Distance Utilities', () => {
   // === DONNÉES DE TEST ===
@@ -75,104 +75,6 @@ describe('Distance Utilities', () => {
 
       // Paris-Marseille direct ≤ Paris-Lyon + Lyon-Marseille
       expect(parisMarseille).toBeLessThanOrEqual(parisLyon + lyonMarseille + 0.1); // +0.1 pour erreurs d'arrondi
-    });
-  });
-
-  // === TESTS distanceToScore ===
-
-  describe('distanceToScore', () => {
-    it('distance 0 → score 100', () => {
-      const score = distanceToScore(0);
-      expect(score).toBe(100);
-    });
-
-    it('distance = maxDistance → score 0', () => {
-      const score = distanceToScore(50, 50);
-      expect(score).toBe(0);
-    });
-
-    it('distance > maxDistance → score 0', () => {
-      const score = distanceToScore(100, 50);
-      expect(score).toBe(0);
-    });
-
-    it('distance négative → score 100', () => {
-      const score = distanceToScore(-5);
-      expect(score).toBe(100);
-    });
-
-    it('score linéaire: 25km sur max 50km → score 50', () => {
-      const score = distanceToScore(25, 50);
-      expect(score).toBe(50);
-    });
-
-    it('score linéaire: 10km sur max 50km → score 80', () => {
-      const score = distanceToScore(10, 50);
-      expect(score).toBe(80);
-    });
-
-    it('utilise maxDistance par défaut de 50', () => {
-      const score1 = distanceToScore(25);
-      const score2 = distanceToScore(25, 50);
-      expect(score1).toBe(score2);
-    });
-  });
-
-  // === TESTS communeProximityScore ===
-
-  describe('communeProximityScore', () => {
-    it('même commune → score 100', () => {
-      const score = communeProximityScore('Paris', 'Paris');
-      expect(score).toBe(100);
-    });
-
-    it('même commune avec casse différente → score 100', () => {
-      const score = communeProximityScore('PARIS', 'paris');
-      expect(score).toBe(100);
-    });
-
-    it('même commune avec accents → score 100', () => {
-      const score = communeProximityScore('Évry', 'Evry');
-      expect(score).toBe(100);
-    });
-
-    it('commune différente → score 30', () => {
-      const score = communeProximityScore('Paris', 'Lyon');
-      expect(score).toBe(30);
-    });
-
-    it('commune vide → score 50 (neutre)', () => {
-      const score1 = communeProximityScore('', 'Paris');
-      const score2 = communeProximityScore('Paris', '');
-
-      expect(score1).toBe(50);
-      expect(score2).toBe(50);
-    });
-
-    it('commune undefined → score 50 (neutre)', () => {
-      const score = communeProximityScore(undefined, 'Paris');
-      expect(score).toBe(50);
-    });
-
-    it('même département (code postal) → score 70', () => {
-      // 75001 et 75020 → même département 75
-      const score = communeProximityScore('Paris 75001', 'Paris 75020');
-      expect(score).toBeGreaterThanOrEqual(70);
-    });
-  });
-
-  // === TESTS de cohérence globale ===
-
-  describe('Cohérence distance → score', () => {
-    it('plus proche = meilleur score', () => {
-      const distPV = calculateDistance(paris.lat, paris.lon, versailles.lat, versailles.lon);
-      const distPL = calculateDistance(paris.lat, paris.lon, lyon.lat, lyon.lon);
-
-      const scorePV = distanceToScore(distPV, 500);
-      const scorePL = distanceToScore(distPL, 500);
-
-      // Versailles plus proche → meilleur score
-      expect(scorePV).toBeGreaterThan(scorePL);
     });
   });
 });

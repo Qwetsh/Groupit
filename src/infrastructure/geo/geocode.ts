@@ -73,18 +73,6 @@ export function getGeoConfig(): GeoConfig {
   return DEFAULT_GEO_CONFIG;
 }
 
-/**
- * Sauvegarde la configuration et reset le provider actif
- * pour forcer la recréation avec la nouvelle config
- */
-export function setGeoConfig(config: Partial<GeoConfig>): void {
-  const current = getGeoConfig();
-  const merged = { ...current, ...config };
-  localStorage.setItem('groupit_geo_config', JSON.stringify(merged));
-  // Reset le provider actif pour qu'il soit recréé avec la nouvelle config
-  resetGeoProvider();
-}
-
 // ============================================================
 // UTILITAIRES
 // ============================================================
@@ -633,6 +621,3 @@ export function getGeoProvider(): IGeoProvider {
   return activeProvider;
 }
 
-export function resetGeoProvider(): void {
-  activeProvider = null;
-}

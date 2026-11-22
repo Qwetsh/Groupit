@@ -2,7 +2,7 @@
 // BOARD - Types partagés entre sous-composants
 // ============================================================
 
-import type { Eleve, Enseignant, Affectation, Jury, Scenario, Stage } from '../../domain/models';
+import type { Eleve, Enseignant, Affectation, Jury, Scenario } from '../../domain/models';
 
 // ============================================================
 // DRAG & DROP DATA TYPES
@@ -125,23 +125,6 @@ export interface BoardMessagesProps {
   onClearError: () => void;
   onClearStats: () => void;
   onClearValidation: () => void;
-}
-
-// ============================================================
-// VALIDATION MODAL PROPS
-// ============================================================
-
-export interface ValidationModalProps {
-  isOpen: boolean;
-  isValidating: boolean;
-  scenario: Scenario;
-  affectations: Affectation[];
-  eleves: Eleve[];
-  enseignants: Enseignant[];
-  jurys: Jury[];
-  stages: Stage[];
-  onClose: () => void;
-  onConfirm: () => void;
 }
 
 // ============================================================

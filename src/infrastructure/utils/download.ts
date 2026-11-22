@@ -27,16 +27,3 @@ export function downloadCsvContent(content: string, filename: string): void {
   downloadBlob(blob, filename);
 }
 
-/**
- * Télécharge un Blob CSV
- */
-export function downloadCsvBlob(blob: Blob, filename: string): void {
-  downloadBlob(blob, filename);
-}
-
-/**
- * Télécharge un Blob PDF
- */
-export function downloadPdfBlob(blob: Blob, filename: string): void {
-  downloadBlob(blob, filename);
-}

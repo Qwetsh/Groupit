@@ -50,7 +50,6 @@ export {
   exportPdfJuries,
   downloadPdf,
   downloadExportPdf,
-  previewPdf,
 } from './exportPdf';
 
 // PDF Components (for advanced customization)
@@ -78,13 +77,11 @@ export {
   generateStageCsv,
   downloadAllStageCsv,
   exportAndDownloadStageCsv,
-  generateCsvPerEnseignant,
 } from './exportStageCsv';
 export {
   generateStagePdf,
   downloadStagePdf,
   exportStagePdf,
-  previewStagePdf,
   generatePdfPerEnseignant,
   downloadAllIndividualPdfs,
 } from './exportStagePdf';

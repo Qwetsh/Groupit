@@ -26,17 +26,6 @@ export interface ParsedAddress {
 }
 
 /**
- * Normalise une chaîne (accents, espaces, casse)
- */
-export function normalizeString(str: string): string {
-  return str
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Supprime les accents
-    .replace(/\s+/g, ' ')            // Normalise les espaces
-    .trim();
-}
-
-/**
  * Regex pour détecter un code postal français (5 chiffres, avec ou sans espaces)
  * Ex: 57140, 57 140
  */
@@ -426,27 +415,3 @@ export function buildGeocodingQueries(parsed: ParsedAddress): string[] {
   return queries;
 }
 
-/**
- * Extrait ville et code postal depuis champs séparés ou adresse combinée
- */
-export function extractCityInfo(
-  address?: string,
-  codePostal?: string,
-  ville?: string
-): { codePostal?: string; ville?: string } {
-  // Si on a déjà les champs séparés, les utiliser
-  if (ville) {
-    return { codePostal, ville: cleanVilleName(ville) };
-  }
-  
-  // Sinon, parser l'adresse
-  if (address) {
-    const parsed = parseAddress(address);
-    return {
-      codePostal: codePostal || parsed.codePostal,
-      ville: parsed.ville,
-    };
-  }
-  
-  return {};
-}

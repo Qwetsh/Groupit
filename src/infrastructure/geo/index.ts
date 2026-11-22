@@ -12,9 +12,6 @@ export {
   hashRouteKey,
   roundCoord,
   haversineDistance,
-  getBoundingBox,
-  isInBoundingBox,
-  filterNearbyPoints,
   sortByDistance,
   getNearestPoints,
 } from './hash';
@@ -22,10 +19,8 @@ export {
 // Geocode providers
 export {
   getGeoConfig,
-  setGeoConfig,
   createGeoProvider,
   getGeoProvider,
-  resetGeoProvider,
   NominatimProvider,
   PhotonProvider,
   MockGeoProvider,
@@ -35,17 +30,12 @@ export {
 // Route providers
 export {
   getRouteConfig,
-  setRouteConfig,
   createRouteProvider,
   getRouteProvider,
-  resetRouteProvider,
   OsrmProvider,
   OpenRouteProvider,
   MockRouteProvider,
-  batchGetRoutes,
   type RouteConfig,
-  type BatchRouteRequest,
-  type BatchRouteResult,
 } from './route';
 
 // Cache repository
@@ -53,49 +43,24 @@ export {
   getGeoCacheByAddress,
   getGeoCacheByHash,
   upsertGeoCache,
-  setGeoCacheError,
-  setManualGeoCache,
-  deleteGeoCache,
-  getAllGeoCache,
-  getGeoCacheByStatus,
-  countGeoCacheByStatus,
-  clearGeoCache,
   getRouteCache,
   getRouteCacheByHash,
   upsertRouteCache,
-  deleteRouteCache,
-  getAllRouteCache,
-  countRouteCache,
-  getRouteCacheStats,
-  clearRouteCache,
-  pruneOldCache,
-  checkAddressesInCache,
-  checkRoutesInCache,
 } from './cacheRepo';
 
 // Workflow
 export {
-  geocodeAddress,
   geocodeAddressWithFallback,
-  geocodeBatch,
-  // Note: geocodeBatchWithFallback retiré - utiliser celui de geocodeFallback.ts
-  geocodeStagesAndTeachers,
-  geocodeStagesAndTeachersWithFallback,
   getRouteMetrics,
   computeRoutePairs,
-  checkGeoReadiness,
   buildRoutePairsMap,
   getRoutePair,
-  type GeocodeBatchResult,
-  type GeocodeBatchResultExtended,
   type RouteBatchResult,
-  type StageGeoInfoExtended,
 } from './stageGeoWorkflow';
 
 // Geocode with fallback (version unifiée)
 export {
   geocodeWithFallback,
-  geocodeBatchWithFallback,
   toGeoStatus,
   type GeocodeFallbackResult,
   type GeocodeFallbackOptions,
@@ -106,7 +71,5 @@ export {
   parseAddress,
   buildCityQuery,
   buildTownhallQuery,
-  extractCityInfo,
-  normalizeString,
   type ParsedAddress,
 } from './addressParser';

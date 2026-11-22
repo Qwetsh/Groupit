@@ -3,8 +3,6 @@
 // ============================================================
 
 import { getHeuresMatiere } from './matieres';
-import type { ScenarioType } from './types';
-
 /** Capacité maximale souhaitée par enseignant (6 élèves max si possible) */
 const CAPACITE_MAX_SOUHAITEE = 6;
 
@@ -135,33 +133,3 @@ export function calculateCapacitesStage(
   return result;
 }
 
-/**
- * Retourne la capacité de stage d'un enseignant individuel
- */
-export function getCapaciteStageCalculee(
-  enseignant: { id?: string; matierePrincipale: string; classesEnCharge?: string[] },
-  enseignants: { id?: string; matierePrincipale: string; classesEnCharge?: string[] }[],
-  eleves: { classe: string }[]
-): number {
-  if (!enseignant.id) return 0;
-  const capacites = calculateCapacitesStage(enseignants, eleves);
-  return capacites.get(enseignant.id) ?? 0;
-}
-
-/**
- * Retourne la capacité effective d'un enseignant selon le type de scénario
- * @param enseignant L'enseignant
- * @param scenarioType Le type de scénario ('oral_dnb' ou 'suivi_stage')
- * @param defaultValue Valeur par défaut si non définie
- */
-export function getEnseignantCapacite(
-  enseignant: { capaciteBase?: number; capaciteStage?: number },
-  scenarioType: ScenarioType,
-  defaultValue = 5
-): number {
-  if (scenarioType === 'suivi_stage') {
-    return enseignant.capaciteStage ?? defaultValue;
-  }
-  // oral_dnb et autres
-  return enseignant.capaciteBase ?? defaultValue;
-}

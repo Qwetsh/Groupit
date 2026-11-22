@@ -41,8 +41,6 @@ export const PARCOURS_ORAL_DNB = [
   'Parcours Artistique',
 ] as const;
 
-export type ParcoursOralDNB = typeof PARCOURS_ORAL_DNB[number];
-
 /** Retourne les heures hebdomadaires moyennes d'une matière */
 export function getHeuresMatiere(matiere: string): number {
   const ref = MATIERES_HEURES_3E.find(m =>
@@ -61,4 +59,3 @@ export function getPoidsPedagogiqueNormalise(matiere: string): number {
 
 // Langues étrangères disponibles pour l'oral DNB
 export const LANGUES_ETRANGERES = ['Anglais', 'Espagnol', 'Allemand', 'Chinois'] as const;
-export type LangueEtrangere = typeof LANGUES_ETRANGERES[number];

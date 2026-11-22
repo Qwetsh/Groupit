@@ -14,12 +14,6 @@ export interface ParsedCSVData {
   encoding: string;
 }
 
-export interface MappingConfig {
-  csvHeader: string;
-  targetField: keyof Eleve | null;
-  transform?: (value: string) => unknown;
-}
-
 // ============ KNOWN HEADERS MAPPING ============
 
 // Map des en-têtes CSV connus vers les champs Eleve
