@@ -19,24 +19,24 @@ import { useStageStore } from '../../stores/stageStore';
 import { useJuryStore } from '../../stores/juryStore';
 import type { Scenario } from '../../domain/models';
 import {
-  mapToExportData,
-  downloadExportCsv,
-  downloadExportPdf,
-  downloadExportExcel,
-  downloadStageExportExcel,
   type CsvExportOptions,
   type PdfExportOptions,
   type ExportResultData,
   DEFAULT_CSV_OPTIONS,
   DEFAULT_PDF_OPTIONS,
-  // Stage export
-  mapToStageExportData,
-  exportAndDownloadStageCsv,
-  exportStagePdf,
+} from '../../infrastructure/export/types';
+import { mapToExportData } from '../../infrastructure/export/dataMapper';
+import { downloadExportCsv } from '../../infrastructure/export/exportCsv';
+// Stage export
+import {
   DEFAULT_STAGE_CSV_OPTIONS,
   DEFAULT_STAGE_PDF_OPTIONS,
   type StageExportResultData,
-} from '../../infrastructure/export';
+} from '../../infrastructure/export/stageTypes';
+import { mapToStageExportData } from '../../infrastructure/export/stageDataMapper';
+import { exportAndDownloadStageCsv } from '../../infrastructure/export/exportStageCsv';
+// PDF et Excel : modules lourds, chargés à la demande
+import { loadExcelExport, loadPdfExport, loadStagePdfExport } from '../../lazyModules';
 import { checkSessionHasScores, getDirectionCode } from '../../infrastructure/export/supabaseUpload';
 import type { OnlineSessionResult } from '../../infrastructure/export/supabaseUpload';
 import {
@@ -278,6 +278,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
     setExcelStatus('loading');
     setErrorMessage(null);
     try {
+      const { downloadStageExportExcel, downloadExportExcel } = await loadExcelExport();
       if (stageMode) {
         downloadStageExportExcel(exportData as StageExportResultData, baseFilename);
       } else {
@@ -314,6 +315,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
     setErrorMessage(null);
     try {
       if (stageMode) {
+        const { exportStagePdf } = await loadStagePdfExport();
         await exportStagePdf(exportData as StageExportResultData, {
           ...stagePdfOptions,
           showLogoAcademie: pdfOptions.showLogoAcademie,
@@ -323,6 +325,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
         });
       } else {
         const pdfData = exportData as ExportResultData;
+        const { downloadExportPdf } = await loadPdfExport();
         const online = await downloadExportPdf(pdfData, `${baseFilename}.pdf`, {
           ...pdfOptions,
           headerScenarioName: scenario.nom,

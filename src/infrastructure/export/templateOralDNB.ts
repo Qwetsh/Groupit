@@ -3,8 +3,7 @@
 // Génère un fichier Excel pré-rempli avec listes déroulantes
 // ============================================================
 
-import ExcelJS from 'exceljs';
-import * as XLSX from 'xlsx';
+import { loadExcelJs, loadXlsx } from '../../lazyModules';
 import type { Eleve } from '../../domain/models';
 import { PARCOURS_ORAL_DNB, MATIERES_HEURES_3E, LANGUES_ETRANGERES } from '../../domain/models';
 
@@ -15,6 +14,7 @@ const MATIERES_LIST = MATIERES_HEURES_3E.map(m => m.matiere);
  * et des listes déroulantes pour Parcours et Matières.
  */
 export async function generateTemplateOralDNB(eleves: Eleve[]): Promise<void> {
+  const ExcelJS = await loadExcelJs();
   const wb = new ExcelJS.Workbook();
 
   // === Feuille principale ===
@@ -260,6 +260,7 @@ function normalizeMatiere(raw: string): string {
 }
 
 export async function parseOralDNBFile(file: File): Promise<OralDNBImportRow[]> {
+  const XLSX = await loadXlsx();
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {

@@ -4,7 +4,7 @@
 // ============================================================
 
 import Papa from 'papaparse';
-import * as XLSX from 'xlsx';
+import { loadXlsx } from '../lazyModules';
 import type { Eleve, Stage } from '../domain/models';
 import { detectEncoding, decodeBuffer } from '../infrastructure/import';
 import { parseAddress, type ParsedAddress } from '../infrastructure/geo/addressParser';
@@ -573,6 +573,7 @@ function isExcelFile(file: File): boolean {
  * Parse un fichier Excel et retourne les lignes brutes
  */
 async function parseExcelFile(file: File): Promise<{ rows: Record<string, string>[]; headers: string[] }> {
+  const XLSX = await loadXlsx();
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: 'array' });
 

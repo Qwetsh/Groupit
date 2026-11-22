@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useMemo, useEffect } from 'react';
+import React, { useCallback, useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -30,7 +30,7 @@ import { ContextMenu, type ContextMenuItem } from '../context-menu';
 import { useConfirmReset } from '../../hooks/useConfirm';
 import { EleveInfoModal } from '../modals/EleveInfoModal';
 import { ExportButtons } from '../export';
-import { StageAssignmentMapDrawer } from './StageAssignmentMapDrawer';
+import { importStageMapDrawer } from '../../lazyModules';
 import { COLLEGE_GEO } from '../../domain/college';
 import { ImportSessionModal } from './ImportSessionModal';
 import { exportAffectationSession, downloadSessionAsJson, importAffectationSession, type SessionExportData, type ImportReport } from '../../services/affectationSessionService';
@@ -42,6 +42,11 @@ import { DraggableEleve, DroppableEnseignantTile, DroppableJuryTile } from './ti
 import type { DragData, DropData, ContextMenuState, EnseignantContextMenuState, JuryAffectationDisplay, MatchingStats, ValidationSuccess, NonAffectationInfo } from './types';
 
 import './Board.css';
+
+// Tiroir de carte (Leaflet) : hors du fichier de démarrage, chargé à la demande.
+const StageAssignmentMapDrawer = lazy(() =>
+  importStageMapDrawer().then(module => ({ default: module.StageAssignmentMapDrawer }))
+);
 
 // ============================================================
 // CONSTANTS
@@ -976,13 +981,15 @@ export const Board: React.FC = () => {
       )}
 
       {isStageScenario && selectedTeacherForMap && (
-        <StageAssignmentMapDrawer
-          isOpen={mapDrawerOpen}
-          onClose={handleCloseMapDrawer}
-          teacher={selectedTeacherForMap}
-          assignedStages={selectedTeacherStages}
-          collegeGeo={COLLEGE_GEO}
-        />
+        <Suspense fallback={null}>
+          <StageAssignmentMapDrawer
+            isOpen={mapDrawerOpen}
+            onClose={handleCloseMapDrawer}
+            teacher={selectedTeacherForMap}
+            assignedStages={selectedTeacherStages}
+            collegeGeo={COLLEGE_GEO}
+          />
+        </Suspense>
       )}
 
       <OverlayProgress

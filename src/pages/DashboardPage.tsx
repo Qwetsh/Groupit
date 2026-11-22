@@ -8,7 +8,9 @@ import { useStageStore } from '../stores/stageStore';
 import { useAffectationStore } from '../stores/affectationStore';
 import { useUIStore } from '../stores/uiStore';
 import { ValidatedAssignmentCard, ValidatedAssignmentDrawer } from '../components/dashboard';
-import { mapArchiveToExportData, downloadExportPdf, downloadExportCsv } from '../infrastructure/export';
+import { mapArchiveToExportData } from '../infrastructure/export/dataMapper';
+import { downloadExportCsv } from '../infrastructure/export/exportCsv';
+import { loadPdfExport } from '../lazyModules';
 import { ImportSessionModal } from '../components/board/ImportSessionModal';
 import { importAffectationSession, type SessionExportData, type ImportReport } from '../services/affectationSessionService';
 import type { ScenarioArchive } from '../domain/models';
@@ -74,6 +76,7 @@ export const DashboardPage: React.FC = () => {
     try {
       const exportData = mapArchiveToExportData(archive);
       const filename = `${archive.scenarioNom.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date(archive.archivedAt).toISOString().split('T')[0]}.pdf`;
+      const { downloadExportPdf } = await loadPdfExport();
       await downloadExportPdf(exportData, filename);
       addNotification({ type: 'success', message: 'Export PDF termine' });
     } catch (error) {

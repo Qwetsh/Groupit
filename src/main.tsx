@@ -5,6 +5,7 @@ import App from './App.tsx'
 import { seedLocalDataIfEmpty } from './data/seed'
 import { scenarioRepository } from './infrastructure/repositories'
 import { migrateLegacyBackups } from './infrastructure/database/legacyBackupMigration'
+import { preloadHeavyModules } from './lazyModules'
 
 // Préparer la base AVANT de render l'app pour éviter les race conditions.
 // Rien n'est jamais supprimé ici : les données de l'utilisateur doivent
@@ -26,6 +27,9 @@ async function initApp() {
       <App />
     </StrictMode>,
   );
+
+  // Export PDF/Excel et carte : hors du fichier de démarrage, préchargés ensuite.
+  preloadHeavyModules();
 }
 
 initApp();
