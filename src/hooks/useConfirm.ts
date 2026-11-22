@@ -96,12 +96,12 @@ export function useConfirm(): UseConfirmReturn {
   const handleConfirm = useCallback(() => {
     state.resolve?.(true);
     setState(defaultState);
-  }, [state.resolve]);
+  }, [state]);
 
   const handleCancel = useCallback(() => {
     state.resolve?.(false);
     setState(defaultState);
-  }, [state.resolve]);
+  }, [state]);
 
   return {
     confirmState: state,

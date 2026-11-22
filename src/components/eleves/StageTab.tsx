@@ -69,7 +69,7 @@ function StageImportModal({ onClose, onImportComplete }: ImportModalProps) {
   const loadGlobalStages = useStageStore(state => state.loadGlobalStages);
   const addNotification = useUIStore(state => state.addNotification);
 
-  const [_file, setFile] = useState<File | null>(null);
+  const [, setFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<StageImportResult | null>(null);
   const [step, setStep] = useState<'select' | 'preview' | 'resolve' | 'geocoding' | 'done'>('select');
@@ -884,7 +884,7 @@ export const StageTab: React.FC = () => {
     }
   }, [upsertStageForEleve, updateStage, loadGlobalStages, addNotification]);
 
-  const handleImportComplete = useCallback((_result: { updated: number; created: number }) => {
+  const handleImportComplete = useCallback(() => {
     loadGlobalStages();
   }, [loadGlobalStages]);
 

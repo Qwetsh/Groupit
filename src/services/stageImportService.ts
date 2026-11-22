@@ -880,6 +880,7 @@ export function resolveAmbiguousMatch(
 
 function normalizeContent(value: string): string {
   return value
+    // eslint-disable-next-line no-control-regex -- retrait volontaire du BOM et des octets NUL des exports mal encodés
     .replace(/^[\uFEFF\u0000]+/, '')
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n');
@@ -899,6 +900,7 @@ function detectSeparator(content: string): string {
 function sanitizeValue(value: unknown): string {
   if (value == null) return '';
   return String(value)
+    // eslint-disable-next-line no-control-regex -- retrait volontaire du BOM et des octets NUL des exports mal encodés
     .replace(/[\uFEFF\u0000]/g, '')
     .replace(/\u00A0/g, ' ')
     .replace(/\r/g, '')

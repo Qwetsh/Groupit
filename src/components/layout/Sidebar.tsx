@@ -50,53 +50,53 @@ const helpItems: NavItem[] = [
   { path: '/parametres', label: 'Paramètres', icon: <Settings size={20} /> },
 ];
 
+// Liens de navigation, enveloppés d'une infobulle quand la barre est réduite
+const NavItemLink = ({ item, highlight = false, isCollapsed }: { item: NavItem; highlight?: boolean; isCollapsed: boolean }) => {
+  const link = (
+    <NavLink
+      to={item.path}
+      className={({ isActive }) => `nav-link ${isActive ? 'active' : ''} ${highlight ? 'highlight' : ''}`}
+      end={item.path === '/'}
+    >
+      <span className="nav-icon">{item.icon}</span>
+      {!isCollapsed && <span className="nav-label">{item.label}</span>}
+    </NavLink>
+  );
+
+  if (isCollapsed) {
+    return (
+      <Tooltip content={item.label} position="right" delay={200}>
+        {link}
+      </Tooltip>
+    );
+  }
+  return link;
+};
+
+const ExternalLink = ({ icon, label, href, tooltip, isCollapsed }: { icon: React.ReactNode; label: string; href: string; tooltip?: string; isCollapsed: boolean }) => {
+  const link = (
+    <a href={href} target="_blank" rel="noopener noreferrer" className="nav-link">
+      <span className="nav-icon">{icon}</span>
+      {!isCollapsed && <span className="nav-label">{label}</span>}
+    </a>
+  );
+
+  if (isCollapsed) {
+    return (
+      <Tooltip content={tooltip || label} position="right" delay={200}>
+        {link}
+      </Tooltip>
+    );
+  }
+  return link;
+};
+
 export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, mobileOpen = false }) => {
   const [collapsed, setCollapsed] = useState(false);
   const toggleShortcutsHelp = useUIStore(state => state.toggleShortcutsHelp);
 
   // En mobile, la sidebar est toujours étendue (pas de mode collapsed)
   const isCollapsed = isMobile ? false : collapsed;
-
-  // Helper pour wrapper avec tooltip si collapsed
-  const NavItemLink = ({ item, highlight = false }: { item: NavItem; highlight?: boolean }) => {
-    const link = (
-      <NavLink
-        to={item.path}
-        className={({ isActive }) => `nav-link ${isActive ? 'active' : ''} ${highlight ? 'highlight' : ''}`}
-        end={item.path === '/'}
-      >
-        <span className="nav-icon">{item.icon}</span>
-        {!isCollapsed && <span className="nav-label">{item.label}</span>}
-      </NavLink>
-    );
-
-    if (isCollapsed) {
-      return (
-        <Tooltip content={item.label} position="right" delay={200}>
-          {link}
-        </Tooltip>
-      );
-    }
-    return link;
-  };
-
-  const ExternalLink = ({ icon, label, href, tooltip }: { icon: React.ReactNode; label: string; href: string; tooltip?: string }) => {
-    const link = (
-      <a href={href} target="_blank" rel="noopener noreferrer" className="nav-link">
-        <span className="nav-icon">{icon}</span>
-        {!isCollapsed && <span className="nav-label">{label}</span>}
-      </a>
-    );
-
-    if (isCollapsed) {
-      return (
-        <Tooltip content={tooltip || label} position="right" delay={200}>
-          {link}
-        </Tooltip>
-      );
-    }
-    return link;
-  };
 
   const sidebarClass = [
     'sidebar',
@@ -129,11 +129,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, mobileOpen =
         <ul className="nav-list">
           {actionItems.map(item => (
             <li key={item.path}>
-              <NavItemLink item={item} highlight={item.highlight} />
+              <NavItemLink isCollapsed={isCollapsed} item={item} highlight={item.highlight} />
             </li>
           ))}
           <li>
             <ExternalLink
+              isCollapsed={isCollapsed}
               icon={<ClipboardCheck size={20} />}
               label="Suivi oral DNB"
               href={DASHBOARD_URL}
@@ -141,7 +142,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, mobileOpen =
             />
           </li>
           <li>
-            <NavItemLink item={{ path: '/suivi-stages', label: 'Suivi stages', icon: <Briefcase size={20} /> }} />
+            <NavItemLink isCollapsed={isCollapsed} item={{ path: '/suivi-stages', label: 'Suivi stages', icon: <Briefcase size={20} /> }} />
           </li>
         </ul>
 
@@ -152,7 +153,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, mobileOpen =
         <ul className="nav-list">
           {dataItems.map(item => (
             <li key={item.path}>
-              <NavItemLink item={item} />
+              <NavItemLink isCollapsed={isCollapsed} item={item} />
             </li>
           ))}
         </ul>
@@ -163,7 +164,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, mobileOpen =
         <ul className="nav-list secondary">
           {helpItems.map(item => (
             <li key={item.path}>
-              <NavItemLink item={item} />
+              <NavItemLink isCollapsed={isCollapsed} item={item} />
             </li>
           ))}
         </ul>

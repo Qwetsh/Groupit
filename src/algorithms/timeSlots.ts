@@ -220,7 +220,7 @@ export function assignTimeSlots(
     if (mode === 'fill_first') {
       // Fill each DJ before moving to the next
       let djIdx = 0;
-      let remaining = [...passages];
+      const remaining = [...passages];
       while (remaining.length > 0 && djIdx < demiJournees.length) {
         const dj = demiJournees[djIdx];
         const periodType = getPeriodType(dj);

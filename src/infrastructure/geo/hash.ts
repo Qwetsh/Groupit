@@ -20,7 +20,7 @@ export function normalizeAddress(address: string): string {
     // Suppression des diacritiques (accents)
     .replace(/[\u0300-\u036f]/g, '')
     // Suppression ponctuation sauf virgule et tiret
-    .replace(/[^\w\s,\-]/g, '')
+    .replace(/[^\w\s,-]/g, '')
     // Normalisation espaces multiples
     .replace(/\s+/g, ' ')
     // Trim

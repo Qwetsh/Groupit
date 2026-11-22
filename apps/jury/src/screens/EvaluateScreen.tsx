@@ -13,7 +13,7 @@ import type { SessionEleveRow } from '@groupit/shared';
 import { isWriteRefused, WRITE_REFUSED_MESSAGE } from '@groupit/shared';
 import { Timer } from '../components/Timer';
 import { CriterionRow } from '../components/CriterionRow';
-import { useCriteriaConfig } from '../context/CriteriaContext';
+import { useCriteriaConfig } from '../context/criteriaConfig';
 
 interface EvaluateScreenProps {
   eleve: SessionEleveRow;

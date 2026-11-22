@@ -5,7 +5,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { ChevronRight, Check, GraduationCap, AlertTriangle, Shuffle, GripVertical, Filter, Clock, ShieldCheck, Calendar, CalendarOff, MapPin } from 'lucide-react';
 import { calculateDistance } from '../../../algorithms';
-import { COLLEGE_GEO } from '../../board/StageAssignmentMapDrawer';
+import { COLLEGE_GEO } from '../../../domain/college';
 import { DndContext, DragOverlay, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { useDraggable, useDroppable } from '@dnd-kit/core';
 import clsx from 'clsx';

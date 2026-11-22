@@ -782,7 +782,7 @@ export function improveOralDnbWithSwaps(
   scenario: Scenario,
   maxIterations: number = 100
 ): SolverResultDNB {
-  let currentResult = { ...initialResult, affectations: [...initialResult.affectations] };
+  const currentResult = { ...initialResult, affectations: [...initialResult.affectations] };
   let improved = true;
   let iterations = 0;
   

@@ -19,7 +19,7 @@ type Step = 'select' | 'preview' | 'importing' | 'report';
 
 export function ImportSessionModal({ isOpen, onClose, onImport }: ImportSessionModalProps) {
   const [step, setStep] = useState<Step>('select');
-  const [_file, setFile] = useState<File | null>(null);
+  const [, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<SessionExportData | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
   const [report, setReport] = useState<ImportReport | null>(null);

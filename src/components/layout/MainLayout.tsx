@@ -28,9 +28,12 @@ export const MainLayout: React.FC = () => {
   }, []);
 
   // Fermer la sidebar quand on navigue (mobile)
-  useEffect(() => {
+  const navKey = `${location.pathname}|${isMobile}`;
+  const [prevNavKey, setPrevNavKey] = useState(navKey);
+  if (prevNavKey !== navKey) {
+    setPrevNavKey(navKey);
     if (isMobile) setSidebarOpen(false);
-  }, [location.pathname, isMobile]);
+  }
 
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 

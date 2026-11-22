@@ -98,10 +98,10 @@ function saveToStorage(state: LibreState) {
 export function useLibreMode() {
   const [state, setState] = useState<LibreState>(loadFromStorage);
   const stateRef = useRef(state);
-  stateRef.current = state;
 
-  // Persist on change
+  // Garder la référence à jour et persister à chaque changement
   useEffect(() => {
+    stateRef.current = state;
     saveToStorage(state);
   }, [state]);
 

@@ -36,7 +36,6 @@ export const DroppableEnseignantTile: React.FC<DroppableEnseignantTileProps> = (
   enseignant,
   affectations,
   elevesById,
-  capacity: _capacity,
   onContextMenu,
   onTileContextMenu,
   onClick,

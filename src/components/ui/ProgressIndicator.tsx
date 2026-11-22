@@ -54,29 +54,23 @@ export interface MultiStepProgressProps {
 // ============================================================
 
 function useElapsedTime(isRunning: boolean): string {
-  const [startTime, setStartTime] = useState<number | null>(null);
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
-    if (isRunning && !startTime) {
-      setStartTime(Date.now());
-    } else if (!isRunning) {
-      setStartTime(null);
-      setElapsed(0);
-    }
-  }, [isRunning, startTime]);
+    if (!isRunning) return;
 
-  useEffect(() => {
-    if (!isRunning || !startTime) return;
-
+    const startTime = Date.now();
     const interval = setInterval(() => {
       setElapsed(Math.floor((Date.now() - startTime) / 1000));
     }, 1000);
 
-    return () => clearInterval(interval);
-  }, [isRunning, startTime]);
+    return () => {
+      clearInterval(interval);
+      setElapsed(0);
+    };
+  }, [isRunning]);
 
-  if (elapsed === 0) return '';
+  if (!isRunning || elapsed === 0) return '';
   if (elapsed < 60) return `${elapsed}s`;
   const minutes = Math.floor(elapsed / 60);
   const seconds = elapsed % 60;

@@ -23,13 +23,15 @@ import { calculateCapacitesStage, getHeuresMatiere } from '../../domain/models';
 import { filterEleves, filterEnseignants } from '../../utils/filteringUtils';
 import { Info, UserX, Users, MapPin, MapPinOff, Palette, Eye, Tag } from 'lucide-react';
 import { OverlayProgress } from '../ui/ProgressIndicator';
-import { HelpTooltip, HELP_TEXTS } from '../ui/Tooltip';
+import { HelpTooltip } from '../ui/Tooltip';
+import { HELP_TEXTS } from '../ui/helpTexts';
 import { ConfirmModal } from '../ui/ConfirmModal';
 import { ContextMenu, type ContextMenuItem } from '../context-menu';
 import { useConfirmReset } from '../../hooks/useConfirm';
 import { EleveInfoModal } from '../modals/EleveInfoModal';
 import { ExportButtons } from '../export';
-import { StageAssignmentMapDrawer, COLLEGE_GEO } from './StageAssignmentMapDrawer';
+import { StageAssignmentMapDrawer } from './StageAssignmentMapDrawer';
+import { COLLEGE_GEO } from '../../domain/college';
 import { ImportSessionModal } from './ImportSessionModal';
 import { exportAffectationSession, downloadSessionAsJson, importAffectationSession, type SessionExportData, type ImportReport } from '../../services/affectationSessionService';
 

@@ -24,11 +24,20 @@ export function Timer({ duration, elapsedSeconds, initialElapsed, onTick, onEnd 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const elapsedRef = useRef(initElapsed);
   const onTickRef = useRef(onTick);
-  onTickRef.current = onTick;
-
   useEffect(() => {
+    onTickRef.current = onTick;
+  });
+
+  // Réinitialiser quand la durée ou le temps déjà écoulé changent
+  const resetKey = `${duration}|${initElapsed}`;
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  if (prevResetKey !== resetKey) {
+    setPrevResetKey(resetKey);
     setRemaining(Math.max(0, duration - initElapsed));
     setRunning(false);
+  }
+
+  useEffect(() => {
     elapsedRef.current = initElapsed;
     if (intervalRef.current) clearInterval(intervalRef.current);
   }, [duration, initElapsed]);

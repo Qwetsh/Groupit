@@ -529,7 +529,7 @@ export function importElevesFromCSV(
           case 'dateNaissance':
             eleve.dateNaissance = parseDate(trimmedValue);
             break;
-          case 'sexe':
+          case 'sexe': {
             const sexeValue = trimmedValue.toUpperCase();
             if (sexeValue === 'M' || sexeValue === 'MASCULIN' || sexeValue === 'GARÇON' || sexeValue === 'GARCON') {
               eleve.sexe = 'M';
@@ -539,6 +539,7 @@ export function importElevesFromCSV(
               eleve.sexe = 'Autre';
             }
             break;
+          }
           case 'email':
             eleve.email = trimmedValue;
             break;

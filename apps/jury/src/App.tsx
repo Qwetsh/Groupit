@@ -53,20 +53,21 @@ function loadNav(): SavedNav | null {
   } catch { return null; }
 }
 
+function loadSavedCriteriaConfig(): CriteriaConfig {
+  try {
+    const saved = sessionStorage.getItem(CRITERIA_CONFIG_KEY);
+    if (saved) return JSON.parse(saved) as CriteriaConfig;
+  } catch { /* ignore */ }
+  return DEFAULT_CRITERIA_CONFIG;
+}
+
 export default function App() {
   const [screen, setScreen] = useState<Screen>({ type: 'join' });
   const [restoring, setRestoring] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
-  const [criteriaConfig, setCriteriaConfig] = useState<CriteriaConfig>(DEFAULT_CRITERIA_CONFIG);
+  // La config critères mémorisée dans sessionStorage sert d'état initial.
+  const [criteriaConfig, setCriteriaConfig] = useState<CriteriaConfig>(loadSavedCriteriaConfig);
   const presenceRef = useRef<RealtimeChannel | null>(null);
-
-  // Restaurer la config critères du sessionStorage
-  useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem(CRITERIA_CONFIG_KEY);
-      if (saved) setCriteriaConfig(JSON.parse(saved));
-    } catch { /* ignore */ }
-  }, []);
 
   // Restaurer la navigation au chargement
   useEffect(() => {

@@ -162,34 +162,6 @@ export function ImportMatiereOralModal({ onClose, matieresAutorisees }: ImportMa
     return { eleve: null, confidence: 'none' };
   }, [eleves]);
 
-  // Parse CSV file
-  const parseFile = useCallback(async (selectedFile: File) => {
-    return new Promise<void>((resolve, reject) => {
-      Papa.parse(selectedFile, {
-        header: true,
-        skipEmptyLines: true,
-        encoding: 'UTF-8',
-        complete: (results) => {
-          const data = results.data as ParsedRow[];
-          if (data.length > 0) {
-            const hdrs = Object.keys(data[0]);
-            setHeaders(hdrs);
-            setRows(data);
-            
-            // Auto-detect columns
-            autoDetectColumns(hdrs);
-            resolve();
-          } else {
-            reject(new Error('Fichier vide'));
-          }
-        },
-        error: (error) => {
-          reject(error);
-        }
-      });
-    });
-  }, []);
-
   // Auto-detect column mappings
   const autoDetectColumns = useCallback((hdrs: string[]) => {
     const nomCandidates = ['nom', 'élève', 'eleve', 'nom élève', 'nom eleve', 'name', 'lastname'];
@@ -224,6 +196,34 @@ export function ImportMatiereOralModal({ onClose, matieresAutorisees }: ImportMa
       setImportMode('columns');
     }
   }, []);
+
+  // Parse CSV file
+  const parseFile = useCallback(async (selectedFile: File) => {
+    return new Promise<void>((resolve, reject) => {
+      Papa.parse(selectedFile, {
+        header: true,
+        skipEmptyLines: true,
+        encoding: 'UTF-8',
+        complete: (results) => {
+          const data = results.data as ParsedRow[];
+          if (data.length > 0) {
+            const hdrs = Object.keys(data[0]);
+            setHeaders(hdrs);
+            setRows(data);
+            
+            // Auto-detect columns
+            autoDetectColumns(hdrs);
+            resolve();
+          } else {
+            reject(new Error('Fichier vide'));
+          }
+        },
+        error: (error) => {
+          reject(error);
+        }
+      });
+    });
+  }, [autoDetectColumns]);
 
   // Handle file selection
   const handleFile = useCallback(async (selectedFile: File) => {
@@ -367,7 +367,7 @@ export function ImportMatiereOralModal({ onClose, matieresAutorisees }: ImportMa
                 matieresOral: mapping.matieres,
               });
               successCount++;
-            } catch (err) {
+            } catch {
               errorMessages.push(`Erreur pour ${mapping.prenom} ${mapping.nom}`);
             }
           }
@@ -393,7 +393,7 @@ export function ImportMatiereOralModal({ onClose, matieresAutorisees }: ImportMa
       setErrors([`Erreur lors de l'import: ${error}`]);
       setStep('preview');
     }
-  }, [mappings, eleves, updateEleve, onClose]);
+  }, [mappings, eleves, updateEleve, onClose, addNotification]);
 
   // Stats
   const stats = useMemo(() => {

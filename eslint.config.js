@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['**/dist', '**/node_modules']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -18,6 +18,10 @@ export default defineConfig([
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
+    },
+    rules: {
+      // `const { id, ...reste } = objet` sert à omettre des champs : le champ écarté n'est pas une variable oubliée.
+      '@typescript-eslint/no-unused-vars': ['error', { ignoreRestSiblings: true }],
     },
   },
 ])

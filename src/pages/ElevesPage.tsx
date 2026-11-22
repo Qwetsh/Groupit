@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import clsx from 'clsx';
 import { useEleveStore } from '../stores/eleveStore';
@@ -79,8 +79,10 @@ export const ElevesPage: React.FC = () => {
   const [sujetImportStats, setSujetImportStats] = useState({ success: 0, skipped: 0 });
   const sujetFileInputRef = useRef<HTMLInputElement>(null);
 
-  // Read tab param from URL
-  useEffect(() => {
+  // Read tab param from URL (à chaque changement des paramètres de l'adresse)
+  const [prevSearchParams, setPrevSearchParams] = useState<URLSearchParams | null>(null);
+  if (prevSearchParams !== searchParams) {
+    setPrevSearchParams(searchParams);
     const tabParam = searchParams.get('tab');
     if (tabParam === 'stage' || tabParam === 'sujets' || tabParam === 'liste') {
       setActiveTab(tabParam);
@@ -89,7 +91,7 @@ export const ElevesPage: React.FC = () => {
     if (tabParam === 'matieres') {
       setActiveTab('sujets');
     }
-  }, [searchParams]);
+  }
 
   // Get unique classes
   const classes = useMemo(() => {
@@ -126,12 +128,14 @@ export const ElevesPage: React.FC = () => {
     return Object.entries(groups).sort(([a], [b]) => a.localeCompare(b));
   }, [eleves3e]);
 
-  // Auto-expand all classes initially
-  useMemo(() => {
+  // Auto-expand all classes initially (et quand le nombre de classes change)
+  const [prevClasseCount, setPrevClasseCount] = useState<number | null>(null);
+  if (prevClasseCount !== classeGroups.length) {
+    setPrevClasseCount(classeGroups.length);
     if (expandedClasses.size === 0 && classeGroups.length > 0) {
       setExpandedClasses(new Set(classeGroups.map(([cls]) => cls)));
     }
-  }, [classeGroups.length]);
+  }
 
   const sujetStats = useMemo(() => {
     const total = eleves3e.length;

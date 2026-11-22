@@ -12,6 +12,7 @@ import { haversineDistance } from '../../infrastructure/geo/hash';
 import { getRouteCache } from '../../infrastructure/geo/cacheRepo';
 import type { Enseignant, Stage, Eleve } from '../../domain/models';
 import type { GeoPoint } from '../../infrastructure/geo/types';
+import { COLLEGE_ADDRESS } from '../../domain/college';
 import './StageAssignmentMapDrawer.css';
 
 // ============================================================
@@ -37,17 +38,6 @@ interface StageAssignmentMapDrawerProps {
   collegeGeo: GeoPoint;
 }
 
-// ============================================================
-// CONSTANTS
-// ============================================================
-
-// Coordonnées du collège (1 rue Jean Laurain, 57140 Woippy)
-export const COLLEGE_GEO: GeoPoint = {
-  lat: 49.15680,
-  lon: 6.13754,
-};
-
-export const COLLEGE_ADDRESS = '1 rue Jean Laurain, 57140 Woippy';
 
 // ============================================================
 // CUSTOM MARKER ICONS
@@ -183,7 +173,7 @@ export function StageAssignmentMapDrawer({
           // Estimate duration (~50 km/h average)
           durationMin = (distanceKm / 50) * 60;
         }
-      } catch (error) {
+      } catch {
         // Fallback to Haversine
         const directDist = haversineDistance(
           teacherGeo.lat, teacherGeo.lon,
@@ -209,6 +199,7 @@ export function StageAssignmentMapDrawer({
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- chargement asynchrone (cache d'itinéraires) déclenché à l'ouverture du tiroir
       loadDistances();
     }
   }, [isOpen, loadDistances]);

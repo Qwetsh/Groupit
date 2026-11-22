@@ -7,7 +7,8 @@ import { MapContainer, TileLayer, Marker, Popup, CircleMarker, useMap } from 're
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapPin, School, Briefcase, AlertTriangle } from 'lucide-react';
-import { HelpTooltip, HELP_TEXTS } from '../ui/Tooltip';
+import { HelpTooltip } from '../ui/Tooltip';
+import { HELP_TEXTS } from '../ui/helpTexts';
 import { haversineDistance } from '../../infrastructure/geo/hash';
 import type { Stage, Eleve } from '../../domain/models';
 import type { GeoPoint } from '../../infrastructure/geo/types';

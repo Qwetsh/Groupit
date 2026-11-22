@@ -48,7 +48,7 @@ export class FieldDefinitionRepository {
     
     // Vérifier l'unicité de la clé
     let suffix = 0;
-    let originalKey = key;
+    const originalKey = key;
     while (await this.getByKey(key)) {
       suffix++;
       key = `${originalKey}_${suffix}`;

@@ -35,8 +35,6 @@ export const ValidatedAssignmentDrawer: React.FC<ValidatedAssignmentDrawerProps>
   onExportPdf,
   onExportCsv,
 }) => {
-  if (!isOpen) return null;
-
   // Group affectations by enseignant (deduplicate for jury mode)
   const enseignantAffectations = useMemo(() => {
     const map = new Map<string, typeof archive.affectations[0]>();
@@ -56,6 +54,8 @@ export const ValidatedAssignmentDrawer: React.FC<ValidatedAssignmentDrawerProps>
     archive.participants.forEach(p => map.set(p.enseignantId, p));
     return map;
   }, [archive.participants]);
+
+  if (!isOpen) return null;
 
   const typeIcon = archive.scenarioType === 'oral_dnb' ? (
     <BookOpen size={16} />

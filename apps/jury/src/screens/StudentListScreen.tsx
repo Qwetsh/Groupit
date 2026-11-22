@@ -5,6 +5,28 @@ import * as XLSX from 'xlsx';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+function statusLabel(s: string) {
+  return s === 'validated' ? 'Noté' : s === 'absent' ? 'Absent' : 'En attente';
+}
+
+function buildRows(eleves: SessionEleveRow[], scoreMap: Map<string, FinalScoreRow>) {
+  return eleves.map(e => {
+    const fs = scoreMap.get(e.id);
+    return {
+      'Élève': e.display_name,
+      'Classe': e.classe || '',
+      'Parcours': e.parcours || '',
+      'Sujet': e.sujet || '',
+      'Note /20': fs ? fs.total : '',
+      'Oral /8': fs ? fs.total_oral : '',
+      'Sujet /12': fs ? fs.total_sujet : '',
+      'Points forts': fs?.points_forts || '',
+      "Axes d'amélioration": fs?.axes_amelioration || '',
+      'Statut': statusLabel(e.status),
+    };
+  });
+}
+
 interface StudentListScreenProps {
   juryId: string;
   onSelectEleve: (eleve: SessionEleveRow) => void;
@@ -101,29 +123,9 @@ export function StudentListScreen({ juryId, onSelectEleve, onSelectGroupe, onDis
     return new Map((data || []).map(s => [s.eleve_id, s as FinalScoreRow]));
   }, [eleves]);
 
-  const statusLabel = (s: string) =>
-    s === 'validated' ? 'Noté' : s === 'absent' ? 'Absent' : 'En attente';
-
-  const buildRows = (scoreMap: Map<string, FinalScoreRow>) =>
-    eleves.map(e => {
-      const fs = scoreMap.get(e.id);
-      return {
-        'Élève': e.display_name,
-        'Classe': e.classe || '',
-        'Parcours': e.parcours || '',
-        'Sujet': e.sujet || '',
-        'Note /20': fs ? fs.total : '',
-        'Oral /8': fs ? fs.total_oral : '',
-        'Sujet /12': fs ? fs.total_sujet : '',
-        'Points forts': fs?.points_forts || '',
-        "Axes d'amélioration": fs?.axes_amelioration || '',
-        'Statut': statusLabel(e.status),
-      };
-    });
-
   const handleExportExcel = useCallback(async () => {
     const scoreMap = await fetchScores();
-    const rows = buildRows(scoreMap);
+    const rows = buildRows(eleves, scoreMap);
     const ws = XLSX.utils.json_to_sheet(rows);
 
     // Largeurs de colonnes

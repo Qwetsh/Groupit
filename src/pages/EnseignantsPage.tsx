@@ -25,7 +25,7 @@ import { EnseignantProfileDrawer } from '../components/enseignant/EnseignantProf
 import { ConfirmModal } from '../components/ui/ConfirmModal';
 import { Tooltip } from '../components/ui/Tooltip';
 import { useConfirmDelete } from '../hooks/useConfirm';
-import { COLLEGE_GEO } from '../components/board/StageAssignmentMapDrawer';
+import { COLLEGE_GEO } from '../domain/college';
 import type { Enseignant } from '../domain/models';
 import './EnseignantsPage.css';
 
