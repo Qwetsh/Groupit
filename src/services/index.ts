@@ -3,13 +3,6 @@
 // ============================================================
 
 export {
-  createBackupService,
-  eleveBackupService,
-  enseignantBackupService,
-  type BackupService,
-} from './backupService';
-
-export {
   formatArchiveDate,
   getScenarioTypeLabel,
 } from './validationService';

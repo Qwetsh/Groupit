@@ -18,6 +18,12 @@ export class AffectationRepository {
     return db.affectations.get(id);
   }
 
+  /** Relit plusieurs lignes par identifiant ; celles qui n'existent plus sont omises. */
+  async getByIds(ids: readonly string[]): Promise<Affectation[]> {
+    const rows = await db.affectations.bulkGet([...ids]);
+    return rows.filter((row): row is Affectation => row !== undefined);
+  }
+
   async getByScenario(scenarioId: string): Promise<Affectation[]> {
     return db.affectations.where('scenarioId').equals(scenarioId).toArray();
   }

@@ -14,7 +14,6 @@ describe('Solveur Oral DNB', () => {
     nom: `Nom${id}`,
     prenom: `Prenom${id}`,
     classe: '3A',
-    niveau: '3e',
     customFields: {},
     options: [],
     tags: [],
@@ -31,6 +30,7 @@ describe('Solveur Oral DNB', () => {
     matierePrincipale: 'Mathématiques',
     classesEnCharge: ['3A'],
     estProfPrincipal: false,
+    tags: [],
     customFields: {},
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -48,6 +48,7 @@ describe('Solveur Oral DNB', () => {
     ...overrides,
   });
 
+  // Scénario volontairement partiel : seuls ces champs comptent pour le solveur.
   const createScenario = (overrides: Partial<Scenario> = {}): Scenario => ({
     id: 'scenario-1',
     nom: 'Test DNB',
@@ -63,7 +64,7 @@ describe('Solveur Oral DNB', () => {
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
-  });
+  }) as unknown as Scenario;
 
   // === TESTS LANGUE ÉTRANGÈRE ===
 

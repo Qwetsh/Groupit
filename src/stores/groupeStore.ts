@@ -6,6 +6,7 @@ import { create } from 'zustand';
 import type { Groupe } from '../domain/models';
 import { groupeRepository } from '../infrastructure/repositories';
 import { extractErrorMessage } from '../utils/errorUtils';
+import { reconcileRows, byIds } from './dbSync';
 
 interface GroupeState {
   groupes: Groupe[];
@@ -33,7 +34,15 @@ interface GroupeState {
   getGroupeByEleveId: (eleveId: string, scenarioId: string) => Groupe | undefined;
 }
 
-export const useGroupeStore = create<GroupeState>((set, get) => ({
+export const useGroupeStore = create<GroupeState>((set, get) => {
+  /** Relit en base les groupes `ids` et aligne la vue en mémoire. */
+  const syncFromDb = async (ids: readonly string[]): Promise<Groupe[]> => {
+    const fresh = await groupeRepository.getByIds(ids);
+    set(state => ({ groupes: reconcileRows(state.groupes, fresh, byIds(ids)) }));
+    return fresh;
+  };
+
+  return {
   groupes: [],
   loading: false,
   error: null,
@@ -60,137 +69,98 @@ export const useGroupeStore = create<GroupeState>((set, get) => ({
   
   addGroupe: async (groupe) => {
     try {
-      const newGroupe = await groupeRepository.create(groupe);
-      set(state => ({ groupes: [...state.groupes, newGroupe] }));
-      return newGroupe;
+      const created = await groupeRepository.create(groupe);
+      const [fresh] = await syncFromDb([created.id]);
+      return fresh ?? created;
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   updateGroupe: async (id, updates) => {
     try {
       await groupeRepository.update(id, updates);
-      set(state => ({
-        groupes: state.groupes.map(g => 
-          g.id === id ? { ...g, ...updates, updatedAt: new Date() } : g
-        ),
-      }));
+      await syncFromDb([id]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   deleteGroupe: async (id) => {
     try {
       await groupeRepository.delete(id);
-      set(state => ({
-        groupes: state.groupes.filter(g => g.id !== id),
-      }));
+      await syncFromDb([id]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   deleteGroupesByScenario: async (scenarioId) => {
     try {
       await groupeRepository.deleteByScenario(scenarioId);
+      const fresh = await groupeRepository.getByScenario(scenarioId);
       set(state => ({
-        groupes: state.groupes.filter(g => g.scenarioId !== scenarioId),
+        groupes: reconcileRows(state.groupes, fresh, g => g.scenarioId === scenarioId),
       }));
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   addEleveToGroupe: async (groupeId, eleveId) => {
     try {
       await groupeRepository.addEleve(groupeId, eleveId);
-      set(state => ({
-        groupes: state.groupes.map(g => 
-          g.id === groupeId && !g.eleveIds.includes(eleveId)
-            ? { ...g, eleveIds: [...g.eleveIds, eleveId], updatedAt: new Date() }
-            : g
-        ),
-      }));
+      await syncFromDb([groupeId]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   removeEleveFromGroupe: async (groupeId, eleveId) => {
     try {
       await groupeRepository.removeEleve(groupeId, eleveId);
-      set(state => ({
-        groupes: state.groupes.map(g => 
-          g.id === groupeId
-            ? { ...g, eleveIds: g.eleveIds.filter(id => id !== eleveId), updatedAt: new Date() }
-            : g
-        ),
-      }));
+      await syncFromDb([groupeId]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   moveEleveBetweenGroupes: async (eleveId, fromGroupeId, toGroupeId) => {
     try {
       await groupeRepository.moveEleveBetweenGroupes(eleveId, fromGroupeId, toGroupeId);
-      set(state => ({
-        groupes: state.groupes.map(g => {
-          if (g.id === fromGroupeId) {
-            return { ...g, eleveIds: g.eleveIds.filter(id => id !== eleveId), updatedAt: new Date() };
-          }
-          if (g.id === toGroupeId && !g.eleveIds.includes(eleveId)) {
-            return { ...g, eleveIds: [...g.eleveIds, eleveId], updatedAt: new Date() };
-          }
-          return g;
-        }),
-      }));
+      await syncFromDb([fromGroupeId, toGroupeId]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   addEnseignantToGroupe: async (groupeId, enseignantId) => {
     try {
       await groupeRepository.addEnseignant(groupeId, enseignantId);
-      set(state => ({
-        groupes: state.groupes.map(g => 
-          g.id === groupeId && !g.enseignantIds.includes(enseignantId)
-            ? { ...g, enseignantIds: [...g.enseignantIds, enseignantId], updatedAt: new Date() }
-            : g
-        ),
-      }));
+      await syncFromDb([groupeId]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   removeEnseignantFromGroupe: async (groupeId, enseignantId) => {
     try {
       await groupeRepository.removeEnseignant(groupeId, enseignantId);
-      set(state => ({
-        groupes: state.groupes.map(g => 
-          g.id === groupeId
-            ? { ...g, enseignantIds: g.enseignantIds.filter(id => id !== enseignantId), updatedAt: new Date() }
-            : g
-        ),
-      }));
+      await syncFromDb([groupeId]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   getGroupeById: (id) => {
     return get().groupes.find(g => g.id === id);
   },
@@ -204,4 +174,5 @@ export const useGroupeStore = create<GroupeState>((set, get) => ({
       g.scenarioId === scenarioId && g.eleveIds.includes(eleveId)
     );
   },
-}));
+  };
+});

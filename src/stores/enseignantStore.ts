@@ -5,8 +5,8 @@
 import { create } from 'zustand';
 import type { Enseignant, FilterEnseignants, CapaciteConfig } from '../domain/models';
 import { enseignantRepository } from '../infrastructure/repositories';
-import { enseignantBackupService } from '../services/backupService';
 import { extractErrorMessage } from '../utils/errorUtils';
+import { reconcileRows, byIds } from './dbSync';
 
 interface EnseignantState {
   enseignants: Enseignant[];
@@ -51,7 +51,18 @@ const defaultFilters: FilterEnseignants = {
   recherche: '',
 };
 
-export const useEnseignantStore = create<EnseignantState>((set, get) => ({
+export const useEnseignantStore = create<EnseignantState>((set, get) => {
+  /**
+   * Relit en base les enseignants `ids` et aligne la vue en mémoire : la base
+   * est la source de vérité, le store n'en garde qu'une copie de lecture.
+   */
+  const syncFromDb = async (ids: readonly string[]): Promise<Enseignant[]> => {
+    const fresh = await enseignantRepository.getByIds(ids);
+    set(state => ({ enseignants: reconcileRows(state.enseignants, fresh, byIds(ids)) }));
+    return fresh;
+  };
+
+  return {
   enseignants: [],
   loading: false,
   error: null,
@@ -62,35 +73,18 @@ export const useEnseignantStore = create<EnseignantState>((set, get) => ({
     set({ loading: true, error: null });
     try {
       // Charger et dédupliquer depuis la base
-      let enseignants = await enseignantRepository.getAllAndDedupe();
-
-      // Si la base est vide, tenter de restaurer depuis le backup
-      if (enseignants.length === 0) {
-        const backup = enseignantBackupService.restore();
-        if (backup && backup.length > 0) {
-          enseignants = await enseignantRepository.restoreFromBackup(backup);
-          console.info(`[EnseignantStore] ${enseignants.length} enseignant(s) restauré(s) depuis le backup`);
-        }
-      }
-
-      // Mettre à jour le backup
-      enseignantBackupService.persist(enseignants);
-
+      const enseignants = await enseignantRepository.getAllAndDedupe();
       set({ enseignants, loading: false });
     } catch (error) {
       set({ error: extractErrorMessage(error), loading: false });
     }
   },
-  
+
   addEnseignant: async (enseignant) => {
     try {
-      const newEnseignant = await enseignantRepository.create(enseignant);
-      set(state => {
-        const enseignants = [...state.enseignants, newEnseignant];
-        enseignantBackupService.persist(enseignants);
-        return { enseignants };
-      });
-      return newEnseignant;
+      const created = await enseignantRepository.create(enseignant);
+      const [fresh] = await syncFromDb([created.id]);
+      return fresh ?? created;
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
@@ -99,13 +93,9 @@ export const useEnseignantStore = create<EnseignantState>((set, get) => ({
 
   addEnseignants: async (enseignants) => {
     try {
-      const newEnseignants = await enseignantRepository.createMany(enseignants);
-      set(state => {
-        const allEnseignants = [...state.enseignants, ...newEnseignants];
-        enseignantBackupService.persist(allEnseignants);
-        return { enseignants: allEnseignants };
-      });
-      return newEnseignants;
+      const created = await enseignantRepository.createMany(enseignants);
+      const fresh = await syncFromDb(created.map(e => e.id));
+      return fresh.length === created.length ? fresh : created;
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
@@ -115,13 +105,7 @@ export const useEnseignantStore = create<EnseignantState>((set, get) => ({
   updateEnseignant: async (id, updates) => {
     try {
       await enseignantRepository.update(id, updates);
-      set(state => {
-        const enseignants = state.enseignants.map(e =>
-          e.id === id ? { ...e, ...updates, updatedAt: new Date() } : e
-        );
-        enseignantBackupService.persist(enseignants);
-        return { enseignants };
-      });
+      await syncFromDb([id]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
@@ -131,14 +115,10 @@ export const useEnseignantStore = create<EnseignantState>((set, get) => ({
   deleteEnseignant: async (id) => {
     try {
       await enseignantRepository.delete(id);
-      set(state => {
-        const enseignants = state.enseignants.filter(e => e.id !== id);
-        enseignantBackupService.persist(enseignants);
-        return {
-          enseignants,
-          selectedEnseignantIds: state.selectedEnseignantIds.filter(i => i !== id),
-        };
-      });
+      await syncFromDb([id]);
+      set(state => ({
+        selectedEnseignantIds: state.selectedEnseignantIds.filter(i => i !== id),
+      }));
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
@@ -148,14 +128,10 @@ export const useEnseignantStore = create<EnseignantState>((set, get) => ({
   deleteEnseignants: async (ids) => {
     try {
       await enseignantRepository.deleteMany(ids);
-      set(state => {
-        const enseignants = state.enseignants.filter(e => !ids.includes(e.id));
-        enseignantBackupService.persist(enseignants);
-        return {
-          enseignants,
-          selectedEnseignantIds: state.selectedEnseignantIds.filter(i => !ids.includes(i)),
-        };
-      });
+      await syncFromDb(ids);
+      set(state => ({
+        selectedEnseignantIds: state.selectedEnseignantIds.filter(i => !ids.includes(i)),
+      }));
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
@@ -165,14 +141,13 @@ export const useEnseignantStore = create<EnseignantState>((set, get) => ({
   deleteAllEnseignants: async () => {
     try {
       await enseignantRepository.deleteAll();
-      enseignantBackupService.clear();
-      set({ enseignants: [], selectedEnseignantIds: [] });
+      set({ enseignants: await enseignantRepository.getAll(), selectedEnseignantIds: [] });
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   setFilters: (filters) => {
     set(state => ({
       filters: { ...state.filters, ...filters },
@@ -269,4 +244,5 @@ export const useEnseignantStore = create<EnseignantState>((set, get) => ({
   calculateCapacity: (enseignant, config) => {
     return enseignantRepository.calculateCapacity(enseignant, config);
   },
-}));
+  };
+});

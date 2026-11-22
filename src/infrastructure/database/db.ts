@@ -16,6 +16,24 @@ import type {
 } from '../../domain/models';
 import type { GeoCacheEntry, RouteCacheEntry } from '../geo/types';
 
+// Reprise de fiches existantes (ancienne sauvegarde) : leurs dates d'origine
+// doivent être conservées, alors qu'une création ordinaire est datée du jour.
+let preserveTimestamps = false;
+
+/** Exécute `operation` en conservant les dates des fiches qu'elle insère. */
+export async function preservingTimestamps<T>(operation: () => Promise<T>): Promise<T> {
+  preserveTimestamps = true;
+  try {
+    return await operation();
+  } finally {
+    preserveTimestamps = false;
+  }
+}
+
+function keepsOwnTimestamps(obj: { createdAt?: unknown; updatedAt?: unknown }): boolean {
+  return preserveTimestamps && obj.createdAt instanceof Date && obj.updatedAt instanceof Date;
+}
+
 export class GroupitDB extends Dexie {
   eleves!: Table<Eleve, string>;
   enseignants!: Table<Enseignant, string>;
@@ -131,6 +149,7 @@ export class GroupitDB extends Dexie {
 
     // Hooks pour mise à jour automatique des timestamps
     this.eleves.hook('creating', (_primKey, obj) => {
+      if (keepsOwnTimestamps(obj)) return;
       obj.createdAt = new Date();
       obj.updatedAt = new Date();
     });
@@ -140,6 +159,7 @@ export class GroupitDB extends Dexie {
     });
 
     this.enseignants.hook('creating', (_primKey, obj) => {
+      if (keepsOwnTimestamps(obj)) return;
       obj.createdAt = new Date();
       obj.updatedAt = new Date();
     });

@@ -6,6 +6,7 @@ import { create } from 'zustand';
 import { db } from '../infrastructure/database/db';
 import type { Stage, GeoPrecision, GeoStatusExtended } from '../domain/models';
 import { extractErrorMessage } from '../utils/errorUtils';
+import { reconcileRows, byIds } from './dbSync';
 
 interface StageState {
   stages: Stage[];
@@ -48,7 +49,24 @@ function generateId(): string {
   return `stage_${crypto.randomUUID()}`;
 }
 
-export const useStageStore = create<StageState>((set) => ({
+/** Relit en base les stages `ids` ; ceux qui n'existent plus sont omis. */
+async function readStages(ids: readonly string[]): Promise<Stage[]> {
+  const rows = await db.stages.bulkGet([...ids]);
+  return rows.filter((row): row is Stage => row !== undefined);
+}
+
+export const useStageStore = create<StageState>((set) => {
+  /**
+   * Relit en base les stages `ids` et aligne la vue en mémoire : la base est
+   * la source de vérité, le store n'en garde qu'une copie de lecture.
+   */
+  const syncFromDb = async (ids: readonly string[]): Promise<Stage[]> => {
+    const fresh = await readStages(ids);
+    set(state => ({ stages: reconcileRows(state.stages, fresh, byIds(ids)) }));
+    return fresh;
+  };
+
+  return {
   stages: [],
   loading: false,
   error: null,
@@ -94,41 +112,33 @@ export const useStageStore = create<StageState>((set) => ({
         createdAt: now,
         updatedAt: now,
       };
-
       await db.stages.add(stage);
-      set(state => ({ stages: [...state.stages, stage] }));
-      return stage;
+      const [fresh] = await syncFromDb([stage.id]);
+      return fresh ?? stage;
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-
   updateStage: async (id, updates) => {
     try {
       const now = new Date();
       await db.stages.update(id, { ...updates, updatedAt: now });
-      set(state => ({
-        stages: state.stages.map(s =>
-          s.id === id ? { ...s, ...updates, updatedAt: now } : s
-        ),
-      }));
+      await syncFromDb([id]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
   deleteStage: async (id) => {
     try {
       await db.stages.delete(id);
-      set(state => ({ stages: state.stages.filter(s => s.id !== id) }));
+      await syncFromDb([id]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-
   bulkAddStages: async (stagesData) => {
     try {
       const now = new Date();
@@ -138,22 +148,20 @@ export const useStageStore = create<StageState>((set) => ({
         createdAt: now,
         updatedAt: now,
       }));
-
       await db.stages.bulkAdd(stages);
-      set(state => ({ stages: [...state.stages, ...stages] }));
+      await syncFromDb(stages.map(s => s.id));
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
   clearStagesByScenario: async (scenarioId) => {
     await db.stages.where('scenarioId').equals(scenarioId).delete();
+    const fresh = await db.stages.where('scenarioId').equals(scenarioId).toArray();
     set(state => ({
-      stages: state.stages.filter(s => s.scenarioId !== scenarioId)
+      stages: reconcileRows(state.stages, fresh, s => s.scenarioId === scenarioId)
     }));
   },
-
   getStageByEleveId: (eleveId: string): Stage | undefined => {
     const { stages } = useStageStore.getState() as StageState;
     // Priorité aux stages globaux (sans scenarioId)
@@ -167,17 +175,12 @@ export const useStageStore = create<StageState>((set) => ({
     const existingStage = await db.stages
       .filter(s => s.eleveId === eleveId && !s.scenarioId)
       .first();
-
     if (existingStage) {
       // Mise à jour
       const updates = { ...data, updatedAt: now };
       await db.stages.update(existingStage.id, updates);
-      set(state => ({
-        stages: state.stages.map(s =>
-          s.id === existingStage.id ? { ...s, ...updates } : s
-        ),
-      }));
-      return { ...existingStage, ...updates };
+      const [fresh] = await syncFromDb([existingStage.id]);
+      return fresh ?? { ...existingStage, ...updates };
     } else {
       // Création
       const stage = {
@@ -188,18 +191,15 @@ export const useStageStore = create<StageState>((set) => ({
         createdAt: now,
         updatedAt: now,
       } satisfies Omit<Stage, 'id' | 'createdAt' | 'updatedAt'> & { id: string; createdAt: Date; updatedAt: Date } as Stage;
-
       await db.stages.add(stage);
-      set(state => ({ stages: [...state.stages, stage] }));
-      return stage;
+      const [fresh] = await syncFromDb([stage.id]);
+      return fresh ?? stage;
     }
   },
-
   bulkUpsertStagesForEleves: async (stagesData) => {
     const now = new Date();
     let updated = 0;
     let created = 0;
-
     // Charger tous les stages globaux existants
     const existingStages = await db.stages
       .filter(s => !s.scenarioId)
@@ -207,10 +207,8 @@ export const useStageStore = create<StageState>((set) => ({
     const existingByEleveId = new Map(
       existingStages.map(s => [s.eleveId, s])
     );
-
     const toUpdate: Stage[] = [];
     const toCreate: Stage[] = [];
-
     for (const data of stagesData) {
       const existing = existingByEleveId.get(data.eleveId);
       if (existing) {
@@ -227,7 +225,6 @@ export const useStageStore = create<StageState>((set) => ({
         created++;
       }
     }
-
     // Bulk update
     if (toUpdate.length > 0) {
       await db.transaction('rw', db.stages, async () => {
@@ -236,75 +233,55 @@ export const useStageStore = create<StageState>((set) => ({
         }
       });
     }
-
     // Bulk create
     if (toCreate.length > 0) {
       await db.stages.bulkAdd(toCreate);
     }
-
-    // Mettre à jour le state
-    set(state => {
-      const updatedIds = new Set(toUpdate.map(s => s.id));
-      const filteredStages = state.stages.filter(s => !updatedIds.has(s.id));
-      return { stages: [...filteredStages, ...toUpdate, ...toCreate] };
-    });
-
+    // Relire la base ; comme avant, les stages touchés passent en fin de liste
+    // (mis à jour, puis créés).
+    const touchedIds = [...toUpdate, ...toCreate].map(s => s.id);
+    const fresh = await readStages(touchedIds);
+    const touched = new Set(touchedIds);
+    set(state => ({
+      stages: [...state.stages.filter(s => !touched.has(s.id)), ...fresh],
+    }));
     return { updated, created };
   },
-
   deleteStageByEleveId: async (eleveId: string) => {
     // Supprimer uniquement le stage global
     const stage = await db.stages
       .filter(s => s.eleveId === eleveId && !s.scenarioId)
       .first();
-
     if (stage) {
       await db.stages.delete(stage.id);
-      set(state => ({ stages: state.stages.filter(s => s.id !== stage.id) }));
+      await syncFromDb([stage.id]);
     }
   },
-  
   updateStageGeo: async (id, lat, lon, status) => {
     const now = new Date();
     await db.stages.update(id, { lat, lon, geoStatus: status, geoErrorMessage: undefined, updatedAt: now });
-    set(state => ({
-      stages: state.stages.map(s => 
-        s.id === id 
-          ? { ...s, lat, lon, geoStatus: status, geoErrorMessage: undefined, updatedAt: now } 
-          : s
-      ),
-    }));
+    await syncFromDb([id]);
   },
-  
   setStageGeoError: async (id, errorMessage) => {
     const now = new Date();
     await db.stages.update(id, { geoStatus: 'error', geoErrorMessage: errorMessage, updatedAt: now });
-    set(state => ({
-      stages: state.stages.map(s => 
-        s.id === id 
-          ? { ...s, geoStatus: 'error', geoErrorMessage: errorMessage, updatedAt: now } 
-          : s
-      ),
-    }));
+    await syncFromDb([id]);
   },
-  
   updateStageGeoExtended: async (id, lat, lon, geoStatus, geoStatusExtended, geoPrecision, geoQueryUsed) => {
     const now = new Date();
-    const updates = { 
-      lat, 
-      lon, 
-      geoStatus, 
+    const updates = {
+      lat,
+      lon,
+      geoStatus,
       geoStatusExtended,
       geoPrecision,
       geoQueryUsed,
-      geoErrorMessage: undefined, 
-      updatedAt: now 
+      geoErrorMessage: undefined,
+      updatedAt: now
     };
     await db.stages.update(id, updates);
-    set(state => ({
-      stages: state.stages.map(s => 
-        s.id === id ? { ...s, ...updates } : s
-      ),
-    }));
+    await syncFromDb([id]);
   },
-}));
+  };
+});
+

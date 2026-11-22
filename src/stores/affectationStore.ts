@@ -6,6 +6,7 @@ import { create } from 'zustand';
 import type { Affectation, AffectationMetadata } from '../domain/models';
 import { affectationRepository } from '../infrastructure/repositories';
 import { extractErrorMessage } from '../utils/errorUtils';
+import { reconcileRows, byIds } from './dbSync';
 
 interface AffectationState {
   affectations: Affectation[];
@@ -33,7 +34,23 @@ interface AffectationState {
   getUnassignedEleveIds: (scenarioId: string, allEleveIds: string[]) => string[];
 }
 
-export const useAffectationStore = create<AffectationState>((set, get) => ({
+export const useAffectationStore = create<AffectationState>((set, get) => {
+  /** Relit en base les affectations `ids` et aligne la vue en mémoire. */
+  const syncFromDb = async (ids: readonly string[]): Promise<Affectation[]> => {
+    const fresh = await affectationRepository.getByIds(ids);
+    set(state => ({ affectations: reconcileRows(state.affectations, fresh, byIds(ids)) }));
+    return fresh;
+  };
+
+  /** Relit en base toutes les affectations d'un scénario. */
+  const syncScenarioFromDb = async (scenarioId: string): Promise<void> => {
+    const fresh = await affectationRepository.getByScenario(scenarioId);
+    set(state => ({
+      affectations: reconcileRows(state.affectations, fresh, a => a.scenarioId === scenarioId),
+    }));
+  };
+
+  return {
   affectations: [],
   loading: false,
   error: null,
@@ -60,88 +77,76 @@ export const useAffectationStore = create<AffectationState>((set, get) => ({
   
   addAffectation: async (affectation) => {
     try {
-      const newAffectation = await affectationRepository.create(affectation);
-      set(state => ({ affectations: [...state.affectations, newAffectation] }));
-      return newAffectation;
+      const created = await affectationRepository.create(affectation);
+      const [fresh] = await syncFromDb([created.id]);
+      return fresh ?? created;
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   addAffectations: async (affectations) => {
     try {
-      const newAffectations = await affectationRepository.createMany(affectations);
-      set(state => ({ affectations: [...state.affectations, ...newAffectations] }));
-      return newAffectations;
+      const created = await affectationRepository.createMany(affectations);
+      const fresh = await syncFromDb(created.map(a => a.id));
+      return fresh.length === created.length ? fresh : created;
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   updateAffectation: async (id, updates) => {
     try {
       await affectationRepository.update(id, updates);
-      set(state => ({
-        affectations: state.affectations.map(a => 
-          a.id === id ? { ...a, ...updates, updatedAt: new Date() } : a
-        ),
-      }));
+      await syncFromDb([id]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   updateMetadata: async (id, metadata) => {
     try {
       await affectationRepository.updateMetadata(id, metadata);
-      set(state => ({
-        affectations: state.affectations.map(a => 
-          a.id === id ? { ...a, metadata, updatedAt: new Date() } : a
-        ),
-      }));
+      await syncFromDb([id]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   deleteAffectation: async (id) => {
     try {
       await affectationRepository.delete(id);
-      set(state => ({
-        affectations: state.affectations.filter(a => a.id !== id),
-      }));
+      await syncFromDb([id]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   deleteAffectationsByScenario: async (scenarioId) => {
     try {
       await affectationRepository.deleteByScenario(scenarioId);
-      set(state => ({
-        affectations: state.affectations.filter(a => a.scenarioId !== scenarioId),
-      }));
+      await syncScenarioFromDb(scenarioId);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   deleteAllAffectations: async () => {
     try {
       await affectationRepository.deleteAll();
-      set({ affectations: [] });
+      set({ affectations: await affectationRepository.getAll() });
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-  
+
   getAffectationById: (id) => {
     return get().affectations.find(a => a.id === id);
   },
@@ -179,4 +184,5 @@ export const useAffectationStore = create<AffectationState>((set, get) => ({
     const assignedIds = new Set(affectations.map(a => a.eleveId));
     return allEleveIds.filter(id => !assignedIds.has(id));
   },
-}));
+  };
+});

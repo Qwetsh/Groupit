@@ -7,6 +7,7 @@ import type { Jury, JuryStats, Enseignant, Scenario } from '../domain/models';
 import { MATIERES_HEURES_3E } from '../domain/models';
 import { juryRepository } from '../infrastructure/repositories';
 import { extractErrorMessage } from '../utils/errorUtils';
+import { reconcileRows, byIds } from './dbSync';
 
 // ============================================================
 // ALGORITHME DE GÉNÉRATION AUTOMATIQUE DES JURYS
@@ -143,14 +144,20 @@ interface JuryState {
   getJuryById: (id: string) => Jury | undefined;
   
   // Bulk
-  setJurys: (jurys: Jury[]) => void;
   clearJurysByScenario: (scenarioId: string) => Promise<void>;
   
   // Calcul des matières couvertes par un jury
   computeJuryMatieres: (jury: Jury, enseignants: Enseignant[]) => string[];
 }
 
-export const useJuryStore = create<JuryState>((set, get) => ({
+export const useJuryStore = create<JuryState>((set, get) => {
+  /** Relit en base les jurys `ids` et aligne la vue en mémoire. */
+  const syncFromDb = async (ids: readonly string[]): Promise<void> => {
+    const fresh = await juryRepository.getByIds(ids);
+    set(state => ({ jurys: reconcileRows(state.jurys, fresh, byIds(ids)) }));
+  };
+
+  return {
   jurys: [],
   loading: false,
   error: null,
@@ -167,77 +174,50 @@ export const useJuryStore = create<JuryState>((set, get) => ({
 
   addJury: async (juryData) => {
     try {
-      const newJury = await juryRepository.create(juryData);
-      set(state => ({
-        jurys: [...state.jurys, newJury]
-      }));
-      return newJury.id!;
+      const created = await juryRepository.create(juryData);
+      await syncFromDb([created.id]);
+      return created.id!;
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-
   updateJury: async (id, updates) => {
     try {
       await juryRepository.update(id, updates);
-      set(state => ({
-        jurys: state.jurys.map(j => 
-          j.id === id 
-            ? { ...j, ...updates, updatedAt: new Date() }
-            : j
-        )
-      }));
+      await syncFromDb([id]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-
   deleteJury: async (id) => {
     try {
       await juryRepository.delete(id);
-      set(state => ({
-        jurys: state.jurys.filter(j => j.id !== id)
-      }));
+      await syncFromDb([id]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-
   addEnseignantToJury: async (juryId, enseignantId) => {
     try {
       await juryRepository.addEnseignant(juryId, enseignantId);
-      set(state => ({
-        jurys: state.jurys.map(j => 
-          j.id === juryId && !j.enseignantIds.includes(enseignantId)
-            ? { ...j, enseignantIds: [...j.enseignantIds, enseignantId], updatedAt: new Date() }
-            : j
-        )
-      }));
+      await syncFromDb([juryId]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-
   removeEnseignantFromJury: async (juryId, enseignantId) => {
     try {
       await juryRepository.removeEnseignant(juryId, enseignantId);
-      set(state => ({
-        jurys: state.jurys.map(j => 
-          j.id === juryId
-            ? { ...j, enseignantIds: j.enseignantIds.filter(id => id !== enseignantId), updatedAt: new Date() }
-            : j
-        )
-      }));
+      await syncFromDb([juryId]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-
   moveEnseignantBetweenJurys: async (enseignantId, fromJuryId, toJuryId) => {
     try {
       // Retirer de l'ancien jury si spécifié (titulaire OU suppléant)
@@ -256,43 +236,20 @@ export const useJuryStore = create<JuryState>((set, get) => ({
       if (toJuryId) {
         await juryRepository.addEnseignant(toJuryId, enseignantId);
       }
-
-      set(state => ({
-        jurys: state.jurys.map(j => {
-          if (j.id === fromJuryId) {
-            const isSuppleant = j.suppleantsIds?.includes(enseignantId);
-            if (isSuppleant) {
-              return { ...j, suppleantsIds: (j.suppleantsIds || []).filter(id => id !== enseignantId), updatedAt: new Date() };
-            }
-            return { ...j, enseignantIds: j.enseignantIds.filter(id => id !== enseignantId), updatedAt: new Date() };
-          }
-          if (j.id === toJuryId && !j.enseignantIds.includes(enseignantId)) {
-            return { ...j, enseignantIds: [...j.enseignantIds, enseignantId], updatedAt: new Date() };
-          }
-          return j;
-        })
-      }));
+      await syncFromDb([fromJuryId, toJuryId].filter((id): id is string => !!id));
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
     }
   },
-
   updateJuryStats: async (juryId, stats) => {
     try {
       await juryRepository.update(juryId, { stats });
-      set(state => ({
-        jurys: state.jurys.map(j => 
-          j.id === juryId
-            ? { ...j, stats, updatedAt: new Date() }
-            : j
-        )
-      }));
+      await syncFromDb([juryId]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
     }
   },
-
   getJurysByScenario: (scenarioId) => {
     return get().jurys.filter(j => j.scenarioId === scenarioId);
   },
@@ -301,36 +258,29 @@ export const useJuryStore = create<JuryState>((set, get) => ({
     return get().jurys.find(j => j.id === id);
   },
 
-  setJurys: (jurys) => {
-    set({ jurys });
-  },
-
   clearJurysByScenario: async (scenarioId) => {
     try {
       await juryRepository.deleteByScenarioId(scenarioId);
+      const fresh = await juryRepository.getByScenarioId(scenarioId);
       set(state => ({
-        jurys: state.jurys.filter(j => j.scenarioId !== scenarioId)
+        jurys: reconcileRows(state.jurys, fresh, j => j.scenarioId === scenarioId)
       }));
     } catch (error) {
       set({ error: extractErrorMessage(error) });
     }
   },
-
   generateJurysAuto: async (scenario, enseignants, options = {}) => {
     const scenarioId = scenario.id!;
     const capaciteParJury = options.capaciteParJury || scenario.parametres.oralDnb?.capaciteJuryDefaut || 8;
-    
     // Supprimer les jurys existants pour ce scénario
     await get().clearJurysByScenario(scenarioId);
-    
     // Générer la distribution
     const distribution = generateJurysDistribution(enseignants, {
       ...options,
       enseignantsParJury: options.enseignantsParJury || 2,
     });
-    
     // Créer tous les jurys puis mettre à jour le state en une seule fois
-    const newJurys: Jury[] = [];
+    const createdIds: string[] = [];
     for (let i = 0; i < distribution.length; i++) {
       const distrib = distribution[i];
       const newJury = await juryRepository.create({
@@ -340,14 +290,10 @@ export const useJuryStore = create<JuryState>((set, get) => ({
         suppleantsIds: distrib.suppleantsIds,
         capaciteMax: capaciteParJury,
       });
-      newJurys.push(newJury);
+      createdIds.push(newJury.id);
     }
-
-    set(state => ({
-      jurys: [...state.jurys, ...newJurys]
-    }));
+    await syncFromDb(createdIds);
   },
-
   computeJuryMatieres: (jury, enseignants) => {
     const matieres = new Set<string>();
     jury.enseignantIds.forEach(ensId => {
@@ -358,4 +304,5 @@ export const useJuryStore = create<JuryState>((set, get) => ({
     });
     return Array.from(matieres);
   },
-}));
+  };
+});

@@ -6,6 +6,10 @@ import { create } from 'zustand';
 import type { Scenario, ScenarioMode, ScenarioType, ScenarioParametres, CritereConfig } from '../domain/models';
 import { scenarioRepository, affectationRepository, groupeRepository, juryRepository } from '../infrastructure/repositories';
 import { extractErrorMessage } from '../utils/errorUtils';
+import { reconcileRows, byIds } from './dbSync';
+import { useAffectationStore } from './affectationStore';
+import { useGroupeStore } from './groupeStore';
+import { useJuryStore } from './juryStore';
 
 // Le scénario courant est mémorisé pour qu'un rechargement de la page rouvre
 // l'affectation en cours, et non le premier scénario de la liste.
@@ -56,7 +60,15 @@ interface ScenarioState {
   getScenarioById: (id: string) => Scenario | undefined;
 }
 
-export const useScenarioStore = create<ScenarioState>((set, get) => ({
+export const useScenarioStore = create<ScenarioState>((set, get) => {
+  /** Relit en base les scénarios `ids` et aligne la vue en mémoire. */
+  const syncFromDb = async (ids: readonly string[]): Promise<Scenario[]> => {
+    const fresh = await scenarioRepository.getByIds(ids);
+    set(state => ({ scenarios: reconcileRows(state.scenarios, fresh, byIds(ids)) }));
+    return fresh;
+  };
+
+  return {
   scenarios: [],
   currentScenarioId: null,
   loading: false,
@@ -90,9 +102,9 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
 
   addScenario: async (scenario) => {
     try {
-      const newScenario = await scenarioRepository.create(scenario);
-      set(state => ({ scenarios: [...state.scenarios, newScenario] }));
-      return newScenario;
+      const created = await scenarioRepository.create(scenario);
+      const [fresh] = await syncFromDb([created.id]);
+      return fresh ?? created;
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
@@ -101,9 +113,9 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
 
   createDefaultScenario: async (nom, type, mode = 'matching') => {
     try {
-      const newScenario = await scenarioRepository.createDefault(nom, type, mode);
-      set(state => ({ scenarios: [...state.scenarios, newScenario] }));
-      return newScenario;
+      const created = await scenarioRepository.createDefault(nom, type, mode);
+      const [fresh] = await syncFromDb([created.id]);
+      return fresh ?? created;
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
@@ -113,11 +125,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
   updateScenario: async (id, updates) => {
     try {
       await scenarioRepository.update(id, updates);
-      set(state => ({
-        scenarios: state.scenarios.map(s =>
-          s.id === id ? { ...s, ...updates, updatedAt: new Date() } : s
-        ),
-      }));
+      await syncFromDb([id]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
@@ -130,11 +138,7 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       if (scenario) {
         const updatedParametres = { ...scenario.parametres, ...parametres };
         await scenarioRepository.update(id, { parametres: updatedParametres });
-        set(state => ({
-          scenarios: state.scenarios.map(s =>
-            s.id === id ? { ...s, parametres: updatedParametres, updatedAt: new Date() } : s
-          ),
-        }));
+        await syncFromDb([id]);
       }
     } catch (error) {
       set({ error: extractErrorMessage(error) });
@@ -159,11 +163,10 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
 
   duplicateScenario: async (id, newNom) => {
     try {
-      const newScenario = await scenarioRepository.duplicate(id, newNom);
-      if (newScenario) {
-        set(state => ({ scenarios: [...state.scenarios, newScenario] }));
-      }
-      return newScenario;
+      const created = await scenarioRepository.duplicate(id, newNom);
+      if (!created) return created;
+      const [fresh] = await syncFromDb([created.id]);
+      return fresh ?? created;
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
@@ -182,17 +185,31 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
       deletedSteps.push('jurys');
       await scenarioRepository.delete(id);
       deletedSteps.push('scenario');
-      set(state => {
-        const newScenarios = state.scenarios.filter(s => s.id !== id);
-        const newCurrentId = state.currentScenarioId === id
-          ? (newScenarios.length > 0 ? newScenarios[0].id : null)
-          : state.currentScenarioId;
-        if (newCurrentId !== state.currentScenarioId) saveScenarioId(newCurrentId);
-        return {
-          scenarios: newScenarios,
-          currentScenarioId: newCurrentId,
-        };
-      });
+
+      // Les vues des tables liées relisent la base : sans cela elles
+      // garderaient en mémoire les lignes du scénario supprimé.
+      const [affectations, groupes, jurys] = await Promise.all([
+        affectationRepository.getByScenario(id),
+        groupeRepository.getByScenario(id),
+        juryRepository.getByScenarioId(id),
+      ]);
+      useAffectationStore.setState(state => ({
+        affectations: reconcileRows(state.affectations, affectations, a => a.scenarioId === id),
+      }));
+      useGroupeStore.setState(state => ({
+        groupes: reconcileRows(state.groupes, groupes, g => g.scenarioId === id),
+      }));
+      useJuryStore.setState(state => ({
+        jurys: reconcileRows(state.jurys, jurys, j => j.scenarioId === id),
+      }));
+
+      await syncFromDb([id]);
+      const { scenarios, currentScenarioId } = get();
+      if (currentScenarioId === id) {
+        const newCurrentId = scenarios.length > 0 ? scenarios[0].id : null;
+        saveScenarioId(newCurrentId);
+        set({ currentScenarioId: newCurrentId });
+      }
     } catch (error) {
       console.error(
         `[ScenarioStore] Cascade delete failed for scenario ${id}. ` +
@@ -227,4 +244,5 @@ export const useScenarioStore = create<ScenarioState>((set, get) => ({
   getScenarioById: (id) => {
     return get().scenarios.find(s => s.id === id);
   },
-}));
+  };
+});

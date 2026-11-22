@@ -24,6 +24,12 @@ export const juryRepository = {
     return db.jurys.get(id);
   },
 
+  /** Relit plusieurs lignes par identifiant ; celles qui n'existent plus sont omises. */
+  async getByIds(ids: readonly string[]): Promise<Jury[]> {
+    const rows = await db.jurys.bulkGet([...ids]);
+    return rows.filter((row): row is Jury => row !== undefined);
+  },
+
   /**
    * Récupère tous les jurys d'un scénario
    */

@@ -6,6 +6,7 @@ import { create } from 'zustand';
 import type { FieldDefinition, EntityType, FieldType } from '../domain/models';
 import { fieldDefinitionRepository } from '../infrastructure/repositories';
 import { extractErrorMessage } from '../utils/errorUtils';
+import { reconcileRows, byIds } from './dbSync';
 
 interface FieldDefinitionState {
   fieldDefinitions: FieldDefinition[];
@@ -32,7 +33,15 @@ interface FieldDefinitionState {
   getFieldDefinitionsForEntity: (entityType: 'eleve' | 'enseignant') => FieldDefinition[];
 }
 
-export const useFieldDefinitionStore = create<FieldDefinitionState>((set, get) => ({
+export const useFieldDefinitionStore = create<FieldDefinitionState>((set, get) => {
+  /** Relit en base les champs `ids` et aligne la vue en mémoire. */
+  const syncFromDb = async (ids: readonly string[]): Promise<FieldDefinition[]> => {
+    const fresh = await fieldDefinitionRepository.getByIds(ids);
+    set(state => ({ fieldDefinitions: reconcileRows(state.fieldDefinitions, fresh, byIds(ids)) }));
+    return fresh;
+  };
+
+  return {
   fieldDefinitions: [],
   loading: false,
   error: null,
@@ -49,13 +58,14 @@ export const useFieldDefinitionStore = create<FieldDefinitionState>((set, get) =
 
   addFieldDefinition: async (field) => {
     try {
-      const newField = await fieldDefinitionRepository.create(field);
+      const created = await fieldDefinitionRepository.create(field);
+      const [fresh] = await syncFromDb([created.id]);
       set((state) => ({
-        fieldDefinitions: [...state.fieldDefinitions, newField].sort(
+        fieldDefinitions: [...state.fieldDefinitions].sort(
           (a, b) => (a.order || 0) - (b.order || 0)
         ),
       }));
-      return newField;
+      return fresh ?? created;
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
@@ -65,11 +75,7 @@ export const useFieldDefinitionStore = create<FieldDefinitionState>((set, get) =
   updateFieldDefinition: async (id, updates) => {
     try {
       await fieldDefinitionRepository.update(id, updates);
-      set((state) => ({
-        fieldDefinitions: state.fieldDefinitions.map((f) =>
-          f.id === id ? { ...f, ...updates, updatedAt: new Date() } : f
-        ),
-      }));
+      await syncFromDb([id]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
@@ -79,9 +85,7 @@ export const useFieldDefinitionStore = create<FieldDefinitionState>((set, get) =
   deleteFieldDefinition: async (id) => {
     try {
       await fieldDefinitionRepository.delete(id);
-      set((state) => ({
-        fieldDefinitions: state.fieldDefinitions.filter((f) => f.id !== id),
-      }));
+      await syncFromDb([id]);
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
@@ -91,20 +95,8 @@ export const useFieldDefinitionStore = create<FieldDefinitionState>((set, get) =
   reorderFieldDefinitions: async (orderedIds) => {
     try {
       await fieldDefinitionRepository.reorder(orderedIds);
-      set((state) => {
-        const orderedSet = new Set(orderedIds);
-        const reordered = orderedIds
-          .map((id, index) => {
-            const field = state.fieldDefinitions.find((f) => f.id === id);
-            return field ? { ...field, order: index } : null;
-          })
-          .filter(Boolean) as FieldDefinition[];
-        // Preserve fields not in orderedIds (append at end)
-        const remaining = state.fieldDefinitions
-          .filter((f) => !orderedSet.has(f.id))
-          .map((f, i) => ({ ...f, order: orderedIds.length + i }));
-        return { fieldDefinitions: [...reordered, ...remaining] };
-      });
+      // La base porte l'ordre : on la relit, triée par `order`.
+      set({ fieldDefinitions: await fieldDefinitionRepository.getAll() });
     } catch (error) {
       set({ error: extractErrorMessage(error) });
       throw error;
@@ -124,4 +116,5 @@ export const useFieldDefinitionStore = create<FieldDefinitionState>((set, get) =
       (f) => f.entityType === entityType || f.entityType === 'both'
     );
   },
-}));
+  };
+});

@@ -29,6 +29,12 @@ export class FieldDefinitionRepository {
     return db.fieldDefinitions.get(id);
   }
 
+  /** Relit plusieurs lignes par identifiant ; celles qui n'existent plus sont omises. */
+  async getByIds(ids: readonly string[]): Promise<FieldDefinition[]> {
+    const rows = await db.fieldDefinitions.bulkGet([...ids]);
+    return rows.filter((row): row is FieldDefinition => row !== undefined);
+  }
+
   async getByKey(key: string): Promise<FieldDefinition | undefined> {
     return db.fieldDefinitions.where('key').equals(key).first();
   }

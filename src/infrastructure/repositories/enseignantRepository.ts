@@ -99,6 +99,12 @@ export class EnseignantRepository {
     return db.enseignants.get(id);
   }
 
+  /** Relit plusieurs lignes par identifiant ; celles qui n'existent plus sont omises. */
+  async getByIds(ids: readonly string[]): Promise<Enseignant[]> {
+    const rows = await db.enseignants.bulkGet([...ids]);
+    return rows.filter((row): row is Enseignant => row !== undefined);
+  }
+
   async getByMatiere(matiere: string): Promise<Enseignant[]> {
     return db.enseignants.where('matierePrincipale').equals(matiere).toArray();
   }

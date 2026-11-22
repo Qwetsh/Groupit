@@ -47,6 +47,12 @@ export const scenarioArchiveRepository = {
     return db.scenarioArchives.get(id);
   },
 
+  /** Relit plusieurs lignes par identifiant ; celles qui n'existent plus sont omises. */
+  async getByIds(ids: readonly string[]): Promise<ScenarioArchive[]> {
+    const rows = await db.scenarioArchives.bulkGet([...ids]);
+    return rows.filter((row): row is ScenarioArchive => row !== undefined);
+  },
+
   /**
    * Récupère les archives d'un scénario
    */

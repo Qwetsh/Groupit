@@ -76,6 +76,12 @@ export class ScenarioRepository {
     return db.scenarios.get(id);
   }
 
+  /** Relit plusieurs lignes par identifiant ; celles qui n'existent plus sont omises. */
+  async getByIds(ids: readonly string[]): Promise<Scenario[]> {
+    const rows = await db.scenarios.bulkGet([...ids]);
+    return rows.filter((row): row is Scenario => row !== undefined);
+  }
+
   async getByType(type: ScenarioType): Promise<Scenario[]> {
     return db.scenarios.where('type').equals(type).toArray();
   }

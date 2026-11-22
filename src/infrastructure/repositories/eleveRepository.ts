@@ -77,6 +77,12 @@ export class EleveRepository {
     return db.eleves.get(id);
   }
 
+  /** Relit plusieurs lignes par identifiant ; celles qui n'existent plus sont omises. */
+  async getByIds(ids: readonly string[]): Promise<Eleve[]> {
+    const rows = await db.eleves.bulkGet([...ids]);
+    return rows.filter((row): row is Eleve => row !== undefined);
+  }
+
   async getByClasse(classe: string): Promise<Eleve[]> {
     return db.eleves.where('classe').equals(classe).toArray();
   }

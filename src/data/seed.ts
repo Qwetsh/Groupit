@@ -12,7 +12,6 @@
 
 import type { Enseignant } from '../domain/models';
 import { enseignantRepository } from '../infrastructure/repositories';
-import { enseignantBackupService } from '../services/backupService';
 
 type EnseignantSeed = Omit<Enseignant, 'id' | 'createdAt' | 'updatedAt'>;
 
@@ -30,7 +29,8 @@ async function loadLocalEnseignants(): Promise<EnseignantSeed[]> {
 
 /**
  * En développement uniquement : remplit la table des enseignants depuis le
- * fichier local si la base ET la sauvegarde locale sont vides.
+ * fichier local si la base est vide. À appeler après la reprise de l'ancienne
+ * sauvegarde (`migrateLegacyBackups`), qui prime sur le fichier.
  *
  * Ne supprime jamais rien : les données existantes priment toujours.
  */
@@ -38,10 +38,6 @@ export async function seedLocalDataIfEmpty(): Promise<number> {
   if (!import.meta.env.DEV) return 0;
 
   if ((await enseignantRepository.count()) > 0) return 0;
-
-  // Une sauvegarde existe : le store la restaurera, elle est plus à jour que le fichier.
-  const backup = enseignantBackupService.restore();
-  if (backup && backup.length > 0) return 0;
 
   const enseignants = await loadLocalEnseignants();
   if (enseignants.length === 0) return 0;

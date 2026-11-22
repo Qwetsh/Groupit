@@ -18,6 +18,12 @@ export class GroupeRepository {
     return db.groupes.get(id);
   }
 
+  /** Relit plusieurs lignes par identifiant ; celles qui n'existent plus sont omises. */
+  async getByIds(ids: readonly string[]): Promise<Groupe[]> {
+    const rows = await db.groupes.bulkGet([...ids]);
+    return rows.filter((row): row is Groupe => row !== undefined);
+  }
+
   async getByScenario(scenarioId: string): Promise<Groupe[]> {
     return db.groupes.where('scenarioId').equals(scenarioId).toArray();
   }
