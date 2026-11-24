@@ -1,120 +1,571 @@
 /* ============================================================
- * ACCUEIL : une carte par tâche
+ * ACCUEIL : la préparation de l'année
  * ============================================================
- * Chaque carte garde le nom de la tâche et dit où on en est.
- * Les boutons sont toujours au même endroit, en bas de la carte.
+ * Hiérarchie : la prochaine étape (carte bleue, seule action forte),
+ * puis les données, les chantiers, et les autres outils en liste.
  */
 
-.taches-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: var(--space-md);
-  max-width: 1100px;
-  margin: 0 auto;
+:root {
+  --acc-hero: #1d4ed8;
+  --acc-hero-texte: #ffffff;
+  --acc-hero-doux: #dbeafe;
+  --acc-hero-btn: #ffffff;
+  --acc-hero-btn-texte: #1e3a8a;
+  --acc-oral: #6d28d9;
+  --acc-oral-fond: #ede9fe;
+  --acc-stage: #b45309;
+  --acc-stage-fond: #fef3c7;
+  --acc-carte-ombre: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.04);
 }
 
-.tache-card {
+:root[data-theme='dark'] {
+  --acc-hero: #1e40af;
+  --acc-hero-doux: #dbeafe;
+  --acc-hero-btn: #ffffff;
+  --acc-hero-btn-texte: #1e3a8a;
+  --acc-oral: #c4b5fd;
+  --acc-oral-fond: rgba(139, 92, 246, 0.18);
+  --acc-stage: #fcd34d;
+  --acc-stage-fond: rgba(245, 158, 11, 0.16);
+  --acc-carte-ombre: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.accueil {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 36px 32px 56px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-md);
-  padding: var(--space-lg);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: 0 1px 3px var(--bg-black-a5, rgba(0, 0, 0, 0.05));
+  gap: 28px;
+  color: var(--text);
 }
 
-.tache-card.en-cours {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
+.accueil h1,
+.accueil h2,
+.accueil h3,
+.accueil p {
+  margin: 0;
 }
 
-.tache-card .mode-icon {
-  width: 52px;
-  height: 52px;
-  margin-bottom: 0;
+/* ---------- En-tête ---------- */
+.acc-entete-ligne {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
 }
 
-.tache-texte {
-  flex: 1;
+.acc-surtitre {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-text, var(--primary));
+  margin-bottom: 6px !important;
 }
 
-.tache-texte h3 {
-  margin: 0 0 6px;
-  font-size: 1.1rem;
+.acc-entete h1 {
+  font-size: 1.9rem;
+  font-weight: 750;
+  letter-spacing: -0.02em;
   color: var(--text-strong);
 }
 
-.tache-etat {
-  margin: 0;
+.acc-intro {
+  margin-top: 10px !important;
+  max-width: 620px;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+}
+
+.acc-avancement {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   color: var(--text-secondary);
   font-size: 0.9rem;
-  line-height: 1.45;
 }
 
-.tache-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-right: 6px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-text-strong, var(--accent-deep));
-  font-size: 0.78rem;
-  font-weight: 600;
+.acc-avancement svg {
+  width: 48px;
+  height: 48px;
+  transform: rotate(-90deg);
 }
 
-.tache-actions {
+.acc-avancement circle {
+  fill: none;
+  stroke-width: 4;
+}
+
+.acc-avancement .fond {
+  stroke: var(--border);
+}
+
+.acc-avancement .valeur {
+  stroke: var(--success-strong);
+  stroke-linecap: round;
+}
+
+.acc-avancement strong {
+  display: block;
+  font-size: 1.15rem;
+  color: var(--text-strong);
+}
+
+/* ---------- Prochaine étape ---------- */
+.acc-prochaine {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-sm);
+  align-items: center;
+  gap: 20px;
+  padding: 24px 28px;
+  border-radius: 20px;
+  background: var(--acc-hero);
+  color: var(--acc-hero-texte);
+  box-shadow: 0 10px 30px rgba(29, 78, 216, 0.25);
 }
 
-.tache-btn {
+.acc-prochaine-icone {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.acc-prochaine-texte {
+  flex: 1;
+  min-width: 0;
+}
+
+.acc-etiquette {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--acc-hero-doux);
+}
+
+.acc-prochaine h2 {
+  margin-top: 4px !important;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--acc-hero-texte);
+}
+
+.acc-prochaine p:last-child {
+  margin-top: 4px !important;
+  color: var(--acc-hero-doux);
+  line-height: 1.5;
+}
+
+/* ---------- Boutons ---------- */
+.acc-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   min-height: 40px;
   padding: 8px 16px;
   border-radius: 10px;
   border: 1px solid var(--border-strong);
   background: var(--surface);
-  color: var(--text);
+  color: var(--text-strong);
+  font: inherit;
   font-weight: 600;
   font-size: 0.9rem;
   cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
 
-.tache-btn:hover {
+.acc-btn:hover {
   background: var(--surface-sunken);
 }
 
-.tache-btn.primaire {
-  flex: 1;
-  border-color: var(--primary);
-  background: var(--primary);
-  color: var(--text-on-accent);
+.acc-btn:active {
+  transform: scale(0.98);
 }
 
-.tache-btn.primaire:hover {
+.acc-btn.primaire {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+
+.acc-btn.primaire:hover {
   background: var(--primary-dark);
 }
 
-.tache-btn:focus-visible {
+.acc-prochaine .acc-btn.primaire {
+  flex-shrink: 0;
+  border-color: var(--acc-hero-btn);
+  background: var(--acc-hero-btn);
+  color: var(--acc-hero-btn-texte);
+}
+
+.acc-prochaine .acc-btn.primaire:hover {
+  background: var(--acc-hero-doux);
+}
+
+.acc-btn.grand {
+  min-height: 48px;
+  padding: 10px 22px;
+  font-size: 1rem;
+  border-radius: 12px;
+}
+
+.acc-btn.discret {
+  border-color: transparent;
+  background: none;
+  color: var(--text-secondary);
+}
+
+.acc-btn.discret:hover {
+  background: var(--surface-sunken);
+  color: var(--text-strong);
+}
+
+.accueil button:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
 }
 
-.accueil-secondaire {
-  display: flex;
-  justify-content: center;
-  margin: var(--space-lg) auto 0;
+/* ---------- Titres de section ---------- */
+.acc-section {
+  margin-bottom: 12px !important;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
 }
 
-.btn-lien {
+/* ---------- Données ---------- */
+.acc-donnees {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.acc-tuile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--acc-carte-ombre);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.acc-tuile:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.acc-tuile-tete {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.acc-chiffre {
+  font-size: 2.1rem;
+  font-weight: 750;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--text-strong);
+}
+
+.acc-chiffre small {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.acc-statut {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.acc-statut.ok { color: var(--success-text, var(--success-strong)); }
+.acc-statut.alerte { color: var(--warning-text, var(--warning-deep)); }
+.acc-statut.a-faire { color: var(--text-muted); }
+
+/* ---------- Chantiers ---------- */
+.acc-chantiers {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.acc-chantier {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px 22px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--acc-carte-ombre);
+}
+
+.acc-chantier-tete {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.acc-chantier-tete h3 {
+  flex: 1;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.acc-chantier-icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+}
+
+.acc-chantier.oral .acc-chantier-icone { background: var(--acc-oral-fond); color: var(--acc-oral); }
+.acc-chantier.stage .acc-chantier-icone { background: var(--acc-stage-fond); color: var(--acc-stage); }
+
+.acc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.acc-badge.neutre { background: var(--surface-sunken); color: var(--text-secondary); }
+.acc-badge.encours { background: var(--accent-soft); color: var(--accent-text-strong, var(--primary)); }
+.acc-badge.urgent { background: var(--warning-soft); color: var(--warning-text, var(--warning-deep)); }
+.acc-badge.ok { background: var(--success-softer, var(--success-soft)); color: var(--success-text, var(--success-strong)); }
+
+.acc-progression {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.acc-progression-barre {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+
+.acc-progression-barre span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--success-strong);
+  transition: width 0.4s ease;
+}
+
+.acc-progression-texte {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.acc-etapes {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+}
+
+.acc-etapes li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.acc-etapes li.faite {
+  color: var(--text);
+}
+
+.acc-etape-marque {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.acc-etapes li.faite .acc-etape-marque {
+  border-color: var(--success-strong);
+  background: var(--success-strong);
+  color: #fff;
+}
+
+.acc-note {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.acc-chantier-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.acc-chantier-actions .acc-btn:first-child {
+  flex: 1;
+}
+
+/* ---------- Autres outils ---------- */
+.acc-outils {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.acc-outils button {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.acc-outils button:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-alt);
+}
+
+.acc-outils button > span {
+  flex: 1;
+  line-height: 1.35;
+}
+
+.acc-outils strong {
+  display: block;
+  font-size: 0.95rem;
+  color: var(--text-strong);
+}
+
+/* ---------- Première utilisation ---------- */
+.acc-demarrage {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 8px 24px;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--acc-carte-ombre);
+}
+
+.acc-demarrage li {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 0;
+}
+
+.acc-demarrage li + li {
+  border-top: 1px solid var(--border);
+}
+
+.acc-num {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+  font-weight: 750;
+  font-size: 1.05rem;
+}
+
+.acc-demarrage li.active .acc-num {
+  background: var(--primary);
+  color: #fff;
+}
+
+.acc-demarrage li.fait .acc-num {
+  background: var(--success-strong);
+  color: #fff;
+}
+
+.acc-demarrage-texte {
+  flex: 1;
+}
+
+.acc-demarrage h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-strong);
+}
+
+.acc-demarrage p {
+  margin-top: 2px !important;
+  color: var(--text-secondary);
+}
+
+.acc-lien-discret {
+  align-self: center;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -124,20 +575,90 @@
   border-radius: 8px;
   background: none;
   color: var(--accent-text, var(--primary));
+  font: inherit;
   font-weight: 600;
   cursor: pointer;
 }
 
-.btn-lien:hover {
+.acc-lien-discret:hover {
   background: var(--accent-soft);
 }
 
-@media (max-width: 640px) {
-  .taches-grid {
+/* ---------- Petits écrans ---------- */
+@media (max-width: 900px) {
+  .acc-donnees,
+  .acc-outils {
     grid-template-columns: 1fr;
   }
 
-  .tache-card {
-    padding: var(--space-md);
+  .acc-chantiers {
+    grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 640px) {
+  .accueil {
+    padding: 20px 16px 40px;
+    gap: 22px;
+  }
+
+  .acc-entete-ligne {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .acc-prochaine {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 20px;
+  }
+
+  .acc-prochaine-icone {
+    display: none;
+  }
+
+  .acc-demarrage {
+    padding: 4px 16px;
+  }
+
+  .acc-demarrage li {
+    flex-wrap: wrap;
+  }
+}
+
+/* Aperçu de ce que produisent les deux chantiers (première utilisation) */
+.acc-chantier.apercu {
+  gap: 12px;
+}
+
+.acc-apercu-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+}
+
+.acc-apercu-liste li {
+  position: relative;
+  padding-left: 18px;
+  line-height: 1.45;
+}
+
+.acc-apercu-liste li::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 0.55em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+.acc-chantier.oral .acc-apercu-liste li::before { background: var(--acc-oral); opacity: 1; }
+.acc-chantier.stage .acc-apercu-liste li::before { background: var(--acc-stage); opacity: 1; }

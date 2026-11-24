@@ -17,17 +17,12 @@ import type { ScenarioArchive } from '../domain/models';
 import { useJuryStore } from '../stores/juryStore';
 import {
   CheckCircle,
-  Mic,
-  Briefcase,
-  Sliders,
-  MousePointerClick,
-  FolderOpen,
-  Play,
-  RotateCcw,
 } from 'lucide-react';
 import { etapeDeDepart } from '../components/guided/guidedFlow';
 import './DashboardPage.css';
 import './Accueil.css';
+import { AccueilPreparation, type ActionsAccueil } from '../components/accueil/AccueilPreparation';
+import { lireDateStage, type EtatPreparation, type ActionAccueil } from '../services/accueilService';
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -176,100 +171,65 @@ export const DashboardPage: React.FC = () => {
     [archives]
   );
 
-  const nbJurysDe = (id?: string) => jurys.filter(j => j.scenarioId === id).length;
-  const nbAffectationsDe = (id?: string) => affectations.filter(a => a.scenarioId === id).length;
-  const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
+  // État de la préparation : uniquement des comptes, aucun nom
+  const openModal = useUIStore(state => state.openModal);
+  const etatPreparation = useMemo<EtatPreparation>(() => {
+    const eleves3e = eleves.filter(e => e.classe?.startsWith("3"));
+    const ids3e = new Set(eleves3e.map(e => e.id));
+    const stages3e = stages.filter(st => st.eleveId && ids3e.has(st.eleveId));
+    const debuts = stages3e.map(st => lireDateStage(st.dateDebut)).filter((d): d is Date => d !== null);
+    const aujourdhui = new Date();
+    const aVenir = debuts.filter(d => d.getTime() >= aujourdhui.getTime() - 86_400_000).sort((x, y) => x.getTime() - y.getTime());
+    return {
+      nbEleves: eleves3e.length,
+      nbClasses: new Set(eleves3e.map(e => e.classe)).size,
+      nbEnseignants: enseignants.length,
+      nbEnseignantsSansAdresse: enseignants.filter(e => !e.adresse?.trim()).length,
+      nbStages: new Set(stages3e.map(st => st.eleveId)).size,
+      debutStages: aVenir[0] ?? debuts.sort((x, y) => x.getTime() - y.getTime())[0] ?? null,
+      nbSujetsRenseignes: eleves3e.filter(e => e.sujetOral?.trim() || e.parcoursOral?.trim()).length,
+      oral: {
+        enCours: !!inProgressOralDnb,
+        nbJurys: inProgressOralDnb ? jurys.filter(j => j.scenarioId === inProgressOralDnb.id).length : 0,
+        nbRepartis: inProgressOralDnb ? affectations.filter(af => af.scenarioId === inProgressOralDnb.id).length : 0,
+      },
+      stages: {
+        enCours: !!inProgressStage,
+        nbAttribues: inProgressStage ? affectations.filter(af => af.scenarioId === inProgressStage.id).length : 0,
+      },
+      aujourdhui,
+    };
+  }, [eleves, enseignants, stages, jurys, affectations, inProgressOralDnb, inProgressStage]);
 
-  const taches = [
-    {
-      id: "oral", icone: "oral", symbole: <Mic size={28} />, titre: "Oral du DNB",
-      description: "Constituez les jurys et répartissez les élèves pour l’oral du brevet.",
-      enCours: !!inProgressOralDnb,
-      etat: inProgressOralDnb ? `${pluriel(nbJurysDe(inProgressOralDnb.id), "jury")}, ${pluriel(nbAffectationsDe(inProgressOralDnb.id), "élève")} répartis` : "",
-      libelleCommencer: "Commencer",
-      commencer: () => handleLaunchMode("oral_dnb"),
-      reprendre: () => inProgressOralDnb && handleResumeScenario(inProgressOralDnb.id!),
-      recommencer: () => handleLaunchMode("oral_dnb"),
+  const actionsAccueil: ActionsAccueil = {
+    lancer: (action: ActionAccueil) => {
+      switch (action) {
+        case "importer-eleves": openModal("import"); break;
+        case "importer-enseignants": navigate("/parametres"); break;
+        case "importer-stages":
+        case "attribuer-tuteurs": handleLaunchMode("suivi_stage"); break;
+        case "reprendre-stages": if (inProgressStage) handleResumeScenario(inProgressStage.id!); break;
+        case "preparer-oral": handleLaunchMode("oral_dnb"); break;
+        case "reprendre-oral": if (inProgressOralDnb) handleResumeScenario(inProgressOralDnb.id!); break;
+      }
     },
-    {
-      id: "stages", icone: "stage", symbole: <Briefcase size={28} />, titre: "Stages de 3e",
-      description: "Attribuez un enseignant tuteur à chaque stage, au plus près.",
-      enCours: !!inProgressStage,
-      etat: inProgressStage ? `${pluriel(nbAffectationsDe(inProgressStage.id), "stage")} attribués` : "",
-      libelleCommencer: "Commencer",
-      commencer: () => handleLaunchMode("suivi_stage"),
-      reprendre: () => inProgressStage && handleResumeScenario(inProgressStage.id!),
-      recommencer: () => handleLaunchMode("suivi_stage"),
+    ouvrir: (chemin: string) => {
+      if (chemin === "personnalise") {
+        if (inProgressCustom) handleResumeScenario(inProgressCustom.id!);
+        else handleLaunchMode("personnalise");
+      } else {
+        navigate(chemin);
+      }
     },
-    {
-      id: "perso", icone: "custom", symbole: <Sliders size={28} />, titre: "Mode personnalisé",
-      description: "Formez des groupes selon vos propres critères.",
-      enCours: !!inProgressCustom,
-      etat: inProgressCustom ? `${pluriel(nbJurysDe(inProgressCustom.id), "groupe")}, ${pluriel(nbAffectationsDe(inProgressCustom.id), "élève")} répartis` : "",
-      libelleCommencer: "Commencer",
-      commencer: () => handleLaunchMode("personnalise"),
-      reprendre: () => inProgressCustom && handleResumeScenario(inProgressCustom.id!),
-      recommencer: () => handleLaunchMode("personnalise"),
-    },
-    {
-      id: "libre", icone: "libre", symbole: <MousePointerClick size={28} />, titre: "Mode libre",
-      description: "Composez les groupes vous-même, par glisser-déposer.",
-      enCours: false, etat: "",
-      libelleCommencer: "Ouvrir",
-      commencer: () => navigate("/libre"),
-      reprendre: () => navigate("/libre"),
-      recommencer: undefined,
-    },
-  ];
+    recommencerOral: () => handleLaunchMode("oral_dnb"),
+    recommencerStages: () => handleLaunchMode("suivi_stage"),
+    reprendreStages: () => { if (inProgressStage) handleResumeScenario(inProgressStage.id!); },
+    reprendreSession: () => setShowImportSessionModal(true),
+  };
 
   return (
     <div className="dashboard-page">
-      {/* Hero section */}
-      <div className="dashboard-hero">
-        <div className="hero-content">
-          <h1>
-            <span className="hero-logo">L</span>
-            Locanda
-          </h1>
-          <p>Organisez vos affectations en quelques clics</p>
-        </div>
-      </div>
-
-      {/* Une carte par tâche, avec son état : commencer, ou reprendre / recommencer */}
-      <div className="taches-grid">
-        {taches.map(t => (
-          <article key={t.id} className={`tache-card ${t.enCours ? "en-cours" : ""}`} aria-labelledby={`tache-${t.id}`}>
-            <div className={`mode-icon ${t.icone}`} aria-hidden="true">{t.symbole}</div>
-            <div className="tache-texte">
-              <h3 id={`tache-${t.id}`}>{t.titre}</h3>
-              <p className="tache-etat">
-                {t.enCours ? <><span className="tache-badge"><Play size={12} /> En cours</span> {t.etat}</> : t.description}
-              </p>
-            </div>
-            <div className="tache-actions">
-              {t.enCours ? (
-                <>
-                  <button className="tache-btn primaire" onClick={t.reprendre}>Reprendre</button>
-                  {t.recommencer && (
-                    <button className="tache-btn" onClick={t.recommencer}>
-                      <RotateCcw size={14} /> Recommencer
-                    </button>
-                  )}
-                </>
-              ) : (
-                <button className="tache-btn primaire" onClick={t.commencer}>{t.libelleCommencer}</button>
-              )}
-            </div>
-          </article>
-        ))}
-      </div>
-
-      <div className="accueil-secondaire">
-        <button className="btn-lien" onClick={() => setShowImportSessionModal(true)}>
-          <FolderOpen size={16} />
-          Reprendre une session sauvegardée (fichier)
-        </button>
-      </div>
+      <AccueilPreparation etat={etatPreparation} actions={actionsAccueil} />
 
       {/* Archives / history */}
       {archives.length > 0 && (
