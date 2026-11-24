@@ -35,7 +35,10 @@ export { NIVEAUX, isNiveau, extractNiveau } from './types';
 
 // ============ MATIÈRES ============
 export type { MatiereHeuresRef } from './matieres';
-export { MATIERES_HEURES_3E, PARCOURS_ORAL_DNB, LANGUES_ETRANGERES, getHeuresMatiere, getPoidsPedagogiqueNormalise } from './matieres';
+export {
+  MATIERES_HEURES_3E, PARCOURS_ORAL_DNB, LANGUES_ETRANGERES, getHeuresMatiere, getPoidsPedagogiqueNormalise,
+  getMatiereRef, simplifierLibelle, matiereDeReference, cleMatiere, memeMatiere, premiereMatiereCouverte,
+} from './matieres';
 
 // ============ CAPACITÉ ============
 export {
@@ -83,6 +86,7 @@ export type {
 export type {
   ConstraintViolation,
   MatchingResultDNB,
+  SolverAlerte,
   SolverResultDNB,
 } from './matching';
 

@@ -28,7 +28,26 @@ export interface MatchingResultDNB {
   explication: AffectationExplication;
 }
 
+/**
+ * Problème que le moteur ne peut pas résoudre seul et que l'utilisateur doit
+ * connaître (au lieu de le découvrir au moment de l'oral).
+ */
+export interface SolverAlerte {
+  type:
+    | 'aucun_jury'
+    | 'capacite_insuffisante'
+    | 'groupe_trop_grand'
+    | 'matiere_non_couverte'
+    | 'matiere_saturee'
+    | 'langue_non_couverte'
+    | 'langue_saturee';
+  message: string;
+  eleveIds?: string[];
+}
+
 export interface SolverResultDNB {
+  /** Problèmes à signaler à l'utilisateur (vide si tout va bien). */
+  alertes?: SolverAlerte[];
   affectations: MatchingResultDNB[];
   nonAffectes: string[]; // eleveIds sans affectation
   sansMatchMatiere: string[]; // eleveIds affectés mais sans correspondance matière
