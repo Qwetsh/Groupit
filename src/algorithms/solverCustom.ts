@@ -1,8 +1,18 @@
 // ============================================================
-// ALGORITHME - SOLVEUR MODE PERSONNALISE
-// Crée des groupes d'��lèves avec critères configurables
-// Réutilise scoring.ts et balancing.ts
+// ALGORITHME - SOLVEUR MODE PERSONNALISÉ
 // ============================================================
+//
+// Crée des groupes d'élèves de taille donnée et y répartit les adultes, selon
+// des critères réglables : parité, adulte qui a l'élève en classe, mélange ou
+// regroupement des classes, des langues vivantes.
+//
+// Méthode : placement initial élève par élève, puis échanges entre groupes tant
+// qu'un échange améliore la somme des scores. Chaque groupe tient à jour ses
+// compteurs (filles, garçons, classes, langues…) : évaluer un échange ne coûte
+// que quelques opérations, au lieu de recalculer les groupes entiers.
+//
+// Le résultat ne dépend pas de l'ordre des élèves, et deux lancements sur les
+// mêmes données donnent les mêmes groupes.
 
 import type { Eleve, Enseignant, Scenario } from '../domain/models';
 import type { CustomModeConfig } from '../stores/uiStore';
@@ -34,140 +44,154 @@ export interface CustomAffectation {
   explication: string;
 }
 
-// ============ SCORING HELPERS ============
+const LANGUES = ['allemand', 'anglais', 'espagnol', 'italien', 'chinois', 'arabe', 'portugais', 'russe'];
+const MAX_PASSES = 50;
+const EPSILON = 1e-6;
 
-function getEleveSexe(eleve: Eleve): 'M' | 'F' | null {
-  if (eleve.sexe === 'M' || eleve.sexe === 'F') return eleve.sexe;
-  return null;
+// ============ DONNÉES PRÉPARÉES ============
+
+interface EleveInfo {
+  eleve: Eleve;
+  sexe: 'M' | 'F' | null;
+  classe: string;
+  /** Combinaison de langues vivantes (« allemand|espagnol »), vide si aucune. */
+  langues: string;
 }
 
-function getEleveOptions(eleve: Eleve): string[] {
-  return eleve.options || [];
+interface Stats {
+  n: number;
+  f: number;
+  m: number;
+  /** Nombre de couples (élève, adulte du groupe) où l'adulte a l'élève en classe. */
+  enClasse: number;
+  classes: Map<string, number>;
+  langues: Map<string, number>;
 }
 
-/** Score de parité pour un groupe */
-function scoreParity(group: Eleve[], priority: string): number {
-  if (priority === 'off') return 0;
-  const males = group.filter(e => getEleveSexe(e) === 'M').length;
-  const females = group.filter(e => getEleveSexe(e) === 'F').length;
-  const total = males + females;
-  if (total === 0) return 100;
-  const ratio = Math.min(males, females) / total;
-  // Ratio parfait = 0.5, score = 100
-  const rawScore = ratio * 200; // 0 to 100
-  const weight = priority === 'low' ? 0.3 : priority === 'normal' ? 0.6 : priority === 'high' ? 0.9 : 1.0;
-  return rawScore * weight;
+function cleTri(...parts: (string | undefined)[]): string {
+  return parts.map(p => p ?? '').join('\u0000');
 }
 
-/** Score enseignant a l'élève en classe */
-function scoreEnseignantAEleve(
-  group: Eleve[],
-  enseignants: Enseignant[],
-  mode: 'off' | 'prefer' | 'avoid'
-): number {
-  if (mode === 'off' || enseignants.length === 0) return 0;
-  let matches = 0;
-  let total = 0;
-  for (const eleve of group) {
-    for (const ens of enseignants) {
-      total++;
-      if (ens.classesEnCharge.includes(eleve.classe)) {
-        matches++;
+function comparer(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
+function languesDe(eleve: Eleve): string {
+  return (eleve.options ?? [])
+    .map(o => o.toLowerCase())
+    .flatMap(o => LANGUES.filter(l => o.includes(l)))
+    .sort()
+    .join('|');
+}
+
+function heuresTotales(e: Enseignant): number {
+  return e.heuresParNiveau ? Object.values(e.heuresParNiveau).reduce((s, v) => s + (v ?? 0), 0) : 0;
+}
+
+function poidsParite(priorite: CustomModeConfig['critereParity']): number {
+  return priorite === 'required' ? 3 : priorite === 'high' ? 2 : priorite === 'normal' ? 1.5 : 1;
+}
+
+function intensiteParite(priorite: CustomModeConfig['critereParity']): number {
+  return priorite === 'low' ? 0.3 : priorite === 'normal' ? 0.6 : priorite === 'high' ? 0.9 : 1;
+}
+
+// ============ SCORE D'UN GROUPE ============
+
+class Evaluateur {
+  /** Part de filles parmi les élèves dont le sexe est connu : la cible de chaque groupe. */
+  private readonly partFilles: number;
+  private readonly config: CustomModeConfig;
+  /** Pour chaque groupe, nombre d'adultes du groupe qui ont chaque classe. */
+  private readonly adultesParClasse: Map<string, number>[];
+  private readonly nbAdultes: number[];
+
+  constructor(
+    config: CustomModeConfig,
+    eleves: EleveInfo[],
+    adultesParClasse: Map<string, number>[],
+    nbAdultes: number[]
+  ) {
+    this.config = config;
+    this.adultesParClasse = adultesParClasse;
+    this.nbAdultes = nbAdultes;
+    const f = eleves.filter(e => e.sexe === 'F').length;
+    const m = eleves.filter(e => e.sexe === 'M').length;
+    this.partFilles = f + m > 0 ? f / (f + m) : 0.5;
+  }
+
+  statsVides(): Stats {
+    return { n: 0, f: 0, m: 0, enClasse: 0, classes: new Map(), langues: new Map() };
+  }
+
+  ajouter(g: number, s: Stats, e: EleveInfo, signe: 1 | -1): void {
+    s.n += signe;
+    if (e.sexe === 'F') s.f += signe;
+    else if (e.sexe === 'M') s.m += signe;
+    s.enClasse += signe * (this.adultesParClasse[g].get(e.classe) ?? 0);
+    const incr = (map: Map<string, number>, cle: string) => {
+      const v = (map.get(cle) ?? 0) + signe;
+      if (v === 0) map.delete(cle);
+      else map.set(cle, v);
+    };
+    incr(s.classes, e.classe);
+    incr(s.langues, e.langues);
+  }
+
+  /** Score du groupe (0 à 100) et détail par critère. */
+  score(g: number, s: Stats): { score: number; detail: Record<string, number> } {
+    const c = this.config;
+    const detail: Record<string, number> = {};
+    let somme = 0;
+    let poids = 0;
+    const critere = (cle: string, valeur: number, w: number) => {
+      detail[cle] = Math.round(valeur);
+      somme += valeur * w;
+      poids += w;
+    };
+
+    if (c.critereParity !== 'off') {
+      const sexes = s.f + s.m;
+      let brut = 100;
+      if (sexes > 0) {
+        // Écart à la proportion de la classe d'âge : une parité stricte est
+        // impossible quand la cohorte elle-même n'est pas à 50/50.
+        const ecart = Math.abs(s.f / sexes - this.partFilles);
+        brut = 100 * (1 - ecart / Math.max(this.partFilles, 1 - this.partFilles));
       }
+      critere('parite', Math.max(0, brut) * intensiteParite(c.critereParity), poidsParite(c.critereParity));
     }
-  }
-  if (total === 0) return 50;
-  const ratio = matches / total;
-  if (mode === 'prefer') return ratio * 100;
-  if (mode === 'avoid') return (1 - ratio) * 100;
-  return 50;
-}
 
-/** Score même classe dans le groupe */
-function scoreMemeClasse(
-  group: Eleve[],
-  mode: 'off' | 'prefer' | 'avoid'
-): number {
-  if (mode === 'off' || group.length <= 1) return 0;
-  // Count class diversity
-  const classes = new Set(group.map(e => e.classe));
-  const diversityRatio = classes.size / group.length; // 1/n to 1
-  if (mode === 'prefer') {
-    // Low diversity = good (same class)
-    return (1 - diversityRatio) * 100;
-  }
-  // avoid = high diversity is good
-  return diversityRatio * 100;
-}
+    if (c.critereEnseignantAEleve !== 'off' && c.useAdultes && this.nbAdultes[g] > 0) {
+      const total = s.n * this.nbAdultes[g];
+      const ratio = total > 0 ? s.enClasse / total : 0;
+      critere('enseignantEleve', total === 0 ? 50 : (c.critereEnseignantAEleve === 'prefer' ? ratio : 1 - ratio) * 100, 1.5);
+    }
 
-/** Score LV (based on options containing "Allemand", "Espagnol", etc.) */
-function scoreLV(
-  group: Eleve[],
-  mode: 'off' | 'same' | 'mixed'
-): number {
-  if (mode === 'off' || group.length <= 1) return 0;
-  const lvKeywords = ['Allemand', 'Anglais', 'Espagnol', 'Italien', 'Chinois', 'Arabe', 'Portugais', 'Russe'];
-  const lvSets = group.map(e => {
-    const options = getEleveOptions(e);
-    return options.filter(o => lvKeywords.some(kw => o.toLowerCase().includes(kw.toLowerCase())));
-  });
-  // Find most common LV pattern
-  const lvCounts = new Map<string, number>();
-  for (const lvs of lvSets) {
-    const key = lvs.sort().join('|');
-    lvCounts.set(key, (lvCounts.get(key) || 0) + 1);
-  }
-  const maxCount = Math.max(...lvCounts.values(), 1);
-  const homogeneity = maxCount / group.length;
-  if (mode === 'same') return homogeneity * 100;
-  return (1 - homogeneity) * 100;
-}
+    if (c.critereMemeClasse !== 'off' && s.n > 1) {
+      const diversite = s.classes.size / s.n;
+      critere('memeClasse', (c.critereMemeClasse === 'prefer' ? 1 - diversite : diversite) * 100, 1);
+    }
 
-/** Score un groupe complet */
-function scoreGroup(
-  groupEleves: Eleve[],
-  groupEnseignants: Enseignant[],
-  config: CustomModeConfig
-): { score: number; detail: Record<string, number> } {
-  const detail: Record<string, number> = {};
-  let totalWeight = 0;
-  let weightedSum = 0;
+    if (c.critereLV !== 'off' && s.n > 1) {
+      let max = 1;
+      for (const v of s.langues.values()) if (v > max) max = v;
+      const homogeneite = max / s.n;
+      critere('lv', (c.critereLV === 'same' ? homogeneite : 1 - homogeneite) * 100, 1);
+    }
 
-  // Parite
-  if (config.critereParity !== 'off') {
-    const s = scoreParity(groupEleves, config.critereParity);
-    detail.parite = Math.round(s);
-    const w = config.critereParity === 'required' ? 3 : config.critereParity === 'high' ? 2 : config.critereParity === 'normal' ? 1.5 : 1;
-    weightedSum += s * w;
-    totalWeight += w;
+    return { score: poids > 0 ? Math.max(0, Math.min(100, somme / poids)) : 50, detail };
   }
 
-  // Enseignant a l'eleve
-  if (config.critereEnseignantAEleve !== 'off' && config.useAdultes) {
-    const s = scoreEnseignantAEleve(groupEleves, groupEnseignants, config.critereEnseignantAEleve);
-    detail.enseignantEleve = Math.round(s);
-    weightedSum += s * 1.5;
-    totalWeight += 1.5;
+  /** Score du groupe après remplacement de `sort` par `entre` (sans le modifier). */
+  scoreApresEchange(g: number, s: Stats, sort: EleveInfo, entre: EleveInfo): number {
+    this.ajouter(g, s, sort, -1);
+    this.ajouter(g, s, entre, 1);
+    const resultat = this.score(g, s).score;
+    this.ajouter(g, s, entre, -1);
+    this.ajouter(g, s, sort, 1);
+    return resultat;
   }
-
-  // Meme classe
-  if (config.critereMemeClasse !== 'off') {
-    const s = scoreMemeClasse(groupEleves, config.critereMemeClasse);
-    detail.memeClasse = Math.round(s);
-    weightedSum += s * 1;
-    totalWeight += 1;
-  }
-
-  // LV
-  if (config.critereLV !== 'off') {
-    const s = scoreLV(groupEleves, config.critereLV);
-    detail.lv = Math.round(s);
-    weightedSum += s * 1;
-    totalWeight += 1;
-  }
-
-  const score = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : 50;
-  return { score, detail };
 }
 
 // ============ SOLVEUR PRINCIPAL ============
@@ -181,173 +205,140 @@ export function solveCustom(
   _scenario: Scenario,
   config: CustomModeConfig
 ): CustomSolverResult {
-  const startTime = performance.now();
+  const debut = performance.now();
 
-  // Filter to selected eleves/enseignants
-  const selectedEleves = eleves.filter(e => config.selectedEleveIds.includes(e.id));
-  const selectedEnseignants = config.useAdultes
-    ? enseignants.filter(e => config.selectedEnseignantIds.includes(e.id!))
+  const selection = new Set(config.selectedEleveIds);
+  const infos: EleveInfo[] = eleves
+    .filter(e => selection.has(e.id))
+    .sort((a, b) => comparer(cleTri(a.nom, a.prenom, a.classe, a.id), cleTri(b.nom, b.prenom, b.classe, b.id)))
+    .map(eleve => ({
+      eleve,
+      sexe: eleve.sexe === 'M' || eleve.sexe === 'F' ? eleve.sexe : null,
+      classe: eleve.classe ?? '',
+      langues: languesDe(eleve),
+    }));
+
+  const selectionAdultes = new Set(config.selectedEnseignantIds);
+  const adultes = config.useAdultes
+    ? enseignants
+      .filter(e => selectionAdultes.has(e.id))
+      .sort((a, b) => comparer(cleTri(a.nom, a.prenom, a.id), cleTri(b.nom, b.prenom, b.id)))
     : [];
 
-  const nbEleves = selectedEleves.length;
+  const nbEleves = infos.length;
   if (nbEleves === 0) {
     return { groups: [], affectations: [], nonAffectes: [], scoreGlobal: 0, tempsCalculMs: 0 };
   }
 
-  // Calculate number of groups
-  const targetSize = config.tailleGroupeFixe
+  // Nombre et taille des groupes
+  const tailleCible = config.tailleGroupeFixe
     ? config.tailleGroupeMin
     : Math.round((config.tailleGroupeMin + config.tailleGroupeMax) / 2);
-  const nbGroupes = Math.max(1, Math.round(nbEleves / targetSize));
-  const baseSize = Math.floor(nbEleves / nbGroupes);
-  const remainder = nbEleves - baseSize * nbGroupes;
+  const nbGroupes = Math.max(1, Math.round(nbEleves / Math.max(1, tailleCible)));
+  const tailleBase = Math.floor(nbEleves / nbGroupes);
+  const reste = nbEleves - tailleBase * nbGroupes;
 
-  // Create empty groups
-  const groups: CustomGroup[] = [];
-  for (let i = 0; i < nbGroupes; i++) {
-    groups.push({
-      id: `custom-g-${i + 1}`,
-      nom: `Groupe ${i + 1}`,
-      eleveIds: [],
-      enseignantIds: [],
-      capaciteMax: i < remainder ? baseSize + 1 : baseSize,
-    });
-  }
+  const groups: CustomGroup[] = Array.from({ length: nbGroupes }, (_, i) => ({
+    id: `custom-g-${i + 1}`,
+    nom: `Groupe ${i + 1}`,
+    eleveIds: [],
+    enseignantIds: [],
+    capaciteMax: i < reste ? tailleBase + 1 : tailleBase,
+  }));
 
-  // === Phase 1: Distribute enseignants across groups ===
-  if (selectedEnseignants.length > 0) {
-    // Volume horaire weighting
-    if (config.critereVolumeHoraire) {
-      // Sort enseignants by total hours desc, assign to groups round-robin
-      const sorted = [...selectedEnseignants].sort((a, b) => {
-        const hoursA = a.heuresParNiveau ? Object.values(a.heuresParNiveau).reduce((s, v) => s + v, 0) : 0;
-        const hoursB = b.heuresParNiveau ? Object.values(b.heuresParNiveau).reduce((s, v) => s + v, 0) : 0;
-        return hoursB - hoursA;
-      });
-      for (let i = 0; i < sorted.length; i++) {
-        groups[i % nbGroupes].enseignantIds.push(sorted[i].id!);
-      }
-    } else {
-      // Simple round-robin
-      for (let i = 0; i < selectedEnseignants.length; i++) {
-        groups[i % nbGroupes].enseignantIds.push(selectedEnseignants[i].id!);
+  // === Adultes : répartis à tour de rôle (les plus gros services d'abord si demandé) ===
+  const ordreAdultes = config.critereVolumeHoraire
+    ? [...adultes].sort((a, b) => heuresTotales(b) - heuresTotales(a))
+    : adultes;
+  ordreAdultes.forEach((a, i) => groups[i % nbGroupes].enseignantIds.push(a.id));
+
+  const parId = new Map(adultes.map(a => [a.id, a]));
+  const adultesParClasse = groups.map(g => {
+    const map = new Map<string, number>();
+    for (const id of g.enseignantIds) {
+      for (const classe of parId.get(id)?.classesEnCharge ?? []) map.set(classe, (map.get(classe) ?? 0) + 1);
+    }
+    return map;
+  });
+  const evaluateur = new Evaluateur(config, infos, adultesParClasse, groups.map(g => g.enseignantIds.length));
+
+  // === Placement initial ===
+  const membres: number[][] = groups.map(() => []);
+  const stats: Stats[] = groups.map(() => evaluateur.statsVides());
+  const scores = groups.map((_, g) => evaluateur.score(g, stats[g]).score);
+
+  infos.forEach((e, i) => {
+    let meilleur = -1;
+    let meilleurGain = -Infinity;
+    for (let g = 0; g < nbGroupes; g++) {
+      if (membres[g].length >= groups[g].capaciteMax) continue;
+      evaluateur.ajouter(g, stats[g], e, 1);
+      const gain = evaluateur.score(g, stats[g]).score - scores[g]
+        + (groups[g].capaciteMax - membres[g].length) * 2; // remplir les groupes les plus vides
+      evaluateur.ajouter(g, stats[g], e, -1);
+      if (gain > meilleurGain + EPSILON) {
+        meilleurGain = gain;
+        meilleur = g;
       }
     }
-  }
+    membres[meilleur].push(i);
+    evaluateur.ajouter(meilleur, stats[meilleur], e, 1);
+    scores[meilleur] = evaluateur.score(meilleur, stats[meilleur]).score;
+  });
 
-  // === Phase 2: Sort eleves by difficulty (most constrained first) ===
-  // Shuffle first for randomness, then sort by constraints
-  const shuffled = [...selectedEleves].sort(() => Math.random() - 0.5);
-
-  // Pre-index enseignants by group
-  const enseignantMap = new Map(enseignants.map(e => [e.id, e]));
-  const groupEnseignants = groups.map(g =>
-    g.enseignantIds.map(id => enseignantMap.get(id)).filter(Boolean) as Enseignant[]
-  );
-
-  // === Phase 3: Greedy assignment ===
-  // For each student, find the best group
-  for (const eleve of shuffled) {
-    let bestGroupIdx = 0;
-    let bestScore = -Infinity;
-
-    for (let gi = 0; gi < groups.length; gi++) {
-      const g = groups[gi];
-      // Check capacity
-      if (g.eleveIds.length >= g.capaciteMax) continue;
-
-      // Score this placement
-      const testEleves = [...g.eleveIds.map(id => selectedEleves.find(e => e.id === id)!), eleve];
-      const { score } = scoreGroup(testEleves, groupEnseignants[gi], config);
-
-      // Bonus for groups with fewer students (balance)
-      const balanceBonus = (g.capaciteMax - g.eleveIds.length) * 2;
-      const totalScore = score + balanceBonus;
-
-      if (totalScore > bestScore) {
-        bestScore = totalScore;
-        bestGroupIdx = gi;
-      }
-    }
-
-    groups[bestGroupIdx].eleveIds.push(eleve.id);
-  }
-
-  // === Phase 4: Local improvement (swap pairs between groups) ===
-  const MAX_SWAPS = 200;
-  let swapCount = 0;
-  let improved = true;
-
-  while (improved && swapCount < MAX_SWAPS) {
-    improved = false;
-    for (let gi = 0; gi < groups.length && !improved; gi++) {
-      for (let gj = gi + 1; gj < groups.length && !improved; gj++) {
-        const gA = groups[gi];
-        const gB = groups[gj];
-
-        for (let ai = 0; ai < gA.eleveIds.length && !improved; ai++) {
-          for (let bi = 0; bi < gB.eleveIds.length && !improved; bi++) {
-            // Try swapping eleve ai from group gi with eleve bi from group gj
-            const eleveA = selectedEleves.find(e => e.id === gA.eleveIds[ai])!;
-            const eleveB = selectedEleves.find(e => e.id === gB.eleveIds[bi])!;
-
-            // Current scores
-            const currElevesA = gA.eleveIds.map(id => selectedEleves.find(e => e.id === id)!);
-            const currElevesB = gB.eleveIds.map(id => selectedEleves.find(e => e.id === id)!);
-            const currScoreA = scoreGroup(currElevesA, groupEnseignants[gi], config).score;
-            const currScoreB = scoreGroup(currElevesB, groupEnseignants[gj], config).score;
-
-            // Swap
-            const newElevesA = currElevesA.map(e => e.id === eleveA.id ? eleveB : e);
-            const newElevesB = currElevesB.map(e => e.id === eleveB.id ? eleveA : e);
-            const newScoreA = scoreGroup(newElevesA, groupEnseignants[gi], config).score;
-            const newScoreB = scoreGroup(newElevesB, groupEnseignants[gj], config).score;
-
-            if (newScoreA + newScoreB > currScoreA + currScoreB + 1) {
-              // Apply swap
-              gA.eleveIds[ai] = eleveB.id;
-              gB.eleveIds[bi] = eleveA.id;
-              improved = true;
-              swapCount++;
+  // === Échanges entre groupes ===
+  for (let passe = 0; passe < MAX_PASSES; passe++) {
+    let ameliore = false;
+    for (let ga = 0; ga < nbGroupes; ga++) {
+      for (let gb = ga + 1; gb < nbGroupes; gb++) {
+        for (let ia = 0; ia < membres[ga].length; ia++) {
+          for (let ib = 0; ib < membres[gb].length; ib++) {
+            const a = infos[membres[ga][ia]];
+            const b = infos[membres[gb][ib]];
+            const nouveauA = evaluateur.scoreApresEchange(ga, stats[ga], a, b);
+            const nouveauB = evaluateur.scoreApresEchange(gb, stats[gb], b, a);
+            if (nouveauA + nouveauB > scores[ga] + scores[gb] + EPSILON) {
+              evaluateur.ajouter(ga, stats[ga], a, -1);
+              evaluateur.ajouter(ga, stats[ga], b, 1);
+              evaluateur.ajouter(gb, stats[gb], b, -1);
+              evaluateur.ajouter(gb, stats[gb], a, 1);
+              [membres[ga][ia], membres[gb][ib]] = [membres[gb][ib], membres[ga][ia]];
+              scores[ga] = nouveauA;
+              scores[gb] = nouveauB;
+              ameliore = true;
             }
           }
         }
       }
     }
+    if (!ameliore) break;
   }
 
-  // === Phase 5: Generate affectations ===
+  // === Résultat ===
   const affectations: CustomAffectation[] = [];
-  for (const g of groups) {
-    const gEleves = g.eleveIds.map(id => selectedEleves.find(e => e.id === id)!);
-    const gEns = g.enseignantIds.map(id => enseignantMap.get(id)).filter(Boolean) as Enseignant[];
-    const { score, detail } = scoreGroup(gEleves, gEns, config);
-
+  groups.forEach((g, gi) => {
+    g.eleveIds = membres[gi].map(i => infos[i].eleve.id);
+    const { score, detail } = evaluateur.score(gi, stats[gi]);
+    const arrondi = Math.round(score);
     for (const eleveId of g.eleveIds) {
       affectations.push({
         eleveId,
         juryId: g.id,
         enseignantId: g.enseignantIds[0] || '',
-        score,
+        score: arrondi,
         scoreDetail: detail,
-        explication: `Affecte au ${g.nom} (score: ${score})`,
+        explication: `Affecté au ${g.nom} (score : ${arrondi})`,
       });
     }
-  }
-
-  const nonAffectes = selectedEleves
-    .filter(e => !groups.some(g => g.eleveIds.includes(e.id)))
-    .map(e => e.id);
-
-  const scoreGlobal = affectations.length > 0
-    ? Math.round(affectations.reduce((s, a) => s + a.score, 0) / affectations.length)
-    : 0;
+  });
 
   return {
     groups,
     affectations,
-    nonAffectes,
-    scoreGlobal,
-    tempsCalculMs: Math.round(performance.now() - startTime),
+    nonAffectes: [],
+    scoreGlobal: affectations.length > 0
+      ? Math.round(affectations.reduce((s, a) => s + a.score, 0) / affectations.length)
+      : 0,
+    tempsCalculMs: Math.round(performance.now() - debut),
   };
 }
