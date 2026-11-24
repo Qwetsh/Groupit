@@ -1,0 +1,41 @@
+/* ============================================================
+ * MISE EN PAGE : téléphone et tablette
+ * ============================================================
+ * Sur téléphone, le bouton du menu est posé dans une bande réservée
+ * en haut de l'écran : il ne recouvre plus le titre de la page.
+ */
+
+@media (max-width: 768px) {
+  .main-content {
+    padding-top: 64px;
+  }
+
+  .main-content::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    z-index: 996;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .mobile-menu-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Le pied de page n'apporte rien sur un petit écran */
+  .app-footer {
+    display: none;
+  }
+}
+
+/* Lien qui ouvre une autre application : flèche discrète à droite */
+.nav-link .nav-externe {
+  margin-left: auto;
+  opacity: 0.7;
+  flex-shrink: 0;
+}

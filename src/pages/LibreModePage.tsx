@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   DndContext,
   DragOverlay,
+  KeyboardSensor,
   PointerSensor,
   useSensor,
   useSensors,
@@ -10,7 +11,9 @@ import {
   useDraggable,
   type DragStartEvent,
   type DragEndEvent,
+  type UniqueIdentifier,
 } from '@dnd-kit/core';
+import { annoncesFrancaises, coordonneesClavier, instructionsLecteurEcran } from '../components/board/keyboardDnd';
 import {
   Users,
   GraduationCap,
@@ -104,31 +107,31 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         </div>
         <div className="ctx-info">
           <div><strong>Classe :</strong> {eleve.classe}</div>
-          {eleve.sexe && <div><strong>Sexe :</strong> {eleve.sexe === 'M' ? 'Masculin' : 'Feminin'}</div>}
+          {eleve.sexe && <div><strong>Sexe :</strong> {eleve.sexe === 'M' ? 'Masculin' : 'Féminin'}</div>}
           {eleve.options.length > 0 && <div><strong>Options :</strong> {eleve.options.join(', ')}</div>}
           {eleve.parcoursOral && <div><strong>Parcours oral :</strong> {eleve.parcoursOral}</div>}
           {eleve.sujetOral && <div><strong>Sujet oral :</strong> {eleve.sujetOral}</div>}
           {eleve.matieresOral && eleve.matieresOral.length > 0 && (
-            <div><strong>Matieres oral :</strong> {eleve.matieresOral.join(', ')}</div>
+            <div><strong>Matières oral :</strong> {eleve.matieresOral.join(', ')}</div>
           )}
-          {eleve.regime && <div><strong>Regime :</strong> {eleve.regime}</div>}
+          {eleve.regime && <div><strong>Régime :</strong> {eleve.regime}</div>}
           {eleve.tags.length > 0 && <div><strong>Tags :</strong> {eleve.tags.join(', ')}</div>}
         </div>
         <div className="ctx-separator" />
         {linkedNames.length > 0 && (
           <div className="ctx-linked">
             <Link2 size={11} />
-            Lie avec : {linkedNames.join(', ')}
+            Lié avec : {linkedNames.join(', ')}
           </div>
         )}
         <button className="ctx-action" onClick={() => { onStartLink(eleve.id); onClose(); }}>
           <Link2 size={12} />
-          {linkMode ? 'Lier avec cet eleve' : 'Lier avec un autre eleve...'}
+          {linkMode ? 'Lier avec cet élève' : 'Lier avec un autre élève...'}
         </button>
         {linkGroup && (
           <button className="ctx-action danger" onClick={() => { onUnlink(eleve.id); onClose(); }}>
             <Unlink size={12} />
-            Delier cet eleve
+            Délier cet élève
           </button>
         )}
       </div>
@@ -146,7 +149,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         {ens.prenom} {ens.nom}
       </div>
       <div className="ctx-info">
-        <div><strong>Matiere :</strong> {ens.matierePrincipale}</div>
+        <div><strong>Matière :</strong> {ens.matierePrincipale}</div>
         {ens.matiereSecondaire && ens.matiereSecondaire.length > 0 && (
           <div><strong>Secondaires :</strong> {ens.matiereSecondaire.join(', ')}</div>
         )}
@@ -374,7 +377,7 @@ const GroupCard: React.FC<GroupCardProps> = ({
       {/* Drop indicator */}
       {willDropToReserve && (
         <div className="libre-drop-indicator reserve">
-          <ShieldCheck size={12} /> Ajout en reserve
+          <ShieldCheck size={12} /> Ajout en réserve
         </div>
       )}
       {dropBlocked && (
@@ -441,7 +444,7 @@ const GroupCard: React.FC<GroupCardProps> = ({
 
         <div className="libre-group-meta">
           <span className="libre-group-count-badge">
-            {groupeEleves.length} eleve{groupeEleves.length !== 1 ? 's' : ''}
+            {groupeEleves.length} élève{groupeEleves.length !== 1 ? 's' : ''}
           </span>
           <span className="libre-group-count-badge">
             {groupeEnseignants.length}/{tailleJury} ens.
@@ -467,13 +470,13 @@ const GroupCard: React.FC<GroupCardProps> = ({
             ))}
           </div>
         ) : (
-          <div className="libre-group-ens-placeholder">Deposer des enseignants ici</div>
+          <div className="libre-group-ens-placeholder">Déposer des enseignants ici</div>
         )}
 
         {/* Suppléants */}
         {nbReserves > 0 && (
           <div className="libre-group-suppleants">
-            <span className="suppleants-label"><ShieldCheck size={10} /> Reserve</span>
+            <span className="suppleants-label"><ShieldCheck size={10} /> Réserve</span>
             {groupeSuppleants.length > 0 ? (
               groupeSuppleants.map(ens => (
                 <DraggableGroupEns
@@ -506,7 +509,7 @@ const GroupCard: React.FC<GroupCardProps> = ({
             />
           ))
         ) : (
-          <div className="libre-group-drop-zone">Deposer des eleves ici</div>
+          <div className="libre-group-drop-zone">Déposer des élèves ici</div>
         )}
       </div>
 
@@ -566,7 +569,31 @@ export const LibreModePage: React.FC = () => {
 
   // DnD state
   const [activeId, setActiveId] = useState<string | null>(null);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: coordonneesClavier })
+  );
+
+  // Libellés lus par les lecteurs d'écran pendant un déplacement au clavier
+  const nomDe = useCallback((id: UniqueIdentifier): string => {
+    const morceaux = String(id).split(':');
+    const type = morceaux[0];
+    const cle = morceaux[morceaux.length - 1] === 'sup' ? morceaux[morceaux.length - 2] : morceaux[morceaux.length - 1];
+    if (type === 'groupe') return groupes.find(g => g.id === cle)?.nom ?? 'Groupe';
+    if (type === 'pool-eleve' || type === 'grp-eleve') {
+      const e = allEleves.find(x => x.id === cle);
+      return e ? `${e.prenom} ${e.nom}` : 'Élève';
+    }
+    if (type === 'pool-ens' || type === 'grp-ens') {
+      const e = allEnseignants.find(x => x.id === cle);
+      return e ? `${e.prenom} ${e.nom}` : 'Enseignant';
+    }
+    return String(id);
+  }, [groupes, allEleves, allEnseignants]);
+  const accessibilite = useMemo(() => ({
+    announcements: annoncesFrancaises(nomDe),
+    screenReaderInstructions: instructionsLecteurEcran,
+  }), [nomDe]);
 
   // Compute the classe of the currently dragged élève (for group highlight)
   const draggedEleveClasse = useMemo(() => {
@@ -766,7 +793,7 @@ export const LibreModePage: React.FC = () => {
       const eleve = allEleves.find(e => e.id === eleveMatch[1]);
       if (!eleve) return null;
       return (
-        <div className="libre-pool-item eleve" style={{ background: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', borderRadius: 6, padding: '5px 8px' }}>
+        <div className="libre-pool-item eleve" style={{ background: 'var(--surface)', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', borderRadius: 6, padding: '5px 8px' }}>
           <span className="item-initial">{eleve.prenom[0]}{eleve.nom[0]}</span>
           <span className="item-name">{eleve.prenom} {eleve.nom}</span>
         </div>
@@ -777,7 +804,7 @@ export const LibreModePage: React.FC = () => {
       const ens = allEnseignants.find(e => e.id === ensMatch[1]);
       if (!ens) return null;
       return (
-        <div className="libre-pool-item enseignant" style={{ background: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', borderRadius: 6, padding: '5px 8px' }}>
+        <div className="libre-pool-item enseignant" style={{ background: 'var(--surface)', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', borderRadius: 6, padding: '5px 8px' }}>
           <span className="item-initial">{ens.prenom[0]}{ens.nom[0]}</span>
           <span className="item-name">{ens.prenom} {ens.nom}</span>
         </div>
@@ -787,13 +814,13 @@ export const LibreModePage: React.FC = () => {
   }, [activeId, allEleves, allEnseignants]);
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <DndContext sensors={sensors} accessibility={accessibilite} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="libre-page">
         {/* Link mode banner */}
         {linkMode && (
           <div className="libre-link-banner">
             <Link2 size={14} />
-            Cliquez-droit sur un autre eleve pour le lier, ou
+            Cliquez-droit sur un autre élève pour le lier, ou
             <button onClick={() => setLinkMode(null)}>Annuler</button>
           </div>
         )}
@@ -819,7 +846,7 @@ export const LibreModePage: React.FC = () => {
           </div>
 
           <div className="libre-toolbar-group">
-            <label>Reserve :</label>
+            <label>Réserve :</label>
             <select
               value={config.nbReservesDefaut}
               onChange={e => setNbReservesDefaut(Number(e.target.value))}
@@ -864,7 +891,7 @@ export const LibreModePage: React.FC = () => {
             </button>
             <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileChange} style={{ display: 'none' }} />
             <div className="libre-toolbar-sep" />
-            <button className="libre-btn danger" onClick={resetAll} title="Tout reinitialiser">
+            <button className="libre-btn danger" onClick={resetAll} title="Tout réinitialiser">
               <Trash2 size={14} />
             </button>
           </div>
@@ -877,7 +904,7 @@ export const LibreModePage: React.FC = () => {
             <div className="libre-pool-header">
               <h3>
                 <Users size={14} />
-                Eleves
+                Élèves
                 <span className="pool-count">({filteredEleves.length}/{allEleves.length})</span>
               </h3>
               <div className="libre-pool-filters">
@@ -912,7 +939,7 @@ export const LibreModePage: React.FC = () => {
                 ))
               ) : (
                 <div className="libre-pool-empty">
-                  {assignedEleveIds.size === allEleves.length ? 'Tous les eleves sont assignes' : 'Aucun resultat'}
+                  {assignedEleveIds.size === allEleves.length ? 'Tous les élèves sont assignés' : 'Aucun résultat'}
                 </div>
               )}
             </div>
@@ -958,7 +985,7 @@ export const LibreModePage: React.FC = () => {
               </h3>
               <div className="libre-pool-filters">
                 <select value={ensMatiere} onChange={e => setEnsMatiere(e.target.value)}>
-                  <option value="">Toutes matieres</option>
+                  <option value="">Toutes matières</option>
                   {matieres.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
                 <select value={ensNiveauEnseigne} onChange={e => setEnsNiveauEnseigne(e.target.value)}>
@@ -990,7 +1017,7 @@ export const LibreModePage: React.FC = () => {
                 ))
               ) : (
                 <div className="libre-pool-empty">
-                  {assignedEnseignantIds.size === allEnseignants.length ? 'Tous les enseignants sont assignes' : 'Aucun resultat'}
+                  {assignedEnseignantIds.size === allEnseignants.length ? 'Tous les enseignants sont assignés' : 'Aucun résultat'}
                 </div>
               )}
             </div>

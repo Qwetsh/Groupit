@@ -130,8 +130,8 @@ export const StepGroupes: React.FC<StepGroupesProps> = ({ onNext, onBack }) => {
         </div>
         <h2>Groupes oraux</h2>
         <p className="step-description">
-          Associez les eleves qui passent en binome (2) ou trinome (3). Ils seront affectes au meme jury,
-          avec le meme creneau horaire. Cette etape est facultative.
+          Associez les élèves qui passent en binôme (2) ou trinôme (3). Ils seront affectés au même jury,
+          avec le même créneau horaire. Cette étape est facultative.
         </p>
       </div>
 
@@ -147,7 +147,7 @@ export const StepGroupes: React.FC<StepGroupesProps> = ({ onNext, onBack }) => {
                   <div key={id} className="groupe-card" style={isTrinome ? { borderColor: 'rgba(245, 158, 11, 0.3)' } : {}}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                       <span className={isTrinome ? 'trinome-badge' : 'binome-badge-tag'}>
-                        {isTrinome ? 'TRINOME' : 'BINOME'}
+                        {isTrinome ? 'TRINÔME' : 'BINÔME'}
                       </span>
                       <span className="binome-classe">{members[0]?.classe}</span>
                     </div>
@@ -188,7 +188,7 @@ export const StepGroupes: React.FC<StepGroupesProps> = ({ onNext, onBack }) => {
               ? `Ajouter un membre au groupe (${addingToGroupe.members.map(m => m.prenom).join(', ')})`
               : selectedEleve
                 ? `Choisir le partenaire de ${selectedEleve.prenom} ${selectedEleve.nom}`
-                : 'Selectionnez un eleve pour creer un groupe'}
+                : 'Sélectionnez un élève pour créer un groupe'}
           </h3>
 
           {(selectedEleve || addingToGroupe) && (
@@ -197,21 +197,21 @@ export const StepGroupes: React.FC<StepGroupesProps> = ({ onNext, onBack }) => {
                 <div className="binome-selected-banner">
                   <Users size={16} />
                   <span>{selectedEleve.prenom} {selectedEleve.nom} ({selectedEleve.classe})</span>
-                  <button onClick={() => setSelectedEleveId(null)}><X size={14} /></button>
+                  <button onClick={() => setSelectedEleveId(null)} aria-label="Annuler la sélection de l'élève"><X size={14} /></button>
                 </div>
               )}
               {addingToGroupe && (
                 <div className="binome-selected-banner" style={{ borderColor: 'rgba(245, 158, 11, 0.4)' }}>
                   <Users size={16} />
                   <span>{addingToGroupe.members.map(m => `${m.prenom} ${m.nom}`).join(' & ')}</span>
-                  <button onClick={() => setAddingToGroupeId(null)}><X size={14} /></button>
+                  <button onClick={() => setAddingToGroupeId(null)} aria-label="Annuler l'ajout au groupe"><X size={14} /></button>
                 </div>
               )}
               <div className="binome-search-input">
                 <Search size={14} />
                 <input
                   type="text"
-                  placeholder="Rechercher un eleve..."
+                  placeholder="Rechercher un élève..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   autoFocus
@@ -219,7 +219,7 @@ export const StepGroupes: React.FC<StepGroupesProps> = ({ onNext, onBack }) => {
               </div>
               <div className="binome-candidates">
                 {availableForPairing.length === 0 ? (
-                  <p className="binome-empty">Aucun eleve disponible</p>
+                  <p className="binome-empty">Aucun élève disponible</p>
                 ) : (
                   availableForPairing.slice(0, 30).map(e => (
                     <button
@@ -280,7 +280,7 @@ export const StepGroupes: React.FC<StepGroupesProps> = ({ onNext, onBack }) => {
       <div className="step-actions">
         <button className="btn btn-secondary" onClick={onBack}>Retour</button>
         <button className="btn btn-primary" onClick={onNext}>
-          {groupes.length > 0 ? 'Continuer' : 'Passer cette etape'}
+          {groupes.length > 0 ? 'Continuer' : 'Passer cette étape'}
         </button>
       </div>
     </div>

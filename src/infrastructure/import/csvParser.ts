@@ -4,6 +4,7 @@
 
 import Papa from 'papaparse';
 import type { Eleve, Enseignant, ColumnMapping, EnseignantColumnMapping, ImportResult } from '../../domain/models';
+import { matiereDeReference } from '../../domain/models';
 
 // ============ TYPES ============
 
@@ -58,6 +59,16 @@ export const KNOWN_HEADERS_MAP: Record<string, keyof Eleve> = {
 
   // Classe (pour fichiers multi-classes)
   'classe': 'classe',
+
+  // Langues vivantes
+  'lv1': 'lv1',
+  'langue vivante 1': 'lv1',
+  'lv2': 'lv2',
+  'langue vivante 2': 'lv2',
+
+  // Options (les colonnes « Option 1, 2… » sont reconnues d'après leur contenu)
+  'autres options': 'options',
+  'toutes les options': 'options',
 
   // Encouragement/Valorisation -> champ spécial
   'encouragement/valorisation': 'encouragementValorisation',
@@ -418,10 +429,11 @@ export async function parseCSVFile(file: File): Promise<ParsedCSVData> {
 /**
  * Génère automatiquement le mapping des colonnes
  */
-export function generateAutoMapping(headers: string[]): ColumnMapping[] {
+export function generateAutoMapping(headers: string[], rows: Record<string, string>[] = []): ColumnMapping[] {
   return headers.map(header => {
     const normalizedHeader = header.toLowerCase().trim();
-    const targetField = KNOWN_HEADERS_MAP[normalizedHeader] || null;
+    const targetField = KNOWN_HEADERS_MAP[normalizedHeader]
+      || (/^options?\s*\d*$/.test(normalizedHeader) ? typeColonneOption(header, rows) : null);
     const isIgnored = IGNORED_COLUMNS.some(ignored => 
       normalizedHeader === ignored || normalizedHeader.startsWith('unnamed')
     );
@@ -432,6 +444,42 @@ export function generateAutoMapping(headers: string[]): ColumnMapping[] {
       isIgnored,
     };
   });
+}
+
+// ============ LANGUES VIVANTES ET OPTIONS ============
+
+/** Rang de langue vivante écrit dans une valeur (« ANGLAIS LV1 » → 1), ou null. */
+function rangLangue(valeur: string): 1 | 2 | null {
+  const v = valeur.toUpperCase();
+  if (/\bLV\s*1\b|\bLVA\b/.test(v)) return 1;
+  if (/\bLV\s*2\b|\bLVB\b/.test(v)) return 2;
+  return null;
+}
+
+/**
+ * Une colonne « Option N » contient-elle la LV1, la LV2 ou d'autres options ?
+ * On regarde ses valeurs : la majorité décide.
+ */
+function typeColonneOption(header: string, rows: Record<string, string>[]): keyof Eleve {
+  const valeurs = rows.map(r => (r[header] ?? '').trim()).filter(Boolean);
+  if (valeurs.length === 0) return 'options';
+  const lv1 = valeurs.filter(v => rangLangue(v) === 1).length;
+  const lv2 = valeurs.filter(v => rangLangue(v) === 2).length;
+  if (lv1 > valeurs.length / 2) return 'lv1';
+  if (lv2 > valeurs.length / 2) return 'lv2';
+  return 'options';
+}
+
+/**
+ * Nom de la langue à partir d'une valeur d'export (« ANGLAIS LV1 » → « Anglais »,
+ * « LV2 Espagnol » → « Espagnol »).
+ */
+export function normaliserLangue(valeur: string): string {
+  const sansRang = valeur.replace(/\b(LV\s*[12]|LV[AB])\b/gi, ' ').replace(/\s+/g, ' ').trim();
+  if (!sansRang) return '';
+  const reference = matiereDeReference(sansRang);
+  if (reference) return reference;
+  return sansRang.charAt(0).toUpperCase() + sansRang.slice(1).toLowerCase();
 }
 
 // ============ OPTIONS EXTRACTION ============
@@ -460,6 +508,11 @@ export function extractOptions(row: Record<string, string>, headers: string[]): 
   return options;
 }
 
+function ajouterOptions(eleve: Partial<Eleve>, valeurs: string[]): void {
+  const options = eleve.options ?? (eleve.options = []);
+  for (const v of valeurs) if (v && !options.includes(v)) options.push(v);
+}
+
 // ============ MAIN IMPORT FUNCTION ============
 
 /**
@@ -482,6 +535,10 @@ export function importElevesFromCSV(
     }
   });
   
+  // Colonnes d'options choisies dans la correspondance (LV1, LV2, Option)
+  const aucuneColonneOptions = !mappings.some(m =>
+    !m.isIgnored && (m.targetField === 'options' || m.targetField === 'lv1' || m.targetField === 'lv2'));
+
   // Trouver la colonne "nom complet" si elle existe
   const nomCompletHeader = data.headers.find(h => {
     const lower = h.toLowerCase();
@@ -552,6 +609,17 @@ export function importElevesFromCSV(
           case 'encouragementValorisation':
             eleve.encouragementValorisation = trimmedValue;
             break;
+          case 'lv1':
+          case 'lv2': {
+            const langue = normaliserLangue(trimmedValue);
+            if (langue) eleve[mapping.targetField] = langue;
+            // La valeur d'origine reste aussi dans les options (filtres, sélection par option)
+            ajouterOptions(eleve, [trimmedValue]);
+            break;
+          }
+          case 'options':
+            ajouterOptions(eleve, trimmedValue.split(',').map(o => o.trim()));
+            break;
           default:
             // Stocker dans autresChamps
             if (eleve.autresChamps) {
@@ -560,8 +628,11 @@ export function importElevesFromCSV(
         }
       });
       
-      // Extraire les options
-      eleve.options = extractOptions(row, data.headers);
+      // Sans aucune colonne d'options choisie (anciens réglages), comportement d'origine :
+      // toutes les colonnes « Option… » sont reprises.
+      if (aucuneColonneOptions) {
+        eleve.options = extractOptions(row, data.headers);
+      }
       
       // Validation minimale
       if (!eleve.nom || eleve.nom.trim() === '') {

@@ -1,0 +1,261 @@
+/* ============================================================
+ * ASSISTANT : cadre commun à toutes les étapes
+ * ============================================================
+ * - en haut : les étapes nommées et « Quitter », au même endroit partout ;
+ * - au milieu : le contenu, qui défile d'un seul tenant (plus de petites
+ *   zones avec leur propre barre de défilement) ;
+ * - en bas : « Retour » à gauche, le bouton principal à droite, toujours
+ *   visibles ; un bouton grisé dit ce qui manque.
+ */
+
+/* ---------- En-tête ---------- */
+.guided-overlay .guided-header-uni {
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.guided-stepper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.guided-stepper .stepper-item {
+  display: flex;
+  align-items: center;
+}
+
+.guided-stepper .stepper-item + .stepper-item::before {
+  content: '';
+  width: 18px;
+  height: 2px;
+  margin-right: 4px;
+  border-radius: 2px;
+  background: var(--border-strong);
+}
+
+.guided-stepper .stepper-item.done + .stepper-item::before {
+  background: var(--success-strong);
+}
+
+.guided-stepper .stepper-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 10px 4px 4px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.guided-stepper button.stepper-link {
+  cursor: pointer;
+}
+
+.guided-stepper button.stepper-link:hover {
+  background: var(--surface-sunken);
+  color: var(--text-strong);
+}
+
+.guided-stepper .stepper-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--border-strong);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.guided-stepper .done .stepper-num {
+  border-color: var(--success-strong);
+  background: var(--success-strong);
+  color: var(--text-on-accent);
+}
+
+.guided-stepper .active .stepper-link {
+  color: var(--text-strong);
+  font-weight: 700;
+}
+
+.guided-stepper .active .stepper-num {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--text-on-accent);
+}
+
+.guided-overlay .guided-exit-btn {
+  flex-shrink: 0;
+  min-height: 36px;
+}
+
+/* Rappel des données déjà là, avec un accès pour les modifier */
+.guided-donnees {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  align-self: flex-start;
+  margin-bottom: var(--space-sm);
+  padding: 4px 4px 4px 12px;
+  border-radius: 999px;
+  background: var(--success-softer, var(--surface-alt));
+  color: var(--success-text, var(--text-secondary));
+  font-size: 0.85rem;
+}
+
+.guided-donnees-lien {
+  min-height: 28px;
+  padding: 2px 10px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--accent-text, var(--primary));
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ---------- Contenu : un seul défilement ---------- */
+.guided-overlay .guided-content {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.guided-overlay .guided-step,
+.guided-overlay .step-config,
+.guided-overlay .step-config .config-form,
+.guided-overlay .config-col-left,
+.guided-overlay .config-col-right,
+.guided-overlay .config-two-columns,
+.guided-overlay .jury-editor-scroll {
+  overflow: visible;
+  flex: none;
+  min-height: auto;
+}
+
+/* Les listes s'affichent en entier : c'est la page qui défile */
+.guided-overlay .config-col-right .enseignant-grid.compact,
+.guided-overlay .enseignant-grid,
+.guided-overlay .themes-class-list,
+.guided-overlay .binome-eleves-list,
+.guided-overlay .salles-grid {
+  max-height: none;
+  overflow: visible;
+  flex: none;
+}
+
+.guided-overlay .config-col-right {
+  max-height: none;
+}
+
+/* Les titres d'étape alignés de la même façon partout */
+.guided-overlay .step-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 1.6rem;
+}
+
+/* ---------- Barre d'actions : toujours visible en bas ---------- */
+.guided-overlay .step-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+  padding: var(--space-sm) 0;
+  background: var(--guided-fond, var(--surface-alt));
+}
+
+.step-actions-primary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-left: auto;
+  text-align: right;
+}
+
+.step-blocage {
+  max-width: 340px;
+  color: var(--warning-text, var(--text-secondary));
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+/* Alerte d'horaires, avec sa correction */
+.guided-overlay .warning-horaires {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.guided-overlay .warning-horaires span {
+  flex: 1 1 260px;
+}
+
+/* ---------- Petits écrans ---------- */
+@media (max-width: 760px) {
+  .guided-stepper .stepper-label {
+    display: none;
+  }
+
+  .guided-stepper .active .stepper-label {
+    display: inline;
+  }
+
+  .guided-overlay .step-actions {
+    flex-wrap: wrap;
+  }
+
+  .step-actions-primary {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    width: 100%;
+    text-align: left;
+  }
+
+  .step-blocage {
+    max-width: none;
+  }
+}
+
+/* Choix de la répartition sur plusieurs demi-journées */
+.choix-distribution {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 10px 0 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.choix-distribution legend {
+  padding: 0 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.choix-distribution label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}

@@ -2,8 +2,8 @@
 // GUIDED STEP - RECAP (Lancement répartition avec animation)
 // ============================================================
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { Users, GraduationCap, Settings, Play, Loader2, CheckCircle, PartyPopper, Eye, Briefcase, AlertTriangle } from 'lucide-react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { Loader2, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '../../../stores/uiStore';
 import { useScenarioStore } from '../../../stores/scenarioStore';
@@ -70,13 +70,6 @@ export function StepRecap({ onBack }: StepRecapProps) {
     [scenario, getAffectationsByScenario]
   );
 
-  // Auto-check if we already have affectations
-  useEffect(() => {
-    if (existingAffectationCount > 0) {
-      setState('success');
-      setAffectationCount(existingAffectationCount);
-    }
-  }, [existingAffectationCount]);
 
   const handleLaunchRepartition = useCallback(async () => {
     if (!scenario) return;
@@ -167,23 +160,25 @@ export function StepRecap({ onBack }: StepRecapProps) {
 
         const demiJournees = scenario.parametres.oralDnb?.demiJourneesOral;
         const effectiveDemiJournees = demiJournees && demiJournees.length > 0 ? demiJournees : ['mercredi_matin'];
-        if (effectiveDemiJournees.length > 1) {
+        const choixFait = scenario.parametres.oralDnb?.distributionCreneaux;
+        if (effectiveDemiJournees.length > 1 && !choixFait) {
+          // Configuration ancienne, sans choix enregistré : on le demande
           setPendingAffectations(savedAffectations);
           setState('choosing_distribution');
         } else {
-          await applyTimeSlots(savedAffectations, effectiveDemiJournees, 'fill_first');
+          await applyTimeSlots(savedAffectations, effectiveDemiJournees, choixFait ?? 'fill_first');
           setState('success');
         }
       } else {
         // === SUIVI STAGE ===
-        setProgressMessage('Preparation des donnees...');
+        setProgressMessage('Préparation des données...');
 
         // Get stages for 3e students
         const eleveIds3e = new Set(eleves3e.map(e => e.id));
         let stagesForEleves = stages.filter(s => s.eleveId && eleveIds3e.has(s.eleveId) && !s.scenarioId);
 
         if (stagesForEleves.length === 0) {
-          throw new Error('Aucun stage trouve pour les eleves de 3eme. Importez les stages dans l\'etape Stages du wizard.');
+          throw new Error('Aucun stage trouvé pour les élèves de 3ème. Importez les stages dans l\'étape Stages du wizard.');
         }
 
         // Get selected enseignants
@@ -203,7 +198,7 @@ export function StepRecap({ onBack }: StepRecapProps) {
         const totalToGeocode = stagesToGeocode.length + teachersToGeocode.length;
         if (totalToGeocode > 0) {
           let geocoded = 0;
-          setProgressMessage(`Geocodage des adresses (0/${totalToGeocode})...`);
+          setProgressMessage(`Géocodage des adresses (0/${totalToGeocode})...`);
           setProgressPercent(0);
 
           // Geocode stages
@@ -215,10 +210,10 @@ export function StepRecap({ onBack }: StepRecapProps) {
                 geoResult.status, geoResult.statusExtended, geoResult.precision, geoResult.queryUsed
               );
             } else {
-              await setStageGeoError(stage.id, geoResult.errorMessage || 'Non trouve');
+              await setStageGeoError(stage.id, geoResult.errorMessage || 'Non trouvé');
             }
             geocoded++;
-            setProgressMessage(`Geocodage des adresses (${geocoded}/${totalToGeocode})...`);
+            setProgressMessage(`Géocodage des adresses (${geocoded}/${totalToGeocode})...`);
             setProgressPercent(Math.round((geocoded / totalToGeocode) * 30));
             await new Promise(r => setTimeout(r, 100));
           }
@@ -234,7 +229,7 @@ export function StepRecap({ onBack }: StepRecapProps) {
               });
             }
             geocoded++;
-            setProgressMessage(`Geocodage des adresses (${geocoded}/${totalToGeocode})...`);
+            setProgressMessage(`Géocodage des adresses (${geocoded}/${totalToGeocode})...`);
             setProgressPercent(Math.round((geocoded / totalToGeocode) * 30));
             await new Promise(r => setTimeout(r, 100));
           }
@@ -283,13 +278,13 @@ export function StepRecap({ onBack }: StepRecapProps) {
         }));
 
         // Compute route pairs
-        setProgressMessage('Calcul des itineraires (preparation)...');
+        setProgressMessage('Calcul des itinéraires (préparation)...');
         setProgressPercent(30);
         const routeResult = await computeRoutePairs(stageGeoInfos, ensGeoInfos, {
           maxDistanceKm: scenario.parametres.suiviStage?.distanceMaxKm || 20,
           onProgress: (geoState) => {
             if (geoState.total > 0) {
-              setProgressMessage(`Calcul des itineraires (${geoState.current}/${geoState.total})...`);
+              setProgressMessage(`Calcul des itinéraires (${geoState.current}/${geoState.total})...`);
               setProgressPercent(30 + Math.round((geoState.current / geoState.total) * 60));
             }
           },
@@ -406,11 +401,37 @@ export function StepRecap({ onBack }: StepRecapProps) {
     navigate('/board');
   }, [exitGuidedMode, navigate, scenario]);
 
+  // Le calcul part dès l'arrivée sur cette étape : le bouton « Lancer la
+  // répartition » est sur l'étape précédente. Une seule fois, même si React
+  // rejoue l'effet.
+  const lancement = useRef(false);
+  useEffect(() => {
+    if (lancement.current || !scenario) return;
+    lancement.current = true;
+    if (existingAffectationCount > 0) {
+      handleViewResults();
+    } else {
+      void handleLaunchRepartition();
+    }
+  }, [scenario, existingAffectationCount, handleViewResults, handleLaunchRepartition]);
+
+  // Une fois terminé, on ouvre directement les résultats avec le bilan
+  useEffect(() => {
+    if (state !== 'success' || !scenario?.id) return;
+    const resume = scenario.type === 'suivi_stage'
+      ? `${affectationCount} élèves ont un enseignant tuteur.`
+      : scenario.type === 'custom'
+      ? `${affectationCount} élèves répartis dans ${scenarioJurys.length} groupes.`
+      : `${affectationCount} élèves répartis dans ${scenarioJurys.length} jurys.`;
+    useUIStore.getState().setDerniereRepartition({ scenarioId: scenario.id, resume, alertes });
+    handleViewResults();
+  }, [state, scenario, affectationCount, scenarioJurys.length, alertes, handleViewResults]);
+
   if (!scenario) {
     return (
       <div className="guided-step step-recap">
         <h1 className="step-title">Erreur</h1>
-        <p>Configuration non trouvée. Veuillez retourner a l'etape precedente.</p>
+        <p>Configuration non trouvée. Veuillez retourner à l'étape précédente.</p>
         <button className="btn btn-secondary" onClick={onBack}>
           Retour
         </button>
@@ -418,63 +439,14 @@ export function StepRecap({ onBack }: StepRecapProps) {
     );
   }
 
-  // SUCCESS STATE
+  // SUCCESS STATE : les résultats s’ouvrent (voir l’effet plus haut)
   if (state === 'success') {
     return (
-      <div className="guided-step step-recap success-view">
-        <div className="success-animation">
-          <div className="success-icon">
-            <CheckCircle size={64} />
-          </div>
-          <PartyPopper size={32} className="confetti left" />
-          <PartyPopper size={32} className="confetti right" />
+      <div className="guided-step step-recap running-view">
+        <div className="running-animation">
+          <CheckCircle size={64} />
         </div>
-
-        <h1 className="step-title success">Répartition terminée !</h1>
-        <p className="step-subtitle">
-          {scenario?.type === 'suivi_stage'
-            ? `${affectationCount} élèves ont été affectés à des enseignants tuteurs.`
-            : scenario?.type === 'custom'
-            ? `${affectationCount} élèves ont été répartis dans ${scenarioJurys.length} groupes.`
-            : `${affectationCount} élèves ont été répartis dans ${scenarioJurys.length} jurys.`}
-        </p>
-
-        {alertes.length > 0 && (
-          <div className="recap-alertes" role="status">
-            <div className="recap-alertes-titre">
-              <AlertTriangle size={18} />
-              <span>{alertes.length > 1 ? `${alertes.length} points à vérifier` : '1 point à vérifier'}</span>
-            </div>
-            <ul>
-              {alertes.map((message, i) => <li key={i}>{message}</li>)}
-            </ul>
-          </div>
-        )}
-
-        <div className="success-stats">
-          <div className="success-stat">
-            <Users size={24} />
-            <span className="stat-value">{affectationCount}</span>
-            <span className="stat-label">élèves affectés</span>
-          </div>
-          <div className="success-stat">
-            {scenario?.type === 'suivi_stage' ? <Briefcase size={24} /> : <GraduationCap size={24} />}
-            <span className="stat-value">{scenario?.type === 'suivi_stage' ? affectationCount : scenarioJurys.length}</span>
-            <span className="stat-label">{scenario?.type === 'suivi_stage' ? 'stages' : scenario?.type === 'custom' ? 'groupes' : 'jurys'}</span>
-          </div>
-        </div>
-
-        <button
-          className="btn btn-primary btn-large view-results-btn"
-          onClick={handleViewResults}
-        >
-          <Eye size={20} />
-          Voir les résultats
-        </button>
-
-        <p className="success-hint">
-          Vous pourrez ajuster les affectations manuellement par glisser-déposer.
-        </p>
+        <h1 className="step-title">Ouverture des résultats…</h1>
       </div>
     );
   }
@@ -486,7 +458,7 @@ export function StepRecap({ onBack }: StepRecapProps) {
         <div className="running-animation">
           <Loader2 size={64} className="spin" />
         </div>
-        <h1 className="step-title">Repartition en cours...</h1>
+        <h1 className="step-title">Répartition en cours...</h1>
         <p className="step-subtitle">
           {progressMessage || "L'algorithme optimise les affectations pour respecter les contraintes."}
         </p>
@@ -526,7 +498,7 @@ export function StepRecap({ onBack }: StepRecapProps) {
       <div className="guided-step step-recap error-view">
         <h1 className="step-title error">Erreur</h1>
         <p className="step-subtitle">
-          Une erreur s'est produite lors de la repartition.
+          Une erreur s'est produite lors de la répartition.
         </p>
         <div className="error-message">
           <p>{error}</p>
@@ -536,127 +508,32 @@ export function StepRecap({ onBack }: StepRecapProps) {
             Retour
           </button>
           <button className="btn btn-primary" onClick={handleLaunchRepartition}>
-            Reessayer
+            Réessayer
           </button>
         </div>
       </div>
     );
   }
 
-  // READY STATE
+  // READY / RUNNING : le calcul démarre tout seul
   return (
-    <div className="guided-step step-recap">
-      <h1 className="step-title">Tout est pret !</h1>
-      <p className="step-subtitle">
-        Verifiez les informations ci-dessous avant de lancer la repartition.
-      </p>
-
-      <div className="recap-cards">
-        {scenario.type === 'custom' ? (
-          <>
-            <div className="recap-card">
-              <div className="recap-icon">
-                <Users size={28} />
-              </div>
-              <div className="recap-value">{guidedMode.customConfig.selectedEleveIds.length}</div>
-              <div className="recap-label">eleves selectionnes</div>
-            </div>
-            {guidedMode.customConfig.useAdultes && (
-              <div className="recap-card">
-                <div className="recap-icon jury">
-                  <GraduationCap size={28} />
-                </div>
-                <div className="recap-value">{guidedMode.customConfig.selectedEnseignantIds.length}</div>
-                <div className="recap-label">{guidedMode.customConfig.adulteRole.toLowerCase()}s</div>
-              </div>
-            )}
-            <div className="recap-card">
-              <div className="recap-icon config">
-                <Settings size={28} />
-              </div>
-              <div className="recap-value">{scenario.nom}</div>
-              <div className="recap-label">configuration</div>
-              <div className="recap-detail">
-                {guidedMode.customConfig.tailleGroupeFixe
-                  ? `${guidedMode.customConfig.tailleGroupeMin} eleves/groupe`
-                  : `${guidedMode.customConfig.tailleGroupeMin}-${guidedMode.customConfig.tailleGroupeMax} eleves/groupe`}
-              </div>
-            </div>
-          </>
-        ) : (
-        <>
-        <div className="recap-card">
-          <div className="recap-icon">
-            <Users size={28} />
-          </div>
-          <div className="recap-value">{eleves3e.length}</div>
-          <div className="recap-label">eleves de 3eme</div>
+      <div className="guided-step step-recap running-view">
+        <div className="running-animation">
+          <Loader2 size={64} className="spin" />
         </div>
-
-        {scenario.type === 'oral_dnb' ? (
-          <div className="recap-card">
-            <div className="recap-icon jury">
-              <GraduationCap size={28} />
-            </div>
-            <div className="recap-value">{scenarioJurys.length}</div>
-            <div className="recap-label">jurys</div>
-            <div className="recap-detail">
-              {scenarioJurys.reduce((sum, j) => sum + j.capaciteMax, 0)} places au total
-            </div>
-          </div>
-        ) : (() => {
-          const stagesForRecap = stages.filter(s => s.eleveId && !s.scenarioId && eleves3e.some(e => e.id === s.eleveId));
-          const geocodedStages = stagesForRecap.filter(s => s.geoStatus === 'ok' || s.geoStatus === 'manual');
-          const pendingGeo = stagesForRecap.length - geocodedStages.length;
-          return (
-            <div className="recap-card">
-              <div className="recap-icon jury">
-                <Briefcase size={28} />
-              </div>
-              <div className="recap-value">{stagesForRecap.length}</div>
-              <div className="recap-label">stages</div>
-              <div className="recap-detail">
-                {geocodedStages.length}/{stagesForRecap.length} geocodes
-                {pendingGeo > 0 && ` — ${pendingGeo} seront geocodes automatiquement`}
-              </div>
-            </div>
-          );
-        })()}
-
-        <div className="recap-card">
-          <div className="recap-icon config">
-            <Settings size={28} />
-          </div>
-          <div className="recap-value">{scenario.nom}</div>
-          <div className="recap-label">configuration</div>
-        </div>
-        </>
-        )}
-      </div>
-
-      <div className="launch-section">
-        <p className="launch-hint">
-          {scenario.type === 'custom'
-            ? "L'algorithme va repartir les eleves dans des groupes en optimisant les criteres configures."
-            : scenario.type === 'suivi_stage'
-            ? "L'algorithme va affecter les enseignants tuteurs aux stages en optimisant les trajets et l'equilibrage."
-            : "L'algorithme va repartir les eleves dans les jurys en optimisant l'equilibrage et les correspondances de matieres."}
+        <h1 className="step-title">Répartition en cours...</h1>
+        <p className="step-subtitle">
+          {progressMessage || "L'algorithme optimise les affectations pour respecter les contraintes."}
         </p>
-
-        <button
-          className="btn btn-primary btn-launch"
-          onClick={handleLaunchRepartition}
-        >
-          <Play size={24} />
-          Lancer la repartition
-        </button>
+        <div className="running-progress">
+          <div className="progress-bar">
+            <div
+              className="progress-fill"
+              style={{ width: `${progressPercent}%`, transition: 'width 0.3s ease' }}
+            />
+          </div>
+          <span className="progress-label">{progressPercent}%</span>
+        </div>
       </div>
-
-      <div className="step-actions">
-        <button className="btn btn-secondary" onClick={onBack}>
-          Retour
-        </button>
-      </div>
-    </div>
-  );
+    );
 }

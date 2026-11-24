@@ -222,8 +222,8 @@ export const ElevesPage: React.FC = () => {
 
     const elevesSans = eleves3e.filter(e => !e.parcoursOral).length;
     const confirmed = await confirm({
-      title: 'Attribution aleatoire',
-      message: `Remplir parcours/sujet/matieres pour ${elevesSans} eleve(s) sans parcours ?`,
+      title: 'Attribution aléatoire',
+      message: `Remplir parcours/sujet/matières pour ${elevesSans} élève(s) sans parcours ?`,
       variant: 'warning',
       confirmLabel: 'Attribuer',
     });
@@ -351,10 +351,10 @@ export const ElevesPage: React.FC = () => {
 
   const handleExport = () => {
     if (eleves.length === 0) {
-      addNotification({ type: 'warning', message: 'Aucun eleve a exporter' });
+      addNotification({ type: 'warning', message: 'Aucun élève à exporter' });
       return;
     }
-    const headers = ['Nom', 'Prenom', 'Classe', 'Date de naissance', 'Sexe', 'Options', 'Parcours Oral', 'Sujet Oral', 'Matieres Oral', 'Tags'];
+    const headers = ['Nom', 'Prénom', 'Classe', 'Date de naissance', 'Sexe', 'Options', 'Parcours Oral', 'Sujet Oral', 'Matières Oral', 'Tags'];
     const rows = eleves.map(e => [
       e.nom, e.prenom, e.classe || '', e.dateNaissance || '', e.sexe || '',
       e.options.join(';'), e.parcoursOral || '', e.sujetOral || '',
@@ -378,8 +378,8 @@ export const ElevesPage: React.FC = () => {
     <div className="eleves-page">
       <div className="page-header">
         <div className="header-left">
-          <h1>Eleves</h1>
-          <span className="count">{eleves.length} eleves</span>
+          <h1>Élèves</h1>
+          <span className="count">{eleves.length} élèves</span>
         </div>
         <div className="header-actions">
           <button className="btn-secondary" onClick={handleExport}>
@@ -388,7 +388,7 @@ export const ElevesPage: React.FC = () => {
           </button>
           <button className="btn-primary" onClick={() => openModal('import')}>
             <Upload size={18} />
-            Importer des eleves (CSV)
+            Importer des élèves (CSV)
           </button>
         </div>
       </div>
@@ -400,7 +400,7 @@ export const ElevesPage: React.FC = () => {
           onClick={() => setActiveTab('liste')}
         >
           <Filter size={16} />
-          Liste des eleves
+          Liste des élèves
         </button>
         <button
           className={`tab-btn ${activeTab === 'sujets' ? 'active' : ''}`}
@@ -434,7 +434,7 @@ export const ElevesPage: React.FC = () => {
               <Search size={18} />
               <input
                 type="text"
-                placeholder="Rechercher un eleve..."
+                placeholder="Rechercher un élève..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
               />
@@ -461,7 +461,7 @@ export const ElevesPage: React.FC = () => {
               <thead>
                 <tr>
                   <th>Nom</th>
-                  <th>Prenom</th>
+                  <th>Prénom</th>
                   <th>Classe</th>
                   <th>Date de naissance</th>
                   <th>Sexe</th>
@@ -490,10 +490,10 @@ export const ElevesPage: React.FC = () => {
             </table>
             {filteredEleves.length === 0 && (
               <div className="empty-state">
-                <p>Aucun eleve trouve</p>
+                <p>Aucun élève trouvé</p>
                 {searchQuery || selectedClasse
-                  ? <span>Essayez de modifier vos criteres de recherche</span>
-                  : <span>Importez un fichier CSV pour ajouter des eleves</span>
+                  ? <span>Essayez de modifier vos critères de recherche</span>
+                  : <span>Importez un fichier CSV pour ajouter des élèves</span>
                 }
               </div>
             )}
@@ -513,17 +513,17 @@ export const ElevesPage: React.FC = () => {
                 <div className="import-success-card">
                   <Check size={24} />
                   <div>
-                    <strong>{sujetImportStats.success} eleve(s) mis a jour</strong>
-                    {sujetImportStats.skipped > 0 && <span>, {sujetImportStats.skipped} ignore(s)</span>}
+                    <strong>{sujetImportStats.success} élève(s) mis à jour</strong>
+                    {sujetImportStats.skipped > 0 && <span>, {sujetImportStats.skipped} ignoré(s)</span>}
                   </div>
                 </div>
                 <button className="btn-primary" onClick={resetSujetImport}>
-                  Retour a la liste
+                  Retour à la liste
                 </button>
               </div>
             ) : (
               <div className="sujets-import-preview">
-                <h3>Verification de l'import</h3>
+                <h3>Vérification de l'import</h3>
                 <div className="import-stats-bar-page">
                   <div className="import-stat-page">
                     <span className="stat-value">{sujetPreviewStats.total}</span>
@@ -531,20 +531,20 @@ export const ElevesPage: React.FC = () => {
                   </div>
                   <div className="import-stat-page">
                     <span className="stat-value">{sujetPreviewStats.matched}</span>
-                    <span className="stat-label">eleves trouves</span>
+                    <span className="stat-label">élèves trouvés</span>
                   </div>
                   <div className={clsx('import-stat-page', sujetPreviewStats.ready > 0 && 'success')}>
                     <span className="stat-value">{sujetPreviewStats.ready}</span>
-                    <span className="stat-label">prets</span>
+                    <span className="stat-label">prêts</span>
                   </div>
                 </div>
 
                 <div className="sujets-preview-table">
                   <div className="sujets-preview-header">
-                    <span>Eleve</span>
+                    <span>Élève</span>
                     <span>Parcours</span>
                     <span>Sujet</span>
-                    <span>Matiere(s)</span>
+                    <span>Matière(s)</span>
                     <span>Match</span>
                   </div>
                   <div className="sujets-preview-body">
@@ -581,7 +581,7 @@ export const ElevesPage: React.FC = () => {
                 <div className="themes-stat">
                   <BookOpen size={20} />
                   <span className="stat-value">{sujetStats.complete}</span>
-                  <span className="stat-label">/ {sujetStats.total} eleves completes</span>
+                  <span className="stat-label">/ {sujetStats.total} élèves complétés</span>
                 </div>
                 {sujetStats.complete === sujetStats.total && sujetStats.total > 0 && (
                   <span className="all-done-badge">
@@ -596,24 +596,26 @@ export const ElevesPage: React.FC = () => {
                   <Search size={16} />
                   <input
                     type="text"
-                    placeholder="Rechercher un eleve, parcours, sujet..."
+                    placeholder="Rechercher un élève, parcours, sujet..."
                     value={sujetSearchFilter}
                     onChange={e => setSujetSearchFilter(e.target.value)}
                   />
                 </div>
                 <button className="btn-secondary" onClick={handleDownloadTemplate}>
                   <Download size={16} />
-                  Template
+                  Modèle à remplir
                 </button>
-                <button
-                  className="btn-secondary"
-                  onClick={handleRandomThemes}
-                  title="DEV: Remplir aleatoirement"
-                  style={{ borderColor: 'rgba(245, 158, 11, 0.4)', color: '#f59e0b', fontSize: '0.75rem' }}
-                >
-                  <Shuffle size={16} />
-                  Random
-                </button>
+                {import.meta.env.DEV && (
+                  <button
+                    className="btn-secondary"
+                    onClick={handleRandomThemes}
+                    title="DEV: Remplir aléatoirement"
+                    style={{ borderColor: 'rgba(245, 158, 11, 0.4)', color: 'var(--warning-text)', fontSize: '0.75rem' }}
+                  >
+                    <Shuffle size={16} />
+                    Random
+                  </button>
+                )}
                 <div
                   className="import-drop-zone-inline"
                   onDragEnter={handleSujetDrag}
@@ -652,11 +654,11 @@ export const ElevesPage: React.FC = () => {
                     {expandedClasses.has(cls) && (
                       <div className="class-students oral-table">
                         <div className="oral-table-header">
-                          <span className="col-name">Eleve</span>
+                          <span className="col-name">Élève</span>
                           <span className="col-parcours">Parcours</span>
                           <span className="col-sujet">Sujet</span>
-                          <span className="col-matiere">Matiere 1</span>
-                          <span className="col-matiere">Matiere 2</span>
+                          <span className="col-matiere">Matière 1</span>
+                          <span className="col-matiere">Matière 2</span>
                         </div>
                         {elvs.map(eleve => {
                           const isComplete = eleve.parcoursOral && eleve.sujetOral;
@@ -737,8 +739,8 @@ export const ElevesPage: React.FC = () => {
                 {filteredSujetGroups.length === 0 && (
                   <div className="empty-state" style={{ padding: '2rem' }}>
                     <p>{sujetSearchFilter
-                      ? 'Aucun eleve ne correspond a votre recherche.'
-                      : "Aucun eleve de 3eme trouve. Importez des eleves depuis l'onglet Liste."
+                      ? 'Aucun élève ne correspond à votre recherche.'
+                      : "Aucun élève de 3ème trouvé. Importez des élèves depuis l'onglet Liste."
                     }</p>
                   </div>
                 )}

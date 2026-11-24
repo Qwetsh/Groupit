@@ -2,6 +2,7 @@ import React, { useCallback, useState, useMemo, useEffect, lazy, Suspense } from
 import {
   DndContext,
   DragOverlay,
+  KeyboardSensor,
   MouseSensor,
   TouchSensor,
   useSensor,
@@ -9,8 +10,14 @@ import {
   useDroppable,
   type DragStartEvent,
   type DragEndEvent,
-  pointerWithin,
+  type UniqueIdentifier,
 } from '@dnd-kit/core';
+import {
+  annoncesFrancaises,
+  coordonneesClavier,
+  detectionCollision,
+  instructionsLecteurEcran,
+} from './keyboardDnd';
 import { useEleveStore } from '../../stores/eleveStore';
 import { useEnseignantStore } from '../../stores/enseignantStore';
 import { useAffectationStore } from '../../stores/affectationStore';
@@ -21,7 +28,8 @@ import { calculateDistance, recalcTimeSlotsForJurys } from '../../algorithms';
 import type { Eleve, Enseignant, Affectation, Jury, MatchingResultDNB, Stage } from '../../domain/models';
 import { calculateCapacitesStage, getHeuresMatiere, premiereMatiereCouverte } from '../../domain/models';
 import { filterEleves, filterEnseignants } from '../../utils/filteringUtils';
-import { Info, UserX, Users, MapPin, MapPinOff, Palette, Eye, Tag } from 'lucide-react';
+import { Info, UserX, Users, MapPin, MapPinOff, Palette, Eye, Tag, AlertTriangle, CheckCircle, X } from 'lucide-react';
+import { useUIStore } from '../../stores/uiStore';
 import { OverlayProgress } from '../ui/ProgressIndicator';
 import { HelpTooltip } from '../ui/Tooltip';
 import { HELP_TEXTS } from '../ui/helpTexts';
@@ -42,6 +50,7 @@ import { DraggableEleve, DroppableEnseignantTile, DroppableJuryTile } from './ti
 import type { DragData, DropData, ContextMenuState, EnseignantContextMenuState, JuryAffectationDisplay, MatchingStats, ValidationSuccess, NonAffectationInfo } from './types';
 
 import './Board.css';
+import './BoardUx.css';
 
 // Tiroir de carte (Leaflet) : hors du fichier de démarrage, chargé à la demande.
 const StageAssignmentMapDrawer = lazy(() =>
@@ -102,6 +111,11 @@ export const Board: React.FC = () => {
     return scenarios.find(s => s.id === currentScenarioId) || scenarios[0];
   }, [scenarios, currentScenarioId]);
 
+  // Bilan du dernier calcul lancé depuis l’assistant, pour ce scénario seulement
+  const derniereRepartition = useUIStore(state => state.derniereRepartition);
+  const setDerniereRepartition = useUIStore(state => state.setDerniereRepartition);
+  const bilan = derniereRepartition && derniereRepartition.scenarioId === activeScenario?.id ? derniereRepartition : null;
+
   // Scenario type flags
   const isStageScenario = activeScenario?.type === 'suivi_stage';
   const isCustomScenario = activeScenario?.type === 'custom';
@@ -154,8 +168,39 @@ export const Board: React.FC = () => {
   // Sensors for drag & drop
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: coordonneesClavier })
   );
+
+  // Libellés lus par les lecteurs d'écran pendant un déplacement au clavier
+  const nomDe = useCallback((id: UniqueIdentifier): string => {
+    const [type, cle] = String(id).split(/:(.*)/s);
+    const nomEleve = (eleveId?: string) => {
+      const e = eleveId ? elevesById.get(eleveId) : undefined;
+      return e ? `${e.prenom} ${e.nom}` : 'Élève';
+    };
+    switch (type) {
+      case 'eleve':
+        return nomEleve(cle);
+      case 'affectation':
+      case 'jury-aff':
+        return nomEleve(affectations.find(a => a.id === cle)?.eleveId);
+      case 'jury':
+        return jurysById.get(cle)?.nom ?? 'Jury';
+      case 'enseignant': {
+        const ens = enseignantsById.get(cle);
+        return ens ? `${ens.prenom} ${ens.nom}` : 'Enseignant';
+      }
+      case 'unassigned-zone':
+        return 'Élèves à affecter';
+      default:
+        return String(id);
+    }
+  }, [elevesById, affectations, jurysById, enseignantsById]);
+  const accessibilite = useMemo(() => ({
+    announcements: annoncesFrancaises(nomDe),
+    screenReaderInstructions: instructionsLecteurEcran,
+  }), [nomDe]);
 
   // Filter eleves/enseignants based on scenario
   const scenarioEleves = useMemo(() => {
@@ -295,7 +340,7 @@ export const Board: React.FC = () => {
 
   // Toolbar props
   const scenarioInfo = isStageScenario
-    ? `${geocodedStagesCount}/${scenarioStages.length} stages • ${geocodedEnseignantsCount} enseignants`
+    ? `${scenarioStages.length} stages (${geocodedStagesCount} localisés) • ${geocodedEnseignantsCount} enseignants localisés`
     : `${scenarioEleves.length} élèves • ${isJuryMode ? `${scenarioJurys.length} jurys` : `${scenarioEnseignants.length} enseignants`}`;
 
   // Stages for selected teacher map
@@ -829,6 +874,30 @@ export const Board: React.FC = () => {
         onClearValidation={() => setValidationSuccess(null)}
       />
 
+      {/* Bilan du dernier calcul : ce qui a été fait et ce qu’il reste à vérifier */}
+      {bilan && (
+        <div className={`board-bilan ${bilan.alertes.length > 0 ? "avec-alertes" : ""}`} role="status">
+          <div className="board-bilan-tete">
+            {bilan.alertes.length > 0 ? <AlertTriangle size={18} aria-hidden="true" /> : <CheckCircle size={18} aria-hidden="true" />}
+            <strong>Répartition terminée.</strong>
+            <span>{bilan.resume}</span>
+            {bilan.alertes.length > 0 && (
+              <span className="board-bilan-compte">
+                {bilan.alertes.length > 1 ? `${bilan.alertes.length} points à vérifier` : "1 point à vérifier"}
+              </span>
+            )}
+            <button type="button" className="board-bilan-fermer" onClick={() => setDerniereRepartition(null)} aria-label="Masquer le bilan">
+              <X size={16} />
+            </button>
+          </div>
+          {bilan.alertes.length > 0 && (
+            <ul className="board-bilan-liste">
+              {bilan.alertes.map((a, i) => <li key={i}>{a}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
+
       {(isJuryMode || isStageScenario) && activeScenario && (
         <ExportButtons scenario={activeScenario} filteredEleveIds={scenarioEleves.map(e => e.id!)} />
       )}
@@ -860,8 +929,8 @@ export const Board: React.FC = () => {
         </button>
       </div>
 
-      <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={handleDragStart} onDragEnd={handleDragEnd} autoScroll={false}>
-        <div className="board-columns">
+      <DndContext sensors={sensors} collisionDetection={detectionCollision} accessibility={accessibilite} onDragStart={handleDragStart} onDragEnd={handleDragEnd} autoScroll={false}>
+        <div className={`board-columns ${unassignedEleves.length === 0 ? "sans-attente" : ""}`}>
           {/* Unassigned column */}
           <div className="board-column eleves-column">
             <div className="column-header">
@@ -880,7 +949,7 @@ export const Board: React.FC = () => {
                 <DraggableEleve key={eleve.id} eleve={eleve} onContextMenu={handleContextMenuUnassigned} nonAffectationInfo={computedNonAffectesInfo.get(eleve.id!)} distanceFromEnseignantKm={distancesByEleveFromEnseignant.get(eleve.id!)} showGenderColor={showGenderColor} sameClassAsDragged={!!draggedEleveClasse && eleve.classe === draggedEleveClasse} />
               ))}
               {unassignedEleves.length === 0 && (
-                <div className="empty-state success"><p>✓ Tous les élèves sont affectés</p></div>
+                <div className="empty-state success"><p>✓ Tous les élèves sont affectés.</p><p className="empty-state-aide">Déposez un élève ici pour le retirer de son groupe.</p></div>
               )}
             </UnassignedDropZone>
           </div>
@@ -896,7 +965,7 @@ export const Board: React.FC = () => {
             </div>
             {isStageScenario && (
               <div className="drag-legend">
-                <span className="legend-title">Légende drag & drop :</span>
+                <span className="legend-title">Distance du stage :</span>
                 <span className="legend-item"><span className="legend-color distance-close"></span> ≤5km</span>
                 <span className="legend-item"><span className="legend-color distance-medium"></span> ≤15km</span>
                 <span className="legend-item"><span className="legend-color distance-far"></span> ≤30km</span>

@@ -39,6 +39,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import type { Eleve, Stage } from '../../domain/models';
+import { useDialog } from '../../hooks/useDialog';
 import './StageTab.css';
 
 // ============================================================
@@ -79,6 +80,11 @@ function StageImportModal({ onClose, onImportComplete }: ImportModalProps) {
   // State for ambiguous resolution
   const [resolvedMatches, setResolvedMatches] = useState<MatchedStageRow[]>([]);
   const [ambiguousSelections, setAmbiguousSelections] = useState<Map<number, string>>(new Map());
+
+  // Pas de fermeture par Échap pendant l'enregistrement et le géocodage
+  const dialogRef = useDialog<HTMLDivElement>(true, onClose, {
+    fermerAvecEchap: !importing && step !== 'geocoding',
+  });
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -228,13 +234,20 @@ function StageImportModal({ onClose, onImportComplete }: ImportModalProps) {
 
   return (
     <div className="stage-import-modal-overlay" onClick={onClose}>
-      <div className="stage-import-modal" onClick={e => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className="stage-import-modal"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="stage-import-modal-title"
+      >
         <div className="modal-header">
-          <h2>
+          <h2 id="stage-import-modal-title">
             <FileSpreadsheet size={20} />
             Importer les stages
           </h2>
-          <button className="close-btn" onClick={onClose}>
+          <button className="close-btn" onClick={onClose} aria-label="Fermer">
             <X size={20} />
           </button>
         </div>

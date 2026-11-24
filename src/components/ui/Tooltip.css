@@ -120,14 +120,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #94a3b8;
+  color: var(--ink-slate-400);
   cursor: help;
   transition: color 0.15s ease;
   margin-left: 4px;
 }
 
 .help-tooltip-icon:hover {
-  color: #3b82f6;
+  color: var(--ink-blue-500);
 }
 
 /* ============================================================ */
@@ -135,12 +135,12 @@
 /* ============================================================ */
 
 .tooltip strong {
-  color: #93c5fd;
+  color: var(--ink-blue-300);
   font-weight: 600;
 }
 
 .tooltip em {
-  color: #fbbf24;
+  color: var(--ink-amber-400);
   font-style: normal;
 }
 
@@ -166,5 +166,5 @@
 .tooltip-title {
   font-weight: 600;
   margin-bottom: 4px;
-  color: #93c5fd;
+  color: var(--ink-blue-300);
 }

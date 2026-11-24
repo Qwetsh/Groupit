@@ -1,10 +1,20 @@
 // ============================================================
 // COMPONENT - GUIDED MODE (Main Wizard)
 // ============================================================
+//
+// Chaque parcours est une suite d'étapes. Deux règles évitent les clics inutiles :
+// - les élèves déjà importés ne redemandent pas d'étape : le parcours commence
+//   à l'étape suivante, et « Retour » permet toujours d'y revenir ;
+// - l'étape « Enseignants » n'apparaît que si la base n'en contient aucun.
+// La dernière étape lance directement la répartition ; le résultat s'ouvre
+// ensuite dans le tableau, avec le bilan et les points à vérifier.
 
-import { useCallback, useMemo } from 'react';
-import { X, ChevronLeft } from 'lucide-react';
-import { useUIStore, type GuidedStep } from '../../stores/uiStore';
+import { useCallback, useMemo, useState } from 'react';
+import { X, Check } from 'lucide-react';
+import { useUIStore } from '../../stores/uiStore';
+import { etapesDuParcours, ETAPES_DE_CALCUL, STEP_LABELS } from './guidedFlow';
+import { useEleveStore } from '../../stores/eleveStore';
+import { useEnseignantStore } from '../../stores/enseignantStore';
 import { StepScenarioChoice } from './steps/StepScenarioChoice';
 import { StepImportEleves } from './steps/StepImportEleves';
 import { StepThemesEleves } from './steps/StepThemesEleves';
@@ -19,58 +29,51 @@ import { StepSelectEleves } from './steps/StepSelectEleves';
 import { StepSelectAdultes } from './steps/StepSelectAdultes';
 import { StepConfigGroupes } from './steps/StepConfigGroupes';
 import './GuidedMode.css';
-
-// Steps for each wizard path
-const STEPS_BASE: GuidedStep[] = ['eleves', 'enseignants', 'configuration', 'recap', 'results'];
-const STEPS_ORAL_DNB: GuidedStep[] = ['eleves', 'themes', 'groupes', 'enseignants', 'configuration', 'salles', 'recap', 'results'];
-const STEPS_STAGE: GuidedStep[] = ['eleves', 'stages', 'enseignants', 'configuration', 'recap', 'results'];
-const STEPS_CUSTOM: GuidedStep[] = ['eleves', 'selection', 'adultes', 'parametres', 'recap', 'results'];
-
-const STEP_LABELS: Record<GuidedStep, string> = {
-  welcome: 'Bienvenue',
-  scenario: 'Type',
-  eleves: 'Eleves',
-  stages: 'Stages',
-  themes: 'Themes',
-  groupes: 'Groupes',
-  enseignants: 'Enseignants',
-  configuration: 'Configuration',
-  salles: 'Salles',
-  selection: 'Selection',
-  adultes: 'Adultes',
-  parametres: 'Parametres',
-  recap: 'Recapitulatif',
-  results: 'Resultats',
-};
+import './GuidedFlow.css';
 
 export function GuidedMode() {
   const { guidedMode, setGuidedStep, exitGuidedMode } = useUIStore();
   const { currentStep } = guidedMode;
+  const nbEnseignants = useEnseignantStore(state => state.enseignants.length);
+  const nbEleves = useEleveStore(state => state.eleves.length);
+
+  // Instantané pris à l'ouverture : l'étape « Enseignants » ne doit pas
+  // disparaître pendant qu'on y importe des enseignants.
+  const [avaitDesEnseignants] = useState(() => nbEnseignants > 0);
 
   const activeSteps = useMemo(() => {
-    if (guidedMode.scenarioType === 'oral_dnb') return STEPS_ORAL_DNB;
-    if (guidedMode.scenarioType === 'suivi_stage') return STEPS_STAGE;
-    if (guidedMode.scenarioType === 'personnalise') return STEPS_CUSTOM;
-    return STEPS_BASE;
-  }, [guidedMode.scenarioType]);
+    const etapes = etapesDuParcours(guidedMode.scenarioType);
+    return avaitDesEnseignants && currentStep !== 'enseignants'
+      ? etapes.filter(e => e !== 'enseignants')
+      : etapes;
+  }, [guidedMode.scenarioType, avaitDesEnseignants, currentStep]);
 
-  const currentStepIndex = activeSteps.indexOf(currentStep);
+  const enCalcul = ETAPES_DE_CALCUL.includes(currentStep);
+  const currentStepIndex = enCalcul ? activeSteps.length : activeSteps.indexOf(currentStep);
 
   const handleBack = useCallback(() => {
-    if (currentStepIndex > 0) {
+    if (enCalcul) {
+      setGuidedStep(activeSteps[activeSteps.length - 1]);
+    } else if (currentStepIndex > 0) {
       setGuidedStep(activeSteps[currentStepIndex - 1]);
+    } else {
+      exitGuidedMode();
     }
-  }, [currentStepIndex, setGuidedStep, activeSteps]);
+  }, [enCalcul, currentStepIndex, setGuidedStep, activeSteps, exitGuidedMode]);
 
   const handleNext = useCallback(() => {
     if (currentStepIndex < activeSteps.length - 1) {
       setGuidedStep(activeSteps[currentStepIndex + 1]);
+    } else {
+      setGuidedStep('recap');
     }
   }, [currentStepIndex, setGuidedStep, activeSteps]);
 
   const handleExit = useCallback(() => {
     exitGuidedMode();
   }, [exitGuidedMode]);
+
+  const estDerniere = currentStepIndex === activeSteps.length - 1;
 
   const renderStep = () => {
     switch (currentStep) {
@@ -87,7 +90,7 @@ export function GuidedMode() {
       case 'enseignants':
         return <StepImportEnseignants onNext={handleNext} onBack={handleBack} />;
       case 'configuration':
-        return <StepConfiguration onNext={handleNext} onBack={handleBack} />;
+        return <StepConfiguration onNext={handleNext} onBack={handleBack} lanceLeCalcul={estDerniere} />;
       case 'salles':
         return <StepSalles onNext={handleNext} onBack={handleBack} />;
       case 'selection':
@@ -105,38 +108,53 @@ export function GuidedMode() {
     }
   };
 
+  const etapeLarge = ['themes', 'groupes', 'enseignants', 'configuration', 'salles', 'selection', 'adultes', 'parametres'].includes(currentStep);
+
   return (
     <div className="guided-overlay">
-      <div className={`guided-container ${['themes', 'groupes', 'enseignants', 'configuration', 'salles', 'selection', 'adultes', 'parametres'].includes(currentStep) ? 'guided-container-wide' : ''}`}>
-        {/* Header */}
-        <div className="guided-header">
-          {currentStepIndex > 0 && currentStep !== 'results' && (
-            <button className="guided-back-btn" onClick={handleBack}>
-              <ChevronLeft size={20} />
-              Retour
-            </button>
-          )}
-
-          <div className="guided-progress">
-            {activeSteps.map((step, index) => (
-              <div
-                key={step}
-                className={`progress-dot ${index < currentStepIndex ? 'completed' : ''} ${index === currentStepIndex ? 'active' : ''}`}
-                title={STEP_LABELS[step]}
-              />
-            ))}
-          </div>
+      <div className={`guided-container ${etapeLarge ? 'guided-container-wide' : ''}`}>
+        {/* En-tête identique à chaque étape : où j'en suis, et comment quitter */}
+        <div className="guided-header guided-header-uni">
+          <ol className="guided-stepper" aria-label="Étapes">
+            {activeSteps.map((step, index) => {
+              const faite = index < currentStepIndex;
+              const active = index === currentStepIndex;
+              return (
+                <li
+                  key={step}
+                  className={`stepper-item ${faite ? 'done' : ''} ${active ? 'active' : ''}`}
+                  aria-current={active ? 'step' : undefined}
+                >
+                  {faite && !enCalcul ? (
+                    <button type="button" className="stepper-link" onClick={() => setGuidedStep(step)}>
+                      <span className="stepper-num" aria-hidden="true"><Check size={12} /></span>
+                      <span className="stepper-label">{STEP_LABELS[step]}</span>
+                    </button>
+                  ) : (
+                    <span className="stepper-link">
+                      <span className="stepper-num" aria-hidden="true">{faite ? <Check size={12} /> : index + 1}</span>
+                      <span className="stepper-label">{STEP_LABELS[step]}</span>
+                    </span>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
 
           <button className="guided-exit-btn" onClick={handleExit}>
-            Retour a l'accueil
+            Quitter
             <X size={16} />
           </button>
         </div>
 
-        {/* Step indicator */}
-        <div className="guided-step-indicator">
-          Etape {currentStepIndex + 1} sur {activeSteps.length}
-        </div>
+        {!enCalcul && currentStep !== 'eleves' && nbEleves > 0 && activeSteps[0] === 'eleves' && (
+          <div className="guided-donnees">
+            <span>{nbEleves} élèves importés</span>
+            <button type="button" className="guided-donnees-lien" onClick={() => setGuidedStep('eleves')}>
+              Modifier
+            </button>
+          </div>
+        )}
 
         {/* Content */}
         <div className="guided-content">

@@ -29,7 +29,7 @@ const JOURS = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'] as const;
 const PERIODES = ['Matin', 'Apres-midi'] as const;
 
 const PARITY_OPTIONS = [
-  { value: 'off', label: 'Desactive' },
+  { value: 'off', label: 'Désactivé' },
   { value: 'low', label: 'Faible' },
   { value: 'normal', label: 'Normal' },
   { value: 'high', label: 'Fort' },
@@ -37,20 +37,20 @@ const PARITY_OPTIONS = [
 ] as const;
 
 const ENSEIGNANT_ELEVE_OPTIONS = [
-  { value: 'off', label: 'Desactive' },
-  { value: 'prefer', label: 'Privilegier' },
-  { value: 'avoid', label: 'Eviter' },
+  { value: 'off', label: 'Désactivé' },
+  { value: 'prefer', label: 'Privilégier' },
+  { value: 'avoid', label: 'Éviter' },
 ] as const;
 
 const MEME_CLASSE_OPTIONS = [
-  { value: 'off', label: 'Desactive' },
-  { value: 'prefer', label: 'Privilegier' },
-  { value: 'avoid', label: 'Eviter' },
+  { value: 'off', label: 'Désactivé' },
+  { value: 'prefer', label: 'Privilégier' },
+  { value: 'avoid', label: 'Éviter' },
 ] as const;
 
 const LV_OPTIONS = [
-  { value: 'off', label: 'Desactive' },
-  { value: 'same', label: 'Meme LV' },
+  { value: 'off', label: 'Désactivé' },
+  { value: 'same', label: 'Même LV' },
   { value: 'mixed', label: 'Langues mixtes' },
 ] as const;
 
@@ -111,7 +111,7 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
         </div>
         <h2>Configuration des groupes</h2>
         <p className="step-description">
-          Definissez la taille des groupes, les criteres de repartition et les creneaux horaires.
+          Définissez la taille des groupes, les critères de répartition et les créneaux horaires.
         </p>
       </div>
 
@@ -128,14 +128,14 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
            SECTION 1 : Taille des groupes
            ============================================================ */}
         <section className="step-config-groupes-section" style={{
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'var(--bg-slate-900-a3)',
+          border: '1px solid var(--bg-slate-900-a8)',
           borderRadius: '12px',
           padding: '1.25rem',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-            <Users size={18} style={{ color: '#3b82f6' }} />
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#e2e8f0', margin: 0 }}>
+            <Users size={18} style={{ color: 'var(--ink-5193ff)' }} />
+            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text)', margin: 0 }}>
               Taille des groupes
             </h3>
           </div>
@@ -151,7 +151,7 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
                 background: 'none',
                 border: 'none',
                 cursor: 'pointer',
-                color: customConfig.tailleGroupeFixe ? '#3b82f6' : '#94a3b8',
+                color: customConfig.tailleGroupeFixe ? 'var(--ink-5193ff)' : 'var(--text-muted)',
                 fontSize: '0.875rem',
                 padding: '0.375rem 0.75rem',
                 borderRadius: '8px',
@@ -159,14 +159,14 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
               }}
             >
               {customConfig.tailleGroupeFixe
-                ? <ToggleRight size={20} style={{ color: '#3b82f6' }} />
+                ? <ToggleRight size={20} style={{ color: 'var(--ink-5193ff)' }} />
                 : <ToggleLeft size={20} />
               }
               <span>Taille fixe</span>
             </button>
-            <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
               {customConfig.tailleGroupeFixe
-                ? 'Chaque groupe aura exactement le meme nombre d\'eleves'
+                ? 'Chaque groupe aura exactement le même nombre d\'élèves'
                 : 'La taille des groupes varie entre un minimum et un maximum'
               }
             </span>
@@ -176,8 +176,8 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
             {customConfig.tailleGroupeFixe ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>
-                  Eleves par groupe
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                  Élèves par groupe
                 </label>
                 <input
                   type="number"
@@ -192,9 +192,9 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
                     width: '80px',
                     padding: '0.5rem 0.75rem',
                     borderRadius: '8px',
-                    border: '1px solid rgba(255, 255, 255, 0.15)',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    color: '#e2e8f0',
+                    border: '1px solid var(--bg-slate-900-a15)',
+                    background: 'var(--bg-slate-900-a5)',
+                    color: 'var(--text)',
                     fontSize: '0.9rem',
                     textAlign: 'center',
                   }}
@@ -203,7 +203,7 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
             ) : (
               <>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                  <label style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
                     Minimum
                   </label>
                   <input
@@ -219,16 +219,16 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
                       width: '80px',
                       padding: '0.5rem 0.75rem',
                       borderRadius: '8px',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      color: '#e2e8f0',
+                      border: '1px solid var(--bg-slate-900-a15)',
+                      background: 'var(--bg-slate-900-a5)',
+                      color: 'var(--text)',
                       fontSize: '0.9rem',
                       textAlign: 'center',
                     }}
                   />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                  <label style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
                     Maximum
                   </label>
                   <input
@@ -244,9 +244,9 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
                       width: '80px',
                       padding: '0.5rem 0.75rem',
                       borderRadius: '8px',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      color: '#e2e8f0',
+                      border: '1px solid var(--bg-slate-900-a15)',
+                      background: 'var(--bg-slate-900-a5)',
+                      color: 'var(--text)',
                       fontSize: '0.9rem',
                       textAlign: 'center',
                     }}
@@ -264,13 +264,13 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
             borderRadius: '8px',
             border: '1px solid rgba(59, 130, 246, 0.15)',
             fontSize: '0.85rem',
-            color: '#93c5fd',
+            color: 'var(--accent-text-strong)',
             display: 'flex',
             flexDirection: 'column',
             gap: '0.25rem',
           }}>
             <span>
-              Environ <strong>{nbGroupes}</strong> groupe{nbGroupes > 1 ? 's' : ''} pour <strong>{nbEleves}</strong> eleve{nbEleves > 1 ? 's' : ''}
+              Environ <strong>{nbGroupes}</strong> groupe{nbGroupes > 1 ? 's' : ''} pour <strong>{nbEleves}</strong> élève{nbEleves > 1 ? 's' : ''}
             </span>
             {customConfig.useAdultes && nbGroupes > 0 && (
               <span>
@@ -285,23 +285,23 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
            SECTION 2 : Criteres de repartition
            ============================================================ */}
         <section className="step-config-groupes-section" style={{
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'var(--bg-slate-900-a3)',
+          border: '1px solid var(--bg-slate-900-a8)',
           borderRadius: '12px',
           padding: '1.25rem',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-            <Scale size={18} style={{ color: '#a78bfa' }} />
-            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#e2e8f0', margin: 0 }}>
-              Criteres de repartition
+            <Scale size={18} style={{ color: 'var(--ink-violet-600)' }} />
+            <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text)', margin: 0 }}>
+              Critères de répartition
             </h3>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {/* Parite */}
             <CriterionRow
-              label="Parite"
-              description="Equilibrer la proportion filles/garcons dans chaque groupe"
+              label="Parité"
+              description="Équilibrer la proportion filles/garçons dans chaque groupe"
               value={customConfig.critereParity}
               options={PARITY_OPTIONS}
               onChange={val => updateCustomConfig({ critereParity: val as typeof customConfig.critereParity })}
@@ -310,8 +310,8 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
             {/* Enseignant a l'eleve */}
             {customConfig.useAdultes && (
               <CriterionRow
-                label="Enseignant a l'eleve en classe"
-                description="L'adulte de reference a l'eleve dans sa classe"
+                label="Enseignant a l'élève en classe"
+                description="L'adulte de référence a l'élève dans sa classe"
                 value={customConfig.critereEnseignantAEleve}
                 options={ENSEIGNANT_ELEVE_OPTIONS}
                 onChange={val => updateCustomConfig({ critereEnseignantAEleve: val as typeof customConfig.critereEnseignantAEleve })}
@@ -320,8 +320,8 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
 
             {/* Meme classe */}
             <CriterionRow
-              label="Meme classe"
-              description="Regrouper ou separer les eleves de la meme classe"
+              label="Même classe"
+              description="Regrouper ou séparer les élèves de la même classe"
               value={customConfig.critereMemeClasse}
               options={MEME_CLASSE_OPTIONS}
               onChange={val => updateCustomConfig({ critereMemeClasse: val as typeof customConfig.critereMemeClasse })}
@@ -343,17 +343,17 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '0.75rem 1rem',
-                background: 'rgba(255, 255, 255, 0.02)',
-                border: '1px solid rgba(255, 255, 255, 0.06)',
+                background: 'var(--bg-slate-900-a2)',
+                border: '1px solid var(--bg-slate-900-a6)',
                 borderRadius: '10px',
                 gap: '1rem',
               }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '0.875rem', fontWeight: 500, color: '#e2e8f0' }}>
+                  <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text)' }}>
                     Volume horaire
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.125rem' }}>
-                    Ponderer par le volume horaire des enseignants (donner plus d'eleves aux enseignants qui les ont plus en cours)
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
+                    Pondérer par le volume horaire des enseignants (donner plus d'élèves aux enseignants qui les ont plus en cours)
                   </div>
                 </div>
                 <button
@@ -364,12 +364,12 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
                     gap: '0.375rem',
                     background: customConfig.critereVolumeHoraire
                       ? 'rgba(34, 197, 94, 0.15)'
-                      : 'rgba(255, 255, 255, 0.05)',
-                    border: `1px solid ${customConfig.critereVolumeHoraire ? 'rgba(34, 197, 94, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
+                      : 'var(--bg-slate-900-a5)',
+                    border: `1px solid ${customConfig.critereVolumeHoraire ? 'rgba(34, 197, 94, 0.3)' : 'var(--bg-slate-900-a10)'}`,
                     borderRadius: '8px',
                     padding: '0.5rem 0.75rem',
                     cursor: 'pointer',
-                    color: customConfig.critereVolumeHoraire ? '#4ade80' : '#94a3b8',
+                    color: customConfig.critereVolumeHoraire ? 'var(--success-text)' : 'var(--text-muted)',
                     fontSize: '0.8rem',
                     fontWeight: 500,
                     transition: 'all 0.2s',
@@ -377,7 +377,7 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
                   }}
                 >
                   {customConfig.critereVolumeHoraire ? <Check size={14} /> : null}
-                  {customConfig.critereVolumeHoraire ? 'Active' : 'Desactive'}
+                  {customConfig.critereVolumeHoraire ? 'Activé' : 'Désactivé'}
                 </button>
               </div>
             )}
@@ -388,18 +388,18 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
            SECTION 3 : Passages horaires (optionnel)
            ============================================================ */}
         <section className="step-config-groupes-section" style={{
-          background: 'rgba(255, 255, 255, 0.03)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          background: 'var(--bg-slate-900-a3)',
+          border: '1px solid var(--bg-slate-900-a8)',
           borderRadius: '12px',
           padding: '1.25rem',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: customConfig.useTimeSlots ? '1rem' : 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Clock size={18} style={{ color: '#f59e0b' }} />
-              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#e2e8f0', margin: 0 }}>
+              <Clock size={18} style={{ color: 'var(--ink-815001)' }} />
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text)', margin: 0 }}>
                 Passages horaires
               </h3>
-              <span style={{ fontSize: '0.75rem', color: '#64748b', fontStyle: 'italic' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                 (optionnel)
               </span>
             </div>
@@ -409,22 +409,22 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                background: customConfig.useTimeSlots ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                border: `1px solid ${customConfig.useTimeSlots ? 'rgba(59, 130, 246, 0.3)' : 'rgba(255, 255, 255, 0.1)'}`,
+                background: customConfig.useTimeSlots ? 'rgba(59, 130, 246, 0.15)' : 'var(--bg-slate-900-a5)',
+                border: `1px solid ${customConfig.useTimeSlots ? 'rgba(59, 130, 246, 0.3)' : 'var(--bg-slate-900-a10)'}`,
                 borderRadius: '8px',
                 padding: '0.5rem 0.75rem',
                 cursor: 'pointer',
-                color: customConfig.useTimeSlots ? '#60a5fa' : '#94a3b8',
+                color: customConfig.useTimeSlots ? 'var(--accent-text)' : 'var(--text-muted)',
                 fontSize: '0.8rem',
                 fontWeight: 500,
                 transition: 'all 0.2s',
               }}
             >
               {customConfig.useTimeSlots
-                ? <ToggleRight size={16} style={{ color: '#3b82f6' }} />
+                ? <ToggleRight size={16} style={{ color: 'var(--ink-5193ff)' }} />
                 : <ToggleLeft size={16} />
               }
-              {customConfig.useTimeSlots ? 'Active' : 'Desactive'}
+              {customConfig.useTimeSlots ? 'Activé' : 'Désactivé'}
             </button>
           </div>
 
@@ -432,8 +432,8 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {/* Grille demi-journees */}
               <div>
-                <label style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 500, display: 'block', marginBottom: '0.5rem' }}>
-                  Demi-journees disponibles
+                <label style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500, display: 'block', marginBottom: '0.5rem' }}>
+                  Demi-journées disponibles
                 </label>
                 <div style={{
                   display: 'grid',
@@ -445,7 +445,7 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
                     <div key={jour} style={{
                       textAlign: 'center',
                       fontSize: '0.7rem',
-                      color: '#94a3b8',
+                      color: 'var(--text-muted)',
                       fontWeight: 600,
                       paddingBottom: '0.25rem',
                     }}>
@@ -464,9 +464,9 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
                           style={{
                             padding: '0.5rem 0.25rem',
                             borderRadius: '6px',
-                            border: `1px solid ${isActive ? 'rgba(59, 130, 246, 0.4)' : 'rgba(255, 255, 255, 0.08)'}`,
-                            background: isActive ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.02)',
-                            color: isActive ? '#93c5fd' : '#64748b',
+                            border: `1px solid ${isActive ? 'rgba(59, 130, 246, 0.4)' : 'var(--bg-slate-900-a8)'}`,
+                            background: isActive ? 'rgba(59, 130, 246, 0.15)' : 'var(--bg-slate-900-a2)',
+                            color: isActive ? 'var(--accent-text-strong)' : '#64748b',
                             fontSize: '0.7rem',
                             fontWeight: 500,
                             cursor: 'pointer',
@@ -476,7 +476,7 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
                             justifyContent: 'center',
                             gap: '0.2rem',
                           }}
-                          title={`${jour} ${periode}`}
+                          title={`${jour} ${periode === 'Matin' ? 'matin' : 'après-midi'}`}
                         >
                           {isActive && <Check size={10} />}
                           {periode === 'Matin' ? 'AM' : 'PM'}
@@ -490,9 +490,9 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
               {/* Heures de debut */}
               <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                  <label style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
                     <Calendar size={12} style={{ marginRight: '0.25rem', verticalAlign: 'middle' }} />
-                    Debut matin
+                    Début matin
                   </label>
                   <input
                     type="time"
@@ -501,17 +501,17 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
                     style={{
                       padding: '0.5rem 0.75rem',
                       borderRadius: '8px',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      color: '#e2e8f0',
+                      border: '1px solid var(--bg-slate-900-a15)',
+                      background: 'var(--bg-slate-900-a5)',
+                      color: 'var(--text)',
                       fontSize: '0.85rem',
                     }}
                   />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                  <label style={{ fontSize: '0.75rem', color: '#94a3b8', fontWeight: 500 }}>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
                     <Calendar size={12} style={{ marginRight: '0.25rem', verticalAlign: 'middle' }} />
-                    Debut apres-midi
+                    Début après-midi
                   </label>
                   <input
                     type="time"
@@ -520,9 +520,9 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
                     style={{
                       padding: '0.5rem 0.75rem',
                       borderRadius: '8px',
-                      border: '1px solid rgba(255, 255, 255, 0.15)',
-                      background: 'rgba(255, 255, 255, 0.05)',
-                      color: '#e2e8f0',
+                      border: '1px solid var(--bg-slate-900-a15)',
+                      background: 'var(--bg-slate-900-a5)',
+                      color: 'var(--text)',
                       fontSize: '0.85rem',
                     }}
                   />
@@ -543,7 +543,7 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
             const effectiveCriteres = getEffectiveCriteres('custom', createDefaultCriteres('custom'));
 
             const scenarioData = {
-              nom: `Personnalise ${new Date().toLocaleDateString('fr-FR')}`,
+              nom: `Personnalisé ${new Date().toLocaleDateString('fr-FR')}`,
               mode: 'matching' as const,
               type: 'custom' as const,
               parametres: {
@@ -594,7 +594,7 @@ export const StepConfigGroupes: React.FC<StepConfigGroupesProps> = ({ onNext, on
             setCreating(false);
           }
         }}>
-          {creating ? 'Creation...' : 'Suivant'}
+          {creating ? 'Création...' : 'Suivant'}
         </button>
       </div>
     </div>
@@ -620,16 +620,16 @@ function CriterionRow({ label, description, value, options, onChange }: Criterio
       alignItems: 'center',
       justifyContent: 'space-between',
       padding: '0.75rem 1rem',
-      background: 'rgba(255, 255, 255, 0.02)',
-      border: '1px solid rgba(255, 255, 255, 0.06)',
+      background: 'var(--bg-slate-900-a2)',
+      border: '1px solid var(--bg-slate-900-a6)',
       borderRadius: '10px',
       gap: '1rem',
     }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: '0.875rem', fontWeight: 500, color: '#e2e8f0' }}>
+        <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text)' }}>
           {label}
         </div>
-        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.125rem' }}>
+        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.125rem' }}>
           {description}
         </div>
       </div>
@@ -639,9 +639,9 @@ function CriterionRow({ label, description, value, options, onChange }: Criterio
         style={{
           padding: '0.4rem 0.6rem',
           borderRadius: '8px',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          background: 'rgba(255, 255, 255, 0.05)',
-          color: value === 'off' ? '#94a3b8' : '#e2e8f0',
+          border: '1px solid var(--bg-slate-900-a15)',
+          background: 'var(--bg-slate-900-a5)',
+          color: value === 'off' ? 'var(--text-muted)' : 'var(--text)',
           fontSize: '0.8rem',
           fontWeight: 500,
           cursor: 'pointer',

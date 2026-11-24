@@ -229,10 +229,10 @@ function AddressesTab({
         
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem', fontSize: '0.875rem' }}>
           <span>Stages: <strong>{stageStats.geocoded}/{stageStats.total}</strong>
-            {stageStats.errors > 0 && <span style={{ color: '#ef4444' }}> ({stageStats.errors} err)</span>}
+            {stageStats.errors > 0 && <span style={{ color: 'var(--danger-text)' }}> ({stageStats.errors} err)</span>}
           </span>
           <span>Enseignants: <strong>{teacherStats.geocoded}/{teacherStats.total}</strong>
-            {teacherStats.errors > 0 && <span style={{ color: '#ef4444' }}> ({teacherStats.errors} err)</span>}
+            {teacherStats.errors > 0 && <span style={{ color: 'var(--danger-text)' }}> ({teacherStats.errors} err)</span>}
           </span>
         </div>
       </div>

@@ -308,6 +308,7 @@ export function StepImportEnseignants({ onNext, onBack }: StepImportEnseignantsP
                   <button
                     className="remove-file-btn"
                     onClick={() => handleRemoveFile(file.id)}
+                    aria-label={`Retirer ${file.name} de la liste`}
                   >
                     <Trash2 size={16} />
                   </button>

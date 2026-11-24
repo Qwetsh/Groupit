@@ -39,6 +39,9 @@ const ELEVE_FIELDS: { key: keyof Eleve; label: string }[] = [
   { key: 'sexe', label: 'Sexe' },
   { key: 'email', label: 'Email' },
   { key: 'regime', label: 'Régime' },
+  { key: 'lv1', label: 'LV1' },
+  { key: 'lv2', label: 'LV2' },
+  { key: 'options', label: 'Option' },
 ];
 
 export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
@@ -84,7 +87,7 @@ export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
       if (lastMappings && lastKey === headersKey) {
         setMappings(lastMappings);
       } else {
-        const autoMappings = generateAutoMapping(data.headers);
+        const autoMappings = generateAutoMapping(data.headers, data.rows);
         setMappings(autoMappings);
       }
 
@@ -260,7 +263,7 @@ export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
         <p className="step-subtitle">
           Fichier : <strong>{currentFile?.name}</strong>
           {pendingFiles.length > 0 && (
-            <span style={{ marginLeft: '0.5rem', color: '#94a3b8', fontSize: '0.85rem' }}>
+            <span style={{ marginLeft: '0.5rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
               ({pendingFiles.length} fichier{pendingFiles.length > 1 ? 's' : ''} en attente)
             </span>
           )}
@@ -313,7 +316,7 @@ export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
         {mappings.some(m => m.targetField === 'classe') && (
           <div className="classe-section">
             <h3>Classe détectée dans le fichier</h3>
-            <p style={{ color: 'var(--color-success, #22c55e)', fontSize: '0.9rem' }}>
+            <p style={{ color: 'var(--success-text)', fontSize: '0.9rem' }}>
               La colonne "Classe" sera utilisée pour affecter chaque élève à sa classe automatiquement.
             </p>
           </div>
@@ -382,6 +385,7 @@ export function StepImportEleves({ onNext, onBack }: StepImportElevesProps) {
               <button
                 className="remove-file-btn"
                 onClick={() => handleRemoveFile(file.id)}
+                aria-label={`Retirer ${file.name} de la liste`}
               >
                 <Trash2 size={16} />
               </button>

@@ -162,3 +162,90 @@ export function splitNewEnseignants(
   }
   return { toAdd, skipped: incoming.length - toAdd.length };
 }
+
+/** Modifications à apporter à un enseignant déjà présent. */
+export interface MiseAJourEnseignant {
+  id: string;
+  changes: Partial<Omit<Enseignant, 'id' | 'createdAt'>>;
+}
+
+export interface PlanImportEnseignants {
+  /** Enseignants absents de la liste actuelle. */
+  toAdd: EnseignantFileRecord[];
+  /** Enseignants déjà présents que le fichier complète (adresse, matière…). */
+  toUpdate: MiseAJourEnseignant[];
+  /** Enseignants déjà présents et à jour, ou doublons du fichier. */
+  unchanged: number;
+}
+
+const simplifier = (s: string | undefined) =>
+  (s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/**
+ * Prépare un import : ajoute les nouveaux enseignants et complète les fiches
+ * existantes (même nom et prénom).
+ *
+ * Pour un enseignant déjà présent :
+ * - l'adresse du fichier remplace l'adresse actuelle si elle est différente
+ *   (le fichier est le plus récent) ; les coordonnées sont recalculées ;
+ * - la matière, les classes, les indisponibilités et le statut de professeur
+ *   principal ne sont remplis que s'ils sont vides : une saisie faite dans le
+ *   logiciel n'est jamais écrasée.
+ */
+export function planifierImportEnseignants(
+  incoming: EnseignantFileRecord[],
+  existing: Enseignant[]
+): PlanImportEnseignants {
+  const parCle = new Map(existing.map(e => [enseignantKey(e), e]));
+  const vus = new Set<string>();
+  const toAdd: EnseignantFileRecord[] = [];
+  const toUpdate: MiseAJourEnseignant[] = [];
+  let unchanged = 0;
+
+  for (const rec of incoming) {
+    const cle = enseignantKey(rec);
+    if (vus.has(cle)) { unchanged++; continue; }
+    vus.add(cle);
+
+    const actuel = parCle.get(cle);
+    if (!actuel) {
+      toAdd.push(rec);
+      continue;
+    }
+
+    const changes: MiseAJourEnseignant['changes'] = {};
+    const adresseDifferente = rec.adresse
+      && (simplifier(rec.adresse) !== simplifier(actuel.adresse) || simplifier(rec.commune) !== simplifier(actuel.commune));
+    if (adresseDifferente) {
+      changes.adresse = rec.adresse;
+      changes.commune = rec.commune ?? actuel.commune;
+      if (rec.lat !== undefined && rec.lon !== undefined) {
+        // Fichier exporté par l'application : coordonnées déjà connues
+        changes.lat = rec.lat;
+        changes.lon = rec.lon;
+        changes.geoStatus = rec.geoStatus ?? 'ok';
+      } else if (simplifier(rec.adresse) === simplifier(actuel.adresse)) {
+        // Seule la commune change : l'adresse identique ne relancerait pas le géocodage
+        changes.geoStatus = 'pending';
+      }
+    }
+    if (!actuel.matierePrincipale?.trim() && rec.matierePrincipale?.trim()) {
+      changes.matierePrincipale = rec.matierePrincipale;
+    }
+    if ((actuel.classesEnCharge ?? []).length === 0 && rec.classesEnCharge.length > 0) {
+      changes.classesEnCharge = rec.classesEnCharge;
+    }
+    if ((actuel.indisponibilites ?? []).length === 0 && (rec.indisponibilites ?? []).length > 0) {
+      changes.indisponibilites = rec.indisponibilites;
+    }
+    if (!actuel.estProfPrincipal && rec.estProfPrincipal) {
+      changes.estProfPrincipal = true;
+      if (rec.classePP) changes.classePP = rec.classePP;
+    }
+
+    if (Object.keys(changes).length > 0) toUpdate.push({ id: actuel.id, changes });
+    else unchanged++;
+  }
+
+  return { toAdd, toUpdate, unchanged };
+}

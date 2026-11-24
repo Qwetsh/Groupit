@@ -137,12 +137,14 @@ export function StepImportStages({ onNext, onBack }: StepImportStagesProps) {
 
       // Reload stages
       await loadStages();
+      // Import réussi : on passe directement à l’étape suivante
+      if (result.created + result.updated > 0) onNext();
     } catch (error) {
       console.error('Erreur import stages:', error);
     } finally {
       setProcessing(false);
     }
-  }, [importResult, ambiguousSelections, bulkUpsertStagesForEleves, loadStages, setGuidedImportedStages]);
+  }, [importResult, ambiguousSelections, bulkUpsertStagesForEleves, loadStages, setGuidedImportedStages, onNext]);
 
   // Cancel import result (go back to upload zone)
   const handleCancelResult = useCallback(() => {
@@ -159,9 +161,9 @@ export function StepImportStages({ onNext, onBack }: StepImportStagesProps) {
 
     return (
       <div className="guided-step step-import">
-        <h1 className="step-title">Resultat du matching</h1>
+        <h1 className="step-title">Vérification des élèves</h1>
         <p className="step-subtitle">
-          {stats.total} lignes lues — vérifiez la correspondance avec vos élèves
+          {stats.total} lignes lues. Vérifiez que chaque stage est rattaché au bon élève.
         </p>
 
         {/* Stats cards */}
@@ -252,14 +254,14 @@ export function StepImportStages({ onNext, onBack }: StepImportStagesProps) {
         {/* Actions */}
         <div className="step-actions">
           <button className="btn btn-secondary" onClick={handleCancelResult}>
-            Annuler
+            Retour
           </button>
           <button
             className="btn btn-primary"
             onClick={handleConfirmImport}
             disabled={stats.matched + resolvedCount === 0 || processing}
           >
-            {processing ? 'Import en cours...' : `Importer ${stats.matched + resolvedCount} stage(s)`}
+            {processing ? 'Import en cours…' : `Importer ${stats.matched + resolvedCount} stage${stats.matched + resolvedCount > 1 ? 's' : ''} et continuer`}
           </button>
         </div>
       </div>
@@ -323,7 +325,7 @@ export function StepImportStages({ onNext, onBack }: StepImportStagesProps) {
             <h3>{existingStages.length > 0 || importDone ? 'Importer un autre fichier' : 'Glissez votre fichier ici'}</h3>
             <p>ou cliquez pour sélectionner</p>
             <span className="format-hint">CSV, Excel (.xlsx, .xls)</span>
-            <span className="format-hint">Colonnes attendues : nom, prénom, classe, entreprise, adresse</span>
+            <span className="format-hint">Colonnes attendues : nom, prénom, entreprise, adresse (classe facultative)</span>
           </>
         )}
       </div>

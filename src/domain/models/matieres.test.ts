@@ -7,6 +7,7 @@ import {
   matiereDeReference,
   memeMatiere,
   premiereMatiereCouverte,
+  libelleMatiere,
 } from './matieres';
 
 describe('Référentiel des matières', () => {
@@ -53,5 +54,20 @@ describe('Référentiel des matières', () => {
     expect(getHeuresMatiere('Maths')).toBe(4);
     expect(getMatiereRef('physique chimie')?.categorie).toBe('scientifique');
     expect(getHeuresMatiere('Documentation')).toBe(1);
+  });
+});
+
+describe('libelleMatiere', () => {
+  it('ramène les variantes à un seul libellé', () => {
+    expect(libelleMatiere('Maths')).toBe(libelleMatiere('Mathématiques'));
+    expect(libelleMatiere('svt')).toBe(libelleMatiere('SVT'));
+    expect(libelleMatiere('Physique Chimie')).toBe(libelleMatiere('Physique-Chimie'));
+    expect(libelleMatiere('Histoire-Géo')).toBe(libelleMatiere('Histoire-Géographie'));
+  });
+
+  it('garde un libellé inconnu en lui mettant une majuscule', () => {
+    expect(libelleMatiere('  atelier théâtre ')).toBe('Atelier théâtre');
+    expect(libelleMatiere('')).toBe('');
+    expect(libelleMatiere(undefined)).toBe('');
   });
 });

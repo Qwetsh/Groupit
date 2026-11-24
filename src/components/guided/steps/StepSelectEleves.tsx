@@ -309,10 +309,10 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
       <div style={{ textAlign: 'center', flexShrink: 0 }}>
         <h1 className="step-title">
           <Users size={28} style={{ verticalAlign: 'middle', marginRight: 8 }} />
-          Selectionnez les eleves
+          Sélectionnez les élèves
         </h1>
         <p className="step-subtitle">
-          Choisissez les eleves a inclure dans votre scenario de groupement.
+          Choisissez les élèves à inclure dans votre scénario de groupement.
         </p>
       </div>
 
@@ -329,13 +329,13 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
         marginBottom: '0.75rem',
         flexShrink: 0,
       }}>
-        <Users size={18} style={{ color: '#3b82f6' }} />
-        <span style={{ color: '#93c5fd', fontWeight: 600, fontSize: '0.9rem' }}>
-          {selectedIds.size} / {eleves.length} eleves selectionnes
+        <Users size={18} style={{ color: 'var(--ink-5193ff)' }} />
+        <span style={{ color: 'var(--accent-text-strong)', fontWeight: 600, fontSize: '0.9rem' }}>
+          {selectedIds.size} / {eleves.length} élèves sélectionnés
         </span>
         {selectedIds.size === 0 && (
-          <span style={{ color: '#f87171', fontSize: '0.8rem', marginLeft: '0.5rem' }}>
-            — Selectionnez au moins un eleve pour continuer
+          <span style={{ color: 'var(--danger-text)', fontSize: '0.8rem', marginLeft: '0.5rem' }}>
+            — Sélectionnez au moins un élève pour continuer
           </span>
         )}
       </div>
@@ -354,17 +354,17 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
           onClick={allSelected ? deselectAll : selectAll}
           style={{
             ...btnStyle,
-            background: allSelected ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255,255,255,0.06)',
-            borderColor: allSelected ? 'rgba(34, 197, 94, 0.4)' : 'rgba(255,255,255,0.15)',
-            color: allSelected ? '#4ade80' : '#cbd5e1',
+            background: allSelected ? 'rgba(34, 197, 94, 0.15)' : 'var(--bg-slate-900-a6)',
+            borderColor: allSelected ? 'rgba(34, 197, 94, 0.4)' : 'var(--bg-slate-900-a15)',
+            color: allSelected ? 'var(--success-text)' : 'var(--text-soft)',
           }}
         >
           {allSelected ? <Check size={14} /> : <CheckSquare size={14} />}
-          {allSelected ? 'Tout deselectionner' : 'Tout selectionner'}
+          {allSelected ? 'Tout désélectionner' : 'Tout sélectionner'}
         </button>
 
         {/* Separateur */}
-        <span style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.15)' }} />
+        <span style={{ width: 1, height: 20, background: 'var(--bg-slate-900-a15)' }} />
 
         {/* Par niveau */}
         {niveauxPresents.map(niveau => {
@@ -380,13 +380,13 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
                   ? 'rgba(59, 130, 246, 0.2)'
                   : partial
                     ? 'rgba(59, 130, 246, 0.1)'
-                    : 'rgba(255,255,255,0.06)',
+                    : 'var(--bg-slate-900-a6)',
                 borderColor: full
                   ? 'rgba(59, 130, 246, 0.5)'
                   : partial
                     ? 'rgba(59, 130, 246, 0.3)'
-                    : 'rgba(255,255,255,0.15)',
-                color: full ? '#93c5fd' : partial ? '#93c5fd' : '#cbd5e1',
+                    : 'var(--bg-slate-900-a15)',
+                color: full ? 'var(--accent-text-strong)' : partial ? 'var(--accent-text-strong)' : 'var(--text-soft)',
               }}
             >
               {full ? <Check size={14} /> : null}
@@ -397,7 +397,7 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
 
         {/* Separateur */}
         {allClasses.length > 0 && (
-          <span style={{ width: 1, height: 20, background: 'rgba(255,255,255,0.15)' }} />
+          <span style={{ width: 1, height: 20, background: 'var(--bg-slate-900-a15)' }} />
         )}
 
         {/* Par classe */}
@@ -409,20 +409,20 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
             <button
               key={classe}
               onClick={() => toggleClasse(classe)}
-              title={`${count}/${total} selectionnes`}
+              title={`${count}/${total} sélectionnés`}
               style={{
                 ...btnSmallStyle,
                 background: full
                   ? 'rgba(59, 130, 246, 0.2)'
                   : count > 0
                     ? 'rgba(59, 130, 246, 0.08)'
-                    : 'rgba(255,255,255,0.04)',
+                    : 'var(--bg-slate-900-a4)',
                 borderColor: full
                   ? 'rgba(59, 130, 246, 0.5)'
                   : count > 0
                     ? 'rgba(59, 130, 246, 0.2)'
-                    : 'rgba(255,255,255,0.1)',
-                color: full ? '#93c5fd' : count > 0 ? '#93c5fd' : '#94a3b8',
+                    : 'var(--bg-slate-900-a10)',
+                color: full ? 'var(--accent-text-strong)' : count > 0 ? 'var(--accent-text-strong)' : 'var(--text-muted)',
               }}
             >
               {full && <Check size={12} />}
@@ -439,22 +439,22 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
           ...btnStyle,
           alignSelf: 'flex-start',
           marginBottom: '0.5rem',
-          color: showAdvancedFilters ? '#93c5fd' : '#94a3b8',
+          color: showAdvancedFilters ? 'var(--accent-text-strong)' : 'var(--text-muted)',
           background: showAdvancedFilters ? 'rgba(59,130,246,0.1)' : 'transparent',
-          borderColor: showAdvancedFilters ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.1)',
+          borderColor: showAdvancedFilters ? 'rgba(59,130,246,0.3)' : 'var(--bg-slate-900-a10)',
           flexShrink: 0,
         }}
       >
         <Filter size={14} />
-        Filtres avances
+        Filtres avancés
         {showAdvancedFilters ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
       </button>
 
       {/* Advanced filters panel */}
       {showAdvancedFilters && (
         <div className="step-select-eleves-advanced" style={{
-          background: 'rgba(255,255,255,0.03)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          background: 'var(--bg-slate-900-a3)',
+          border: '1px solid var(--bg-slate-900-a10)',
           borderRadius: '10px',
           padding: '0.75rem',
           marginBottom: '0.5rem',
@@ -475,7 +475,7 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
                     key={option}
                     onClick={() => selectByOption(option)}
                     style={btnSmallStyle}
-                    title={`Ajouter les eleves ayant l'option "${option}"`}
+                    title={`Ajouter les élèves ayant l'option "${option}"`}
                   >
                     + {option}
                   </button>
@@ -497,7 +497,7 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
                       <button
                         onClick={() => selectByEnseignant(ens.id)}
                         style={btnSmallStyle}
-                        title={`Ajouter les eleves de ${ens.prenom} ${ens.nom} (classes: ${ens.classesEnCharge.join(', ')})`}
+                        title={`Ajouter les élèves de ${ens.prenom} ${ens.nom} (classes: ${ens.classesEnCharge.join(', ')})`}
                       >
                         + {ens.nom} {ens.prenom[0]}.
                       </button>
@@ -505,10 +505,10 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
                         onClick={() => selectNotByEnseignant(ens.id)}
                         style={{
                           ...btnSmallStyle,
-                          color: '#f87171',
+                          color: 'var(--danger-text)',
                           borderColor: 'rgba(248, 113, 113, 0.2)',
                         }}
-                        title={`Ajouter les eleves n'ayant PAS ${ens.prenom} ${ens.nom}`}
+                        title={`Ajouter les élèves n'ayant PAS ${ens.prenom} ${ens.nom}`}
                       >
                         <X size={10} />
                       </button>
@@ -528,7 +528,7 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
                     key={tag}
                     onClick={() => selectByTag(tag)}
                     style={btnSmallStyle}
-                    title={`Ajouter les eleves ayant le tag "${tag}"`}
+                    title={`Ajouter les élèves ayant le tag "${tag}"`}
                   >
                     + {tag}
                   </button>
@@ -540,14 +540,14 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
           {/* Par regime */}
           {allRegimes.length > 0 && (
             <div>
-              <span style={filterLabelStyle}>Par regime :</span>
+              <span style={filterLabelStyle}>Par régime :</span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem', marginTop: '0.25rem' }}>
                 {allRegimes.map(regime => (
                   <button
                     key={regime}
                     onClick={() => selectByRegime(regime)}
                     style={btnSmallStyle}
-                    title={`Ajouter les eleves en regime "${regime}"`}
+                    title={`Ajouter les élèves en régime "${regime}"`}
                   >
                     + {regime}
                   </button>
@@ -569,20 +569,20 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
           left: 12,
           top: '50%',
           transform: 'translateY(-50%)',
-          color: '#64748b',
+          color: 'var(--text-muted)',
         }} />
         <input
           type="text"
-          placeholder="Rechercher un eleve (nom, prenom, classe, option)..."
+          placeholder="Rechercher un élève (nom, prénom, classe, option)..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           style={{
             width: '100%',
             padding: '0.625rem 2.25rem 0.625rem 2.25rem',
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.15)',
+            background: 'var(--bg-slate-900-a6)',
+            border: '1px solid var(--bg-slate-900-a15)',
             borderRadius: '8px',
-            color: '#e2e8f0',
+            color: 'var(--text)',
             fontSize: '0.875rem',
             outline: 'none',
             boxSizing: 'border-box',
@@ -591,6 +591,7 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
         {searchQuery && (
           <button
             onClick={() => setSearchQuery('')}
+            aria-label="Effacer la recherche"
             style={{
               position: 'absolute',
               right: 8,
@@ -598,7 +599,7 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
               transform: 'translateY(-50%)',
               background: 'none',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--text-muted)',
               cursor: 'pointer',
               padding: 4,
               display: 'flex',
@@ -615,20 +616,20 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
         flex: 1,
         minHeight: 0,
         overflowY: 'auto',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid var(--bg-slate-900-a8)',
         borderRadius: '10px',
-        background: 'rgba(0,0,0,0.15)',
+        background: 'var(--bg-ombre-a15)',
       }}>
         {sortedFilteredClasses.length === 0 ? (
           <div style={{
             textAlign: 'center',
             padding: '2rem',
-            color: '#94a3b8',
+            color: 'var(--text-muted)',
             fontSize: '0.9rem',
           }}>
             {eleves.length === 0
-              ? 'Aucun eleve importe.'
-              : 'Aucun eleve ne correspond a la recherche.'}
+              ? 'Aucun élève importé.'
+              : 'Aucun élève ne correspond à la recherche.'}
           </div>
         ) : (
           sortedFilteredClasses.map(classe => {
@@ -647,8 +648,8 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
                     alignItems: 'center',
                     gap: '0.5rem',
                     padding: '0.5rem 0.75rem',
-                    background: 'rgba(255,255,255,0.04)',
-                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    background: 'var(--bg-slate-900-a4)',
+                    borderBottom: '1px solid var(--bg-slate-900-a6)',
                     cursor: 'pointer',
                     userSelect: 'none',
                     position: 'sticky',
@@ -657,7 +658,7 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
                   }}
                   onClick={() => toggleCollapseClasse(classe)}
                 >
-                  {collapsed ? <ChevronRight size={14} style={{ color: '#94a3b8' }} /> : <ChevronDown size={14} style={{ color: '#94a3b8' }} />}
+                  {collapsed ? <ChevronRight size={14} style={{ color: 'var(--text-muted)' }} /> : <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />}
 
                   {/* Classe-level checkbox */}
                   <button
@@ -665,6 +666,7 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
                       e.stopPropagation();
                       toggleClasse(classe);
                     }}
+                    aria-label={allClasseSelected ? `Désélectionner la classe ${classe}` : `Sélectionner toute la classe ${classe}`}
                     style={{
                       background: 'none',
                       border: 'none',
@@ -672,7 +674,7 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
                       padding: 0,
                       display: 'flex',
                       alignItems: 'center',
-                      color: allClasseSelected ? '#3b82f6' : selectedCount > 0 ? '#60a5fa' : '#64748b',
+                      color: allClasseSelected ? 'var(--ink-5193ff)' : selectedCount > 0 ? 'var(--accent-text)' : '#64748b',
                     }}
                   >
                     {allClasseSelected ? <CheckSquare size={16} /> : <Square size={16} />}
@@ -680,7 +682,7 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
 
                   <span style={{
                     fontWeight: 600,
-                    color: '#e2e8f0',
+                    color: 'var(--text)',
                     fontSize: '0.875rem',
                     flex: 1,
                   }}>
@@ -688,7 +690,7 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
                   </span>
                   <span style={{
                     fontSize: '0.75rem',
-                    color: selectedCount === total ? '#4ade80' : selectedCount > 0 ? '#93c5fd' : '#64748b',
+                    color: selectedCount === total ? 'var(--success-text)' : selectedCount > 0 ? 'var(--accent-text-strong)' : '#64748b',
                     fontWeight: 500,
                   }}>
                     {selectedCount}/{total}
@@ -708,7 +710,7 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
                         gap: '0.5rem',
                         padding: '0.375rem 0.75rem 0.375rem 2.25rem',
                         cursor: 'pointer',
-                        borderBottom: '1px solid rgba(255,255,255,0.03)',
+                        borderBottom: '1px solid var(--bg-slate-900-a3)',
                         background: isSelected ? 'rgba(59, 130, 246, 0.06)' : 'transparent',
                         transition: 'background 0.15s',
                       }}
@@ -725,7 +727,7 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
                     >
                       {/* Checkbox */}
                       <span style={{
-                        color: isSelected ? '#3b82f6' : '#475569',
+                        color: isSelected ? 'var(--ink-5193ff)' : '#475569',
                         display: 'flex',
                         alignItems: 'center',
                         flexShrink: 0,
@@ -735,7 +737,7 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
 
                       {/* Name */}
                       <span style={{
-                        color: isSelected ? '#e2e8f0' : '#94a3b8',
+                        color: isSelected ? 'var(--text)' : 'var(--text-muted)',
                         fontSize: '0.835rem',
                         fontWeight: isSelected ? 500 : 400,
                         flex: 1,
@@ -750,8 +752,8 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
                       {/* Class badge */}
                       <span style={{
                         fontSize: '0.7rem',
-                        color: '#64748b',
-                        background: 'rgba(255,255,255,0.05)',
+                        color: 'var(--text-muted)',
+                        background: 'var(--bg-slate-900-a5)',
                         padding: '0.125rem 0.375rem',
                         borderRadius: '4px',
                         flexShrink: 0,
@@ -763,7 +765,7 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
                       {eleve.options.length > 0 && (
                         <span style={{
                           fontSize: '0.7rem',
-                          color: '#818cf8',
+                          color: 'var(--ink-indigo-500)',
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
@@ -789,7 +791,7 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
         alignItems: 'center',
         paddingTop: '0.75rem',
         marginTop: '0.5rem',
-        borderTop: '1px solid rgba(255,255,255,0.1)',
+        borderTop: '1px solid var(--bg-slate-900-a10)',
         flexShrink: 0,
       }}>
         <button
@@ -799,10 +801,10 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
             alignItems: 'center',
             gap: '0.375rem',
             padding: '0.625rem 1.25rem',
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.15)',
+            background: 'var(--bg-slate-900-a6)',
+            border: '1px solid var(--bg-slate-900-a15)',
             borderRadius: '8px',
-            color: '#cbd5e1',
+            color: 'var(--text-soft)',
             fontSize: '0.9rem',
             cursor: 'pointer',
             transition: 'all 0.2s',
@@ -821,11 +823,11 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
             padding: '0.625rem 1.5rem',
             background: selectedIds.size > 0
               ? 'linear-gradient(135deg, #3b82f6, #2563eb)'
-              : 'rgba(255,255,255,0.06)',
+              : 'var(--bg-slate-900-a6)',
             border: '1px solid',
-            borderColor: selectedIds.size > 0 ? '#3b82f6' : 'rgba(255,255,255,0.1)',
+            borderColor: selectedIds.size > 0 ? '#3b82f6' : 'var(--bg-slate-900-a10)',
             borderRadius: '8px',
-            color: selectedIds.size > 0 ? 'white' : '#64748b',
+            color: selectedIds.size > 0 ? 'var(--text-strong)' : '#64748b',
             fontSize: '0.9rem',
             fontWeight: 600,
             cursor: selectedIds.size > 0 ? 'pointer' : 'not-allowed',
@@ -834,7 +836,7 @@ export function StepSelectEleves({ onNext, onBack }: StepSelectElevesProps) {
           }}
         >
           <Check size={16} />
-          Suivant ({selectedIds.size} eleve{selectedIds.size > 1 ? 's' : ''})
+          Suivant ({selectedIds.size} élève{selectedIds.size > 1 ? 's' : ''})
         </button>
       </div>
     </div>
@@ -850,10 +852,10 @@ const btnStyle: React.CSSProperties = {
   alignItems: 'center',
   gap: '0.375rem',
   padding: '0.375rem 0.75rem',
-  background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.15)',
+  background: 'var(--bg-slate-900-a6)',
+  border: '1px solid var(--bg-slate-900-a15)',
   borderRadius: '6px',
-  color: '#cbd5e1',
+  color: 'var(--text-soft)',
   fontSize: '0.8rem',
   cursor: 'pointer',
   transition: 'all 0.15s',
@@ -865,10 +867,10 @@ const btnSmallStyle: React.CSSProperties = {
   alignItems: 'center',
   gap: '0.25rem',
   padding: '0.25rem 0.5rem',
-  background: 'rgba(255,255,255,0.04)',
-  border: '1px solid rgba(255,255,255,0.1)',
+  background: 'var(--bg-slate-900-a4)',
+  border: '1px solid var(--bg-slate-900-a10)',
   borderRadius: '5px',
-  color: '#94a3b8',
+  color: 'var(--text-muted)',
   fontSize: '0.725rem',
   cursor: 'pointer',
   transition: 'all 0.15s',
@@ -878,7 +880,7 @@ const btnSmallStyle: React.CSSProperties = {
 const filterLabelStyle: React.CSSProperties = {
   fontSize: '0.775rem',
   fontWeight: 600,
-  color: '#94a3b8',
+  color: 'var(--text-muted)',
   textTransform: 'uppercase',
   letterSpacing: '0.03em',
 };

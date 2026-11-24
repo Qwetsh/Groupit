@@ -5,6 +5,7 @@ import { Sidebar } from './Sidebar';
 import { KeyboardShortcutsHelp } from '../ui/KeyboardShortcutsHelp';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 import './MainLayout.css';
+import './LayoutUx.css';
 
 const MOBILE_BREAKPOINT = 768;
 

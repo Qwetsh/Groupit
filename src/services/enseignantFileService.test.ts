@@ -4,6 +4,7 @@ import {
   parseEnseignantsFile,
   serializeEnseignants,
   splitNewEnseignants,
+  planifierImportEnseignants,
 } from './enseignantFileService';
 
 const enseignant = (overrides: Partial<Enseignant> = {}): Enseignant => ({
@@ -86,5 +87,39 @@ describe('Fichier d\'enseignants', () => {
 
     expect(toAdd.map(e => e.nom)).toEqual(['Béranger']);
     expect(skipped).toBe(2);
+  });
+});
+
+describe('Import d\'enseignants — compléter les fiches existantes', () => {
+  const actuel = (overrides: Partial<Enseignant> = {}): Enseignant => ({
+    id: 'e1', nom: 'DURAND', prenom: 'Alice', matierePrincipale: '', classesEnCharge: [],
+    estProfPrincipal: false, tags: [], createdAt: new Date('2026-01-01'), updatedAt: new Date('2026-01-01'),
+    ...overrides,
+  });
+
+  it('ajoute les nouveaux et met à jour l\'adresse des enseignants déjà présents', () => {
+    const plan = planifierImportEnseignants(
+      parseEnseignantsFile(JSON.stringify([
+        { nom: 'DURAND', prenom: 'Alice', adresse: '3 rue Neuve', commune: '57000 Metz' },
+        { nom: 'MARTIN', prenom: 'Bob' },
+      ])),
+      [actuel({ adresse: '1 rue Ancienne', commune: '57000 Metz', lat: 49, lon: 6, geoStatus: 'ok' })]
+    );
+    expect(plan.toAdd.map(e => e.nom)).toEqual(['MARTIN']);
+    expect(plan.toUpdate).toEqual([{ id: 'e1', changes: { adresse: '3 rue Neuve', commune: '57000 Metz' } }]);
+  });
+
+  it('ne réécrit pas une adresse identique (casse et accents ignorés)', () => {
+    const plan = planifierImportEnseignants(
+      parseEnseignantsFile(JSON.stringify([{ nom: 'Durand', prenom: 'alice', adresse: '1 RUE ANCIENNE', commune: '57000 METZ' }])),
+      [actuel({ adresse: '1 rue Ancienne', commune: '57000 Metz' })]
+    );
+    expect(plan).toEqual({ toAdd: [], toUpdate: [], unchanged: 1 });
+  });
+
+  it('remplit une matière vide mais n\'écrase jamais une matière saisie', () => {
+    const fichier = parseEnseignantsFile(JSON.stringify([{ nom: 'DURAND', prenom: 'Alice', matierePrincipale: 'SVT' }]));
+    expect(planifierImportEnseignants(fichier, [actuel()]).toUpdate[0].changes).toEqual({ matierePrincipale: 'SVT' });
+    expect(planifierImportEnseignants(fichier, [actuel({ matierePrincipale: 'Mathématiques' })]).toUpdate).toEqual([]);
   });
 });

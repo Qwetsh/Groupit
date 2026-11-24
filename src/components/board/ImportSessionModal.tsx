@@ -6,6 +6,7 @@ import { useState, useCallback } from 'react';
 import { X, Upload, FileJson, CheckCircle, AlertTriangle, XCircle, Loader, Users, UserCheck, FileWarning } from 'lucide-react';
 import type { ImportReport, SessionExportData } from '../../services/affectationSessionService';
 import { parseSessionFile } from '../../services/affectationSessionService';
+import { useDialog } from '../../hooks/useDialog';
 import '../modals/Modal.css';
 import './ImportSessionModal.css';
 
@@ -99,17 +100,27 @@ export function ImportSessionModal({ isOpen, onClose, onImport }: ImportSessionM
     setParseError(null);
   }, []);
 
+  // Pas de fermeture par Échap pendant l'import
+  const dialogRef = useDialog<HTMLDivElement>(isOpen, handleClose, { fermerAvecEchap: step !== 'importing' });
+
   if (!isOpen) return null;
 
   return (
     <div className="modal-overlay" onClick={handleClose}>
-      <div className="modal-content import-session-modal" onClick={e => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className="modal-content import-session-modal"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="import-session-modal-title"
+      >
         <div className="modal-header">
           <div className="modal-title">
             <FileJson size={20} />
-            <h2>Importer une session</h2>
+            <h2 id="import-session-modal-title">Importer une session</h2>
           </div>
-          <button className="modal-close" onClick={handleClose}>
+          <button className="modal-close" onClick={handleClose} aria-label="Fermer">
             <X size={20} />
           </button>
         </div>

@@ -15,6 +15,27 @@ interface StepSallesProps {
   onBack: () => void;
 }
 
+// Les salles choisies sont proposées de nouveau la fois suivante
+const CLE_SALLES = 'groupit_dernieresSalles';
+
+function lireDernieresSalles(): string[] {
+  try {
+    const brut = JSON.parse(localStorage.getItem(CLE_SALLES) ?? '[]');
+    const connues = new Set(SALLES_DISPONIBLES.map(s => s.numero));
+    return Array.isArray(brut) ? brut.filter((n): n is string => typeof n === 'string' && connues.has(n)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function memoriserSalles(salles: string[]) {
+  try {
+    localStorage.setItem(CLE_SALLES, JSON.stringify(salles));
+  } catch {
+    // Stockage indisponible : on redemandera simplement les salles
+  }
+}
+
 export function StepSalles({ onNext, onBack }: StepSallesProps) {
   const { guidedMode } = useUIStore();
   const { scenarios } = useScenarioStore();
@@ -25,12 +46,13 @@ export function StepSalles({ onNext, onBack }: StepSallesProps) {
   const nbJurys = scenarioJurys.length;
 
   const [selectedSalles, setSelectedSalles] = useState<Set<string>>(() => {
-    // Pre-select salles already assigned to jurys
+    // Salles déjà attribuées aux jurys, sinon celles choisies la dernière fois
     const existing = new Set<string>();
     for (const jury of scenarioJurys) {
       if (jury.salle) existing.add(jury.salle);
     }
-    return existing;
+    if (existing.size > 0) return existing;
+    return new Set(lireDernieresSalles());
   });
 
   const toggleSalle = useCallback((numero: string) => {
@@ -72,6 +94,7 @@ export function StepSalles({ onNext, onBack }: StepSallesProps) {
       await updateJury(jury.id!, { salle: sallesArray[i] });
     }
 
+    memoriserSalles([...selectedSalles]);
     onNext();
   }, [hasEnoughSalles, selectedSalles, scenarioJurys, updateJury, onNext]);
 
@@ -108,8 +131,11 @@ export function StepSalles({ onNext, onBack }: StepSallesProps) {
               {salles.map(salle => (
                 <button
                   key={salle.numero}
+                  type="button"
                   className={`salle-chip ${selectedSalles.has(salle.numero) ? 'selected' : ''}`}
                   onClick={() => toggleSalle(salle.numero)}
+                  aria-pressed={selectedSalles.has(salle.numero)}
+                  aria-label={`Salle ${salle.numero}`}
                 >
                   {selectedSalles.has(salle.numero) && <Check size={14} />}
                   {salle.numero}
@@ -124,13 +150,21 @@ export function StepSalles({ onNext, onBack }: StepSallesProps) {
         <button className="btn btn-secondary" onClick={onBack}>
           Retour
         </button>
-        <button
-          className="btn btn-primary"
-          onClick={handleValidate}
-          disabled={!hasEnoughSalles}
-        >
-          Valider les salles
-        </button>
+        <div className="step-actions-primary">
+          {!hasEnoughSalles && (
+            <span className="step-blocage" id="salles-blocage">
+              Choisissez encore {nbJurys - selectedSalles.size} salle{nbJurys - selectedSalles.size > 1 ? 's' : ''}.
+            </span>
+          )}
+          <button
+            className="btn btn-primary btn-large"
+            onClick={handleValidate}
+            disabled={!hasEnoughSalles}
+            aria-describedby={!hasEnoughSalles ? 'salles-blocage' : undefined}
+          >
+            Lancer la répartition
+          </button>
+        </div>
       </div>
     </div>
   );

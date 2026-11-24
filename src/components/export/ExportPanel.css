@@ -9,7 +9,7 @@
   padding: 6px 10px;
   border: 1px solid rgba(148, 163, 184, 0.3);
   border-radius: 999px;
-  background: rgba(248, 250, 252, 0.92);
+  background: var(--bg-slate-50-a92);
   box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
   backdrop-filter: blur(6px);
 }
@@ -22,10 +22,10 @@
   min-width: 36px;
   height: 36px;
   padding: 0 10px;
-  border: 1px solid rgba(148, 163, 184, 0.5);
+  border: 1px solid var(--bg-slate-400-a50);
   border-radius: 10px;
-  background: white;
-  color: #475569;
+  background: var(--surface);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
   font-size: 12px;
@@ -37,9 +37,9 @@
 }
 
 .export-btn:hover:not(:disabled) {
-  background: #f8fafc;
-  border-color: #94a3b8;
-  color: #0f172a;
+  background: var(--surface-alt);
+  border-color: var(--bg-slate-400);
+  color: var(--text-strong);
   box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.05);
 }
 
@@ -49,24 +49,24 @@
 }
 
 .export-btn.loading {
-  color: #3b82f6;
+  color: var(--accent-text);
 }
 
 .export-btn.success {
   border-color: #10b981;
-  color: #10b981;
-  background: #f0fdf4;
+  color: var(--ink-emerald-500);
+  background: var(--success-softer);
 }
 
 .export-btn.error {
-  border-color: #ef4444;
-  color: #ef4444;
-  background: #fef2f2;
+  border-color: var(--danger);
+  color: var(--danger-text);
+  background: var(--danger-soft);
 }
 
 .export-btn.csv-btn {
   border-color: rgba(16, 185, 129, 0.5);
-  color: #047857;
+  color: var(--ink-emerald-700);
   background: rgba(16, 185, 129, 0.12);
 }
 
@@ -76,7 +76,7 @@
 
 .export-btn.excel-btn {
   border-color: rgba(34, 139, 34, 0.5);
-  color: #166534;
+  color: var(--success-deep);
   background: rgba(34, 197, 94, 0.12);
 }
 
@@ -86,7 +86,7 @@
 
 .export-btn.pdf-btn {
   border-color: rgba(220, 38, 38, 0.5);
-  color: #b91c1c;
+  color: var(--ink-red-700);
   background: rgba(248, 113, 113, 0.12);
 }
 
@@ -126,25 +126,25 @@
   width: 36px;
   height: 36px;
   padding: 0;
-  border: 1px solid rgba(148, 163, 184, 0.5);
+  border: 1px solid var(--bg-slate-400-a50);
   border-radius: 10px;
-  background: white;
-  color: #475569;
+  background: var(--surface);
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .export-menu-toggle:hover {
-  background: #f8fafc;
-  border-color: #94a3b8;
-  color: #0f172a;
+  background: var(--surface-alt);
+  border-color: var(--bg-slate-400);
+  color: var(--text-strong);
 }
 
 /* Menu dropdown - rendu via portal */
 .export-menu-portal {
   min-width: 240px;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
   padding: 12px;
@@ -162,20 +162,20 @@
 
 .menu-label {
   font-weight: 600;
-  color: #475569;
+  color: var(--text-secondary);
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .menu-stats {
-  color: #94a3b8;
+  color: var(--text-subtle);
   font-size: 12px;
 }
 
 .menu-divider {
   margin: 12px 0;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border);
 }
 
 .menu-options {
@@ -190,13 +190,13 @@
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #475569;
+  color: var(--text-secondary);
 }
 
 .option-checkbox input[type="checkbox"] {
   width: 14px;
   height: 14px;
-  accent-color: #3b82f6;
+  accent-color: var(--accent);
 }
 
 .option-select,
@@ -209,26 +209,26 @@
 .option-select label,
 .option-input label {
   font-size: 11px;
-  color: #94a3b8;
+  color: var(--text-subtle);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .option-select select,
 .option-input input {
-  border: 1px solid #cbd5f5;
+  border: 1px solid var(--bg-cbd5f5);
   border-radius: 6px;
   padding: 6px 8px;
   font-size: 12px;
-  color: #0f172a;
-  background: #f8fafc;
+  color: var(--text-strong);
+  background: var(--surface-alt);
 }
 
 .option-select select:focus,
 .option-input input:focus {
   outline: none;
-  border-color: #3b82f6;
-  background: white;
+  border-color: var(--accent);
+  background: var(--surface);
 }
 
 .menu-error {
@@ -237,10 +237,10 @@
   gap: 6px;
   margin-top: 8px;
   padding: 8px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
+  background: var(--danger-soft);
+  border: 1px solid var(--bg-red-200);
   border-radius: 4px;
-  color: #dc2626;
+  color: var(--danger-text-strong);
 }
 
 /* ============================================================ */
@@ -250,7 +250,7 @@
 .pdf-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: var(--bg-black-a40);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -264,7 +264,7 @@
 }
 
 .pdf-modal {
-  background: white;
+  background: var(--surface);
   border-radius: 12px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
   padding: 24px;
@@ -276,7 +276,7 @@
   margin: 0 0 20px;
   font-size: 16px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text);
 }
 
 .pdf-modal-field {
@@ -287,7 +287,7 @@
   display: block;
   font-size: 12px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-bottom: 8px;
@@ -304,43 +304,43 @@
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--border);
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
   font-weight: 500;
-  color: #475569;
+  color: var(--text-secondary);
   transition: all 0.15s;
 }
 
 .pdf-modal-radio:hover {
-  border-color: #94a3b8;
+  border-color: var(--bg-slate-400);
 }
 
 .pdf-modal-radio.selected {
-  border-color: #3b82f6;
-  background: #eff6ff;
-  color: #1e40af;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--ink-blue-800);
 }
 
 .pdf-modal-radio input[type="radio"] {
-  accent-color: #3b82f6;
+  accent-color: var(--accent);
 }
 
 .pdf-modal-date {
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   font-size: 13px;
-  color: #1e293b;
-  background: #f8fafc;
+  color: var(--text);
+  background: var(--surface-alt);
 }
 
 .pdf-modal-date:focus {
   outline: none;
-  border-color: #3b82f6;
-  background: white;
+  border-color: var(--accent);
+  background: var(--surface);
 }
 
 .pdf-modal-sections {
@@ -351,14 +351,14 @@
 
 .pdf-modal-sections .option-checkbox {
   padding: 6px 10px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 6px;
   transition: all 0.15s;
 }
 
 .pdf-modal-sections .option-checkbox:hover {
-  background: #f8fafc;
-  border-color: #94a3b8;
+  background: var(--surface-alt);
+  border-color: var(--bg-slate-400);
 }
 
 .pdf-modal-actions {
@@ -383,21 +383,21 @@
 }
 
 .pdf-modal-actions .btn-secondary {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
 }
 
 .pdf-modal-actions .btn-secondary:hover {
-  background: #e2e8f0;
+  background: var(--border);
 }
 
 .pdf-modal-actions .btn-primary {
-  background: #3b82f6;
-  color: white;
+  background: var(--accent);
+  color: var(--text-on-accent);
 }
 
 .pdf-modal-actions .btn-primary:hover {
-  background: #2563eb;
+  background: var(--accent-strong);
 }
 
 /* ===== RESPONSIVE ===== */
@@ -436,10 +436,10 @@
 .pdf-modal .pdf-modal-code-row .btn:focus {
   flex-shrink: 0;
   padding: 8px 12px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
   font-size: 13px;
   cursor: pointer;
   transform: none;
@@ -447,12 +447,12 @@
 }
 
 .pdf-modal .pdf-modal-code-row .btn:hover {
-  background: #e2e8f0;
-  color: #1e293b;
+  background: var(--border);
+  color: var(--text);
 }
 
 .pdf-modal .pdf-modal-code-row .btn:focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
@@ -467,21 +467,21 @@
   border-radius: 8px;
   font-size: 13px;
   cursor: pointer;
-  border: 1px solid #cbd5e1;
-  background: white;
-  color: #334155;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-soft);
 }
 
 .pdf-modal-code-row .btn:hover {
-  background: #f1f5f9;
+  background: var(--surface-sunken);
 }
 
 .pdf-modal-code {
   padding: 10px 12px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--surface-alt);
+  color: var(--text-strong);
   font-family: ui-monospace, 'SF Mono', Consolas, monospace;
   font-size: 18px;
   font-weight: 600;
@@ -492,7 +492,7 @@
 .pdf-modal-code-inline {
   font-family: ui-monospace, 'SF Mono', Consolas, monospace;
   letter-spacing: 0.08em;
-  color: #0f172a;
+  color: var(--text-strong);
   user-select: all;
 }
 
@@ -501,31 +501,31 @@
   margin-top: 6px;
   font-size: 11px;
   line-height: 1.45;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .pdf-modal-hint-warning {
-  color: #b45309;
+  color: var(--ink-amber-700);
 }
 
 .pdf-modal-text {
   margin: 0 0 16px;
   font-size: 13px;
   line-height: 1.5;
-  color: #334155;
+  color: var(--text-soft);
 }
 
 .pdf-modal-link {
   padding: 0;
   border: none;
   background: none;
-  color: #2563eb;
+  color: var(--accent-text-strong);
   font-size: 11px;
   text-decoration: underline;
   cursor: pointer;
 }
 
 .pdf-modal-link:disabled {
-  color: #94a3b8;
+  color: var(--text-subtle);
   cursor: default;
 }

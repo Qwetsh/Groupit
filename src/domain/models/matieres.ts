@@ -152,6 +152,17 @@ export function cleMatiere(libelle: string | null | undefined): string {
   return simplifierLibelle(reference ?? libelle);
 }
 
+/**
+ * Libellé à afficher : la matière de référence si elle est reconnue
+ * (« svt » → « SVT », « Maths » → « Mathématiques »), sinon le libellé
+ * d'origine avec une majuscule. Évite les doublons dans les filtres.
+ */
+export function libelleMatiere(libelle: string | null | undefined): string {
+  if (!libelle?.trim()) return '';
+  const propre = libelle.trim();
+  return matiereDeReference(propre) ?? propre.charAt(0).toUpperCase() + propre.slice(1);
+}
+
 /** Vrai si les deux libellés désignent la même matière. */
 export function memeMatiere(a: string | null | undefined, b: string | null | undefined): boolean {
   const ka = cleMatiere(a);

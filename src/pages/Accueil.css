@@ -1,0 +1,143 @@
+/* ============================================================
+ * ACCUEIL : une carte par tâche
+ * ============================================================
+ * Chaque carte garde le nom de la tâche et dit où on en est.
+ * Les boutons sont toujours au même endroit, en bas de la carte.
+ */
+
+.taches-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-md);
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.tache-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px var(--bg-black-a5, rgba(0, 0, 0, 0.05));
+}
+
+.tache-card.en-cours {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.tache-card .mode-icon {
+  width: 52px;
+  height: 52px;
+  margin-bottom: 0;
+}
+
+.tache-texte {
+  flex: 1;
+}
+
+.tache-texte h3 {
+  margin: 0 0 6px;
+  font-size: 1.1rem;
+  color: var(--text-strong);
+}
+
+.tache-etat {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.tache-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-text-strong, var(--accent-deep));
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.tache-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+}
+
+.tache-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.tache-btn:hover {
+  background: var(--surface-sunken);
+}
+
+.tache-btn.primaire {
+  flex: 1;
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--text-on-accent);
+}
+
+.tache-btn.primaire:hover {
+  background: var(--primary-dark);
+}
+
+.tache-btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.accueil-secondaire {
+  display: flex;
+  justify-content: center;
+  margin: var(--space-lg) auto 0;
+}
+
+.btn-lien {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--accent-text, var(--primary));
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-lien:hover {
+  background: var(--accent-soft);
+}
+
+@media (max-width: 640px) {
+  .taches-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tache-card {
+    padding: var(--space-md);
+  }
+}

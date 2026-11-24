@@ -461,17 +461,19 @@ export function StepThemesEleves({ onNext, onBack }: StepThemesElevesProps) {
         </div>
         <button className="btn btn-secondary" onClick={handleDownloadTemplate}>
           <Download size={16} />
-          Télécharger le template
+          Télécharger le modèle à remplir
         </button>
-        <button
-          className="btn btn-secondary"
-          onClick={handleRandomThemes}
-          title="DEV: Remplir aléatoirement"
-          style={{ borderColor: 'rgba(245, 158, 11, 0.4)', color: '#f59e0b', fontSize: '0.75rem' }}
-        >
-          <Shuffle size={16} />
-          Random
-        </button>
+        {import.meta.env.DEV && (
+          <button
+            className="btn btn-secondary"
+            onClick={handleRandomThemes}
+            title="DEV: Remplir aléatoirement"
+            style={{ borderColor: 'rgba(245, 158, 11, 0.4)', color: 'var(--warning-text)', fontSize: '0.75rem' }}
+          >
+            <Shuffle size={16} />
+            Random
+          </button>
+        )}
         <div
           className="import-drop-zone-inline"
           onDragEnter={handleDrag}

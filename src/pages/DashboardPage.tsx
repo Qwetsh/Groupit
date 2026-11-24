@@ -25,7 +25,9 @@ import {
   Play,
   RotateCcw,
 } from 'lucide-react';
+import { etapeDeDepart } from '../components/guided/guidedFlow';
 import './DashboardPage.css';
+import './Accueil.css';
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -58,7 +60,7 @@ export const DashboardPage: React.FC = () => {
   const handleLaunchMode = useCallback((type: 'oral_dnb' | 'suivi_stage' | 'personnalise') => {
     setGuidedScenarioType(type);
     setGuidedModeActive(true);
-    setGuidedStep('eleves');
+    setGuidedStep(etapeDeDepart(type, useEleveStore.getState().eleves.length));
   }, [setGuidedScenarioType, setGuidedModeActive, setGuidedStep]);
 
   // Archive handlers
@@ -78,7 +80,7 @@ export const DashboardPage: React.FC = () => {
       const filename = `${archive.scenarioNom.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date(archive.archivedAt).toISOString().split('T')[0]}.pdf`;
       const { downloadExportPdf } = await loadPdfExport();
       await downloadExportPdf(exportData, filename);
-      addNotification({ type: 'success', message: 'Export PDF termine' });
+      addNotification({ type: 'success', message: 'Export PDF terminé' });
     } catch (error) {
       console.error('Erreur export PDF:', error);
       addNotification({ type: 'error', message: "Erreur lors de l'export PDF" });
@@ -90,7 +92,7 @@ export const DashboardPage: React.FC = () => {
       const exportData = mapArchiveToExportData(archive);
       const filename = `${archive.scenarioNom.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date(archive.archivedAt).toISOString().split('T')[0]}`;
       downloadExportCsv(exportData, filename);
-      addNotification({ type: 'success', message: 'Export CSV termine' });
+      addNotification({ type: 'success', message: 'Export CSV terminé' });
     } catch (error) {
       console.error('Erreur export CSV:', error);
       addNotification({ type: 'error', message: "Erreur lors de l'export CSV" });
@@ -174,6 +176,52 @@ export const DashboardPage: React.FC = () => {
     [archives]
   );
 
+  const nbJurysDe = (id?: string) => jurys.filter(j => j.scenarioId === id).length;
+  const nbAffectationsDe = (id?: string) => affectations.filter(a => a.scenarioId === id).length;
+  const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? "s" : ""}`;
+
+  const taches = [
+    {
+      id: "oral", icone: "oral", symbole: <Mic size={28} />, titre: "Oral du DNB",
+      description: "Constituez les jurys et répartissez les élèves pour l’oral du brevet.",
+      enCours: !!inProgressOralDnb,
+      etat: inProgressOralDnb ? `${pluriel(nbJurysDe(inProgressOralDnb.id), "jury")}, ${pluriel(nbAffectationsDe(inProgressOralDnb.id), "élève")} répartis` : "",
+      libelleCommencer: "Commencer",
+      commencer: () => handleLaunchMode("oral_dnb"),
+      reprendre: () => inProgressOralDnb && handleResumeScenario(inProgressOralDnb.id!),
+      recommencer: () => handleLaunchMode("oral_dnb"),
+    },
+    {
+      id: "stages", icone: "stage", symbole: <Briefcase size={28} />, titre: "Stages de 3e",
+      description: "Attribuez un enseignant tuteur à chaque stage, au plus près.",
+      enCours: !!inProgressStage,
+      etat: inProgressStage ? `${pluriel(nbAffectationsDe(inProgressStage.id), "stage")} attribués` : "",
+      libelleCommencer: "Commencer",
+      commencer: () => handleLaunchMode("suivi_stage"),
+      reprendre: () => inProgressStage && handleResumeScenario(inProgressStage.id!),
+      recommencer: () => handleLaunchMode("suivi_stage"),
+    },
+    {
+      id: "perso", icone: "custom", symbole: <Sliders size={28} />, titre: "Mode personnalisé",
+      description: "Formez des groupes selon vos propres critères.",
+      enCours: !!inProgressCustom,
+      etat: inProgressCustom ? `${pluriel(nbJurysDe(inProgressCustom.id), "groupe")}, ${pluriel(nbAffectationsDe(inProgressCustom.id), "élève")} répartis` : "",
+      libelleCommencer: "Commencer",
+      commencer: () => handleLaunchMode("personnalise"),
+      reprendre: () => inProgressCustom && handleResumeScenario(inProgressCustom.id!),
+      recommencer: () => handleLaunchMode("personnalise"),
+    },
+    {
+      id: "libre", icone: "libre", symbole: <MousePointerClick size={28} />, titre: "Mode libre",
+      description: "Composez les groupes vous-même, par glisser-déposer.",
+      enCours: false, etat: "",
+      libelleCommencer: "Ouvrir",
+      commencer: () => navigate("/libre"),
+      reprendre: () => navigate("/libre"),
+      recommencer: undefined,
+    },
+  ];
+
   return (
     <div className="dashboard-page">
       {/* Hero section */}
@@ -187,101 +235,41 @@ export const DashboardPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Mode selection grid */}
-      <div className="mode-grid">
-        <div className="mode-card-wrapper">
-          <button
-            className={`mode-card active ${inProgressOralDnb ? 'has-session' : ''}`}
-            onClick={() => inProgressOralDnb ? handleResumeScenario(inProgressOralDnb.id!) : handleLaunchMode('oral_dnb')}
-          >
-            <div className="mode-icon oral">
-              <Mic size={32} />
+      {/* Une carte par tâche, avec son état : commencer, ou reprendre / recommencer */}
+      <div className="taches-grid">
+        {taches.map(t => (
+          <article key={t.id} className={`tache-card ${t.enCours ? "en-cours" : ""}`} aria-labelledby={`tache-${t.id}`}>
+            <div className={`mode-icon ${t.icone}`} aria-hidden="true">{t.symbole}</div>
+            <div className="tache-texte">
+              <h3 id={`tache-${t.id}`}>{t.titre}</h3>
+              <p className="tache-etat">
+                {t.enCours ? <><span className="tache-badge"><Play size={12} /> En cours</span> {t.etat}</> : t.description}
+              </p>
             </div>
-            <h3>{inProgressOralDnb ? 'Reprendre l\'affectation' : 'Oral DNB'}</h3>
-            <p>
-              {inProgressOralDnb
-                ? `${inProgressOralDnb.nom} — ${jurys.filter(j => j.scenarioId === inProgressOralDnb.id).length} jury(s), ${affectations.filter(a => a.scenarioId === inProgressOralDnb.id).length} affectation(s)`
-                : 'Constituez les jurys et repartissez les eleves pour l\'oral du brevet.'
-              }
-            </p>
-            {inProgressOralDnb && (
-              <span className="mode-resume-badge"><Play size={12} /> En cours</span>
-            )}
-          </button>
-          {inProgressOralDnb && (
-            <button className="mode-new-link" onClick={() => handleLaunchMode('oral_dnb')}>
-              <RotateCcw size={11} />
-              Nouvelle constitution
-            </button>
-          )}
-        </div>
-
-        <div className="mode-card-wrapper">
-          <button
-            className={`mode-card active ${inProgressStage ? 'has-session' : ''}`}
-            onClick={() => inProgressStage ? handleResumeScenario(inProgressStage.id!) : handleLaunchMode('suivi_stage')}
-          >
-            <div className="mode-icon stage">
-              <Briefcase size={32} />
+            <div className="tache-actions">
+              {t.enCours ? (
+                <>
+                  <button className="tache-btn primaire" onClick={t.reprendre}>Reprendre</button>
+                  {t.recommencer && (
+                    <button className="tache-btn" onClick={t.recommencer}>
+                      <RotateCcw size={14} /> Recommencer
+                    </button>
+                  )}
+                </>
+              ) : (
+                <button className="tache-btn primaire" onClick={t.commencer}>{t.libelleCommencer}</button>
+              )}
             </div>
-            <h3>{inProgressStage ? 'Reprendre l\'affectation' : 'Stages 3eme'}</h3>
-            <p>
-              {inProgressStage
-                ? `${inProgressStage.nom} — ${affectations.filter(a => a.scenarioId === inProgressStage.id).length} affectation(s)`
-                : 'Affectez les enseignants tuteurs aux stages de vos eleves.'
-              }
-            </p>
-            {inProgressStage && (
-              <span className="mode-resume-badge"><Play size={12} /> En cours</span>
-            )}
-          </button>
-          {inProgressStage && (
-            <button className="mode-new-link" onClick={() => handleLaunchMode('suivi_stage')}>
-              <RotateCcw size={11} />
-              Nouvelle constitution
-            </button>
-          )}
-        </div>
-
-        <div className="mode-card-wrapper">
-          <button
-            className={`mode-card active ${inProgressCustom ? 'has-session' : ''}`}
-            onClick={() => inProgressCustom ? handleResumeScenario(inProgressCustom.id!) : handleLaunchMode('personnalise')}
-          >
-            <div className="mode-icon custom">
-              <Sliders size={32} />
-            </div>
-            <h3>{inProgressCustom ? 'Reprendre l\'affectation' : 'Mode Personnalise'}</h3>
-            <p>Criteres d'affectation automatique personnalisables.</p>
-            {inProgressCustom && (
-              <span className="mode-resume-badge"><Play size={12} /> En cours</span>
-            )}
-          </button>
-          {inProgressCustom && (
-            <button className="mode-new-link" onClick={() => handleLaunchMode('personnalise')}>
-              <RotateCcw size={11} />
-              Nouvelle constitution
-            </button>
-          )}
-        </div>
-
-        <button className="mode-card active" onClick={() => navigate('/libre')}>
-          <div className="mode-icon libre">
-            <MousePointerClick size={32} />
-          </div>
-          <h3>Mode Libre</h3>
-          <p>Glisser-deposer manuel et configuration libre des groupes.</p>
-        </button>
-
-        <button className="mode-card active" onClick={() => setShowImportSessionModal(true)}>
-          <div className="mode-icon import">
-            <FolderOpen size={32} />
-          </div>
-          <h3>Reprendre une session</h3>
-          <p>Importez une session sauvegardee pour reprendre le travail.</p>
-        </button>
+          </article>
+        ))}
       </div>
 
+      <div className="accueil-secondaire">
+        <button className="btn-lien" onClick={() => setShowImportSessionModal(true)}>
+          <FolderOpen size={16} />
+          Reprendre une session sauvegardée (fichier)
+        </button>
+      </div>
 
       {/* Archives / history */}
       {archives.length > 0 && (

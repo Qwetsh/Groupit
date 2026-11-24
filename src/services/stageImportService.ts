@@ -674,7 +674,7 @@ export async function parseStageFile(file: File): Promise<{ rows: StageImportRow
   if (!hasNomPrenom && !hasNomComplet && !hasNomOnly) {
     errors.push({
       line: 1,
-      message: 'Colonnes d\'identification élève non trouvées. Attendu: "nom" + "prenom", ou "nom complet"',
+      message: 'Colonnes d\'identification élève non trouvées. Attendu: "nom" + "prénom", ou "nom complet"',
     });
     return { rows: [], errors };
   }

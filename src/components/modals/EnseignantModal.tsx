@@ -9,6 +9,7 @@ import { useUIStore } from '../../stores/uiStore';
 import { useFieldDefinitionStore } from '../../stores/fieldDefinitionStore';
 import { createGeoProvider } from '../../infrastructure/geo/geocode';
 import type { FieldDefinition } from '../../domain/models';
+import { useDialog } from '../../hooks/useDialog';
 import './Modal.css';
 
 interface EnseignantModalProps {
@@ -193,6 +194,9 @@ export function EnseignantModal({ onClose }: EnseignantModalProps) {
   const [geocodeStatus, setGeocodeStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [geocodeMessage, setGeocodeMessage] = useState<string | null>(null);
 
+  // Pas de fermeture par Échap pendant l'enregistrement
+  const dialogRef = useDialog<HTMLDivElement>(true, onClose, { fermerAvecEchap: !saving });
+
   const isEditing = !!enseignant;
 
   useEffect(() => {
@@ -350,13 +354,20 @@ export function EnseignantModal({ onClose }: EnseignantModalProps) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className="modal-content"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="enseignant-modal-title"
+      >
         <div className="modal-header">
           <div className="modal-title">
             <UserCog size={20} />
-            <h2>{isEditing ? 'Modifier l\'enseignant' : 'Ajouter un enseignant'}</h2>
+            <h2 id="enseignant-modal-title">{isEditing ? 'Modifier l\'enseignant' : 'Ajouter un enseignant'}</h2>
           </div>
-          <button className="modal-close" onClick={onClose}>
+          <button className="modal-close" onClick={onClose} aria-label="Fermer">
             <X size={20} />
           </button>
         </div>

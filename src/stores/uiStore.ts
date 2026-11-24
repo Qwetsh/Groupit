@@ -169,6 +169,17 @@ interface UIState {
   resetGuidedMode: () => void;
   showWelcomeScreen: () => void;
   exitGuidedMode: () => void;
+
+  // Bilan de la dernière répartition, affiché en haut du tableau des résultats
+  derniereRepartition: BilanRepartition | null;
+  setDerniereRepartition: (bilan: BilanRepartition | null) => void;
+}
+
+/** Ce que le moteur a produit, pour l'afficher à côté des résultats. */
+export interface BilanRepartition {
+  scenarioId: string;
+  resume: string;
+  alertes: string[];
 }
 
 let notificationId = 0;
@@ -354,6 +365,9 @@ export const useUIStore = create<UIState>((set, get) => ({
     localStorage.removeItem('groupit_guidedStep');
     localStorage.removeItem('groupit_guidedScenarioType');
   },
+
+  derniereRepartition: null,
+  setDerniereRepartition: (bilan) => set({ derniereRepartition: bilan }),
 }));
 
 // Charger le mode expert depuis localStorage au démarrage

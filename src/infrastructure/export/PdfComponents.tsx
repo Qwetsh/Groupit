@@ -525,7 +525,7 @@ const StudentTable: React.FC<StudentTableProps> = ({ eleves, options, styles }) 
     </View>
     {eleves.some(e => e.groupeMembresNoms?.length) && (
       <Text style={{ fontSize: 7, color: '#7c3aed', marginTop: 2 }}>
-        ♦ Binome  ♦♦ Trinome — Les eleves marques passent ensemble
+        ♦ Binôme  ♦♦ Trinôme — Les élèves marqués passent ensemble
       </Text>
     )}
     </>
@@ -885,7 +885,7 @@ const EleveConvocationPage: React.FC<EleveConvocationPageProps> = ({ eleve, jury
           <Text style={styles.letterParagraph}>
             Vous passerez devant le {jury.juryName}{jury.salle ? `, en salle ${jury.salle}` : ''}.
             {eleve.heurePassage ? ` Votre heure de passage est prévue à ${eleve.heurePassage}.` : ''}
-            {eleve.groupeMembresNoms?.length === 1 ? ` Vous passerez en binome avec ${eleve.groupeMembresNoms[0]}.` : eleve.groupeMembresNoms && eleve.groupeMembresNoms.length >= 2 ? ` Vous passerez en trinome avec ${eleve.groupeMembresNoms.join(' et ')}.` : ''}
+            {eleve.groupeMembresNoms?.length === 1 ? ` Vous passerez en binôme avec ${eleve.groupeMembresNoms[0]}.` : eleve.groupeMembresNoms && eleve.groupeMembresNoms.length >= 2 ? ` Vous passerez en trinôme avec ${eleve.groupeMembresNoms.join(' et ')}.` : ''}
             {eleve.langueEtrangere ? ` Vous présenterez tout ou partie de votre oral en ${eleve.langueEtrangere}.` : ''}
           </Text>
           {(eleve.parcoursOral || eleve.sujetOral) && (

@@ -77,11 +77,14 @@ function comparer(a: string, b: string): number {
 }
 
 function languesDe(eleve: Eleve): string {
-  return (eleve.options ?? [])
+  // LV1 et LV2 renseignées : elles font foi. Sinon, on les cherche dans les options.
+  if (eleve.lv1 || eleve.lv2) {
+    return [eleve.lv1, eleve.lv2].filter(Boolean).map(l => l!.toLowerCase()).sort().join('|');
+  }
+  const trouvees = (eleve.options ?? [])
     .map(o => o.toLowerCase())
-    .flatMap(o => LANGUES.filter(l => o.includes(l)))
-    .sort()
-    .join('|');
+    .flatMap(o => LANGUES.filter(l => o.includes(l)));
+  return [...new Set(trouvees)].sort().join('|');
 }
 
 function heuresTotales(e: Enseignant): number {

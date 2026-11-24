@@ -213,10 +213,10 @@ export function StepSelectAdultes({ onNext, onBack }: StepSelectAdultesProps) {
     <div className="guided-step step-select-adultes">
       <h1 className="step-title">
         <GraduationCap size={28} />
-        Adultes de reference
+        Adultes de référence
       </h1>
       <p className="step-subtitle">
-        Selectionnez les enseignants qui seront affectes aux groupes.
+        Sélectionnez les enseignants qui seront affectés aux groupes.
       </p>
 
       {/* ---- Opt-out toggle ---- */}
@@ -229,13 +229,13 @@ export function StepSelectAdultes({ onNext, onBack }: StepSelectAdultesProps) {
       >
         {noAdultes ? <ToggleRight size={24} /> : <ToggleLeft size={24} />}
         <span className="step-select-adultes-optout-label">
-          Pas d'adultes de reference pour ce projet
+          Pas d'adultes de référence pour ce projet
         </span>
       </div>
 
       {noAdultes && (
         <div className="step-select-adultes-optout-message">
-          Les groupes seront constitues uniquement d'eleves.
+          Les groupes seront constitués uniquement d'élèves.
         </div>
       )}
 
@@ -244,7 +244,7 @@ export function StepSelectAdultes({ onNext, onBack }: StepSelectAdultesProps) {
 
         {/* Role input */}
         <div className="step-select-adultes-role">
-          <label htmlFor="adulte-role">Role des adultes</label>
+          <label htmlFor="adulte-role">Rôle des adultes</label>
           <input
             id="adulte-role"
             type="text"
@@ -259,7 +259,7 @@ export function StepSelectAdultes({ onNext, onBack }: StepSelectAdultesProps) {
         <div className="step-select-adultes-stats">
           <Users size={18} />
           <span>
-            <strong>{selectedIds.size}</strong> / {enseignants.length} enseignant{enseignants.length !== 1 ? 's' : ''} selectionne{selectedIds.size !== 1 ? 's' : ''}
+            <strong>{selectedIds.size}</strong> / {enseignants.length} enseignant{enseignants.length !== 1 ? 's' : ''} sélectionné{selectedIds.size !== 1 ? 's' : ''}
           </span>
         </div>
 
@@ -271,14 +271,14 @@ export function StepSelectAdultes({ onNext, onBack }: StepSelectAdultesProps) {
               onClick={selectAll}
               disabled={noAdultes}
             >
-              Tout selectionner
+              Tout sélectionner
             </button>
             <button
               className="btn btn-sm btn-outline"
               onClick={deselectAll}
               disabled={noAdultes}
             >
-              Tout deselectionner
+              Tout désélectionner
             </button>
             <button
               className="btn btn-sm btn-outline"
@@ -293,7 +293,7 @@ export function StepSelectAdultes({ onNext, onBack }: StepSelectAdultesProps) {
           {/* By matiere */}
           {distinctMatieres.length > 0 && (
             <div className="step-select-adultes-quick-group">
-              <span className="step-select-adultes-quick-group-label">Par matiere :</span>
+              <span className="step-select-adultes-quick-group-label">Par matière :</span>
               <div className="step-select-adultes-chips">
                 {distinctMatieres.map(m => {
                   const matiereIds = enseignants.filter(e => e.matierePrincipale === m).map(e => e.id);
@@ -349,17 +349,17 @@ export function StepSelectAdultes({ onNext, onBack }: StepSelectAdultesProps) {
               className={clsx('btn btn-sm btn-outline', advancedFilter === 'with_eleves' && 'active')}
               onClick={() => setAdvancedFilter(prev => prev === 'with_eleves' ? 'none' : 'with_eleves')}
               disabled={noAdultes || selectedEleveClasses.size === 0}
-              title={selectedEleveClasses.size === 0 ? 'Aucun eleve selectionne a l\'etape precedente' : undefined}
+              title={selectedEleveClasses.size === 0 ? 'Aucun élève sélectionné à l\'étape précédente' : undefined}
             >
-              Enseignants ayant les eleves selectionnes
+              Enseignants ayant les élèves sélectionnés
             </button>
             <button
               className={clsx('btn btn-sm btn-outline', advancedFilter === 'without_eleves' && 'active')}
               onClick={() => setAdvancedFilter(prev => prev === 'without_eleves' ? 'none' : 'without_eleves')}
               disabled={noAdultes || selectedEleveClasses.size === 0}
-              title={selectedEleveClasses.size === 0 ? 'Aucun eleve selectionne a l\'etape precedente' : undefined}
+              title={selectedEleveClasses.size === 0 ? 'Aucun élève sélectionné à l\'étape précédente' : undefined}
             >
-              Enseignants n'ayant PAS les eleves
+              Enseignants n'ayant PAS les élèves
             </button>
           </div>
 
@@ -370,7 +370,7 @@ export function StepSelectAdultes({ onNext, onBack }: StepSelectAdultesProps) {
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Rechercher par nom, prenom, matiere..."
+              placeholder="Rechercher par nom, prénom, matière..."
               disabled={noAdultes}
             />
           </div>

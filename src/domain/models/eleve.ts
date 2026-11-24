@@ -38,6 +38,10 @@ export interface Eleve {
   sexe?: Sexe;
   email?: string;
   options: string[]; // ex: ["Latin", "Allemand"]
+  /** Langue vivante 1, nom de la langue (« Anglais »). */
+  lv1?: string;
+  /** Langue vivante 2, nom de la langue (« Allemand »). */
+  lv2?: string;
   regime?: string; // ex: "Demi-pensionnaire", "Externe"
   tags: string[];
   contraintes: Contrainte[];

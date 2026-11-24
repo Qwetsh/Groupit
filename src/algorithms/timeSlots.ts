@@ -60,6 +60,25 @@ function minutesToTimeStr(totalMinutes: number): string {
 }
 
 /**
+ * Nombre de passages qu'un jury peut faire passer dans les horaires prévus,
+ * sur l'ensemble des demi-journées choisies (pause de 10 min comprise).
+ * Sert à prévenir avant le calcul qu'un jury finira en retard.
+ */
+export function passagesMaxParJury(
+  demiJournees: string[],
+  heureDebutMatin?: string,
+  heureDebutAprem?: string
+): number {
+  return demiJournees.reduce((total, dj) => {
+    const matin = dj.endsWith('_matin');
+    const debut = parseHeure(matin ? heureDebutMatin : heureDebutAprem, matin ? DEFAULT_MATIN_START : DEFAULT_APREM_START);
+    const fin = matin ? MATIN_END : APREM_END;
+    const disponible = timeToMinutes(fin.h, fin.m) - timeToMinutes(debut.h, debut.m) - 10;
+    return total + Math.max(0, Math.floor(disponible / DUREE_PASSAGE_MIN));
+  }, 0);
+}
+
+/**
  * Génère les créneaux horaires pour une demi-journée (matin ou après-midi).
  * Insère une pause de 10 min au milieu de la plage.
  * Si minSlots est fourni et dépasse la capacité de la plage, génère des

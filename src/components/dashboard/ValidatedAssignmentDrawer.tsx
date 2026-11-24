@@ -82,7 +82,7 @@ export const ValidatedAssignmentDrawer: React.FC<ValidatedAssignmentDrawerProps>
               Validé le {formatArchiveDate(new Date(archive.archivedAt))}
             </span>
           </div>
-          <button className="drawer-close" onClick={onClose}>
+          <button className="drawer-close" onClick={onClose} aria-label="Fermer">
             <X size={20} />
           </button>
         </div>
@@ -124,12 +124,12 @@ export const ValidatedAssignmentDrawer: React.FC<ValidatedAssignmentDrawerProps>
 
             {/* Type-specific metadata */}
             {archive.scenarioType === 'oral_dnb' && archive.metadata?.jurys && (
-              <div style={{ marginTop: 12, fontSize: 13, color: '#64748b' }}>
+              <div style={{ marginTop: 12, fontSize: 13, color: 'var(--text-muted)' }}>
                 {archive.metadata.jurys.length} jury(s) configuré(s)
               </div>
             )}
             {archive.scenarioType === 'suivi_stage' && archive.metadata?.distanceMoyenneKm && (
-              <div style={{ marginTop: 12, fontSize: 13, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ marginTop: 12, fontSize: 13, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <MapPin size={14} />
                 Distance moyenne : {archive.metadata.distanceMoyenneKm} km
                 {archive.metadata.dureeMoyenneMin && ` (~${archive.metadata.dureeMoyenneMin} min)`}
@@ -184,7 +184,7 @@ export const ValidatedAssignmentDrawer: React.FC<ValidatedAssignmentDrawerProps>
                         </div>
                       ))}
                       {aff.eleves.length === 0 && (
-                        <span style={{ color: '#94a3b8', fontSize: 13 }}>
+                        <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>
                           Aucun élève affecté
                         </span>
                       )}

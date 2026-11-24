@@ -5,6 +5,7 @@
 import { X, User, Calendar, BookOpen, Tag, AlertTriangle, Users, Clock, FileText, Settings, Building2, MapPin, Phone, Mail, UserCircle, Brain } from 'lucide-react';
 import type { Eleve, Affectation, Enseignant, Jury, Stage } from '../../domain/models';
 import { useFieldDefinitionStore } from '../../stores/fieldDefinitionStore';
+import { useDialog } from '../../hooks/useDialog';
 import './Modal.css';
 import './EleveInfoModal.css';
 
@@ -22,9 +23,9 @@ const SCORE_LABELS: Record<string, { label: string; icon: string; description: s
 };
 
 function getScoreColor(score: number): string {
-  if (score >= 80) return '#16a34a';
-  if (score >= 50) return '#ca8a04';
-  return '#dc2626';
+  if (score >= 80) return 'var(--success-text)';
+  if (score >= 50) return 'var(--warning-text)';
+  return 'var(--danger-text)';
 }
 
 function getScoreBarClass(score: number): string {
@@ -43,6 +44,8 @@ interface EleveInfoModalProps {
 }
 
 export function EleveInfoModal({ eleve, affectation, enseignant, jury, stage, onClose }: EleveInfoModalProps) {
+  const dialogRef = useDialog<HTMLDivElement>(true, onClose);
+
   // Calculer l'âge si date de naissance disponible
   const age = eleve.dateNaissance 
     ? Math.floor((new Date().getTime() - new Date(eleve.dateNaissance).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
@@ -69,13 +72,20 @@ export function EleveInfoModal({ eleve, affectation, enseignant, jury, stage, on
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content eleve-info-modal" onClick={e => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className="modal-content eleve-info-modal"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="eleve-info-modal-title"
+      >
         <div className="modal-header">
           <div className="modal-title">
             <User size={20} />
-            <h2>Fiche élève</h2>
+            <h2 id="eleve-info-modal-title">Fiche élève</h2>
           </div>
-          <button className="modal-close" onClick={onClose}>
+          <button className="modal-close" onClick={onClose} aria-label="Fermer">
             <X size={20} />
           </button>
         </div>
@@ -136,11 +146,13 @@ export function EleveInfoModal({ eleve, affectation, enseignant, jury, stage, on
           </div>
 
           {/* Options et LV */}
-          {eleve.options && eleve.options.length > 0 && (
+          {((eleve.options && eleve.options.length > 0) || eleve.lv1 || eleve.lv2) && (
             <div className="info-section">
               <h4><BookOpen size={16} /> Options & Langues</h4>
               <div className="tags-container">
-                {eleve.options.map((opt, i) => (
+                {eleve.lv1 && <span className="tag option-tag">LV1 : {eleve.lv1}</span>}
+                {eleve.lv2 && <span className="tag option-tag">LV2 : {eleve.lv2}</span>}
+                {(eleve.options ?? []).map((opt, i) => (
                   <span key={i} className="tag option-tag">{opt}</span>
                 ))}
               </div>

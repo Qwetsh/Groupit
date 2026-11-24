@@ -2,7 +2,7 @@
 // EXPORT BUTTONS - Boutons compacts pour exporter les résultats
 // ============================================================
 
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
 import {
   FileText,
@@ -45,6 +45,7 @@ import {
   generateSessionCode,
   sanitizeSessionCode,
 } from '../../infrastructure/export/sessionCode';
+import { useDialog } from '../../hooks/useDialog';
 import './ExportPanel.css';
 
 interface ExportButtonsProps {
@@ -361,10 +362,16 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
     }
   }, [hasData, isOralDnb, doExportPdf]);
 
+  const pdfModalTitreId = useId();
+  const onlineResultTitreId = useId();
+  const pdfModalRef = useDialog<HTMLDivElement>(showPdfModal, () => setShowPdfModal(false));
+  const onlineResultRef = useDialog<HTMLDivElement>(onlineResult !== null, () => setOnlineResult(null));
+
   if (!hasData) return null;
 
   return (
-    <div className="export-buttons-compact">
+    <div className="export-buttons-compact" role="group" aria-label="Exporter les résultats">
+      <span className="export-titre">Exporter</span>
       <button
         className={`export-btn csv-btn ${csvStatus}`}
         onClick={handleExportCsv}
@@ -401,7 +408,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
         className={`export-btn pdf-btn ${pdfStatus}`}
         onClick={handlePdfClick}
         disabled={pdfStatus === 'loading'}
-        title="Exporter en PDF"
+        title={isOralDnb ? "Convocations en PDF, et mise en ligne pour les jurys" : "Exporter en PDF"}
       >
         {pdfStatus === 'loading' ? (
           <ProgressIndicator status="loading" variant="inline" size="sm" indeterminate />
@@ -410,7 +417,7 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
         ) : (
           <FileText size={14} />
         )}
-        <span className="btn-label">PDF</span>
+        <span className="btn-label">{isOralDnb ? "PDF et jurys" : "PDF"}</span>
       </button>
 
       <div className="export-menu-wrapper">
@@ -418,7 +425,9 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
           ref={toggleRef}
           className="export-menu-toggle"
           onClick={() => setShowMenu(!showMenu)}
-          title="Plus d'options"
+          title="Options d'export"
+          aria-label="Options d'export"
+          aria-expanded={showMenu}
         >
           <ChevronDown size={14} />
         </button>
@@ -657,8 +666,15 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
       {/* Modale pré-export PDF pour oral DNB */}
       {showPdfModal && createPortal(
         <div className="pdf-modal-overlay" onClick={() => setShowPdfModal(false)}>
-          <div className="pdf-modal" onClick={e => e.stopPropagation()}>
-            <h3 className="pdf-modal-title">Export PDF</h3>
+          <div
+            ref={pdfModalRef}
+            className="pdf-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={pdfModalTitreId}
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 className="pdf-modal-title" id={pdfModalTitreId}>Export PDF</h3>
 
             <div className="pdf-modal-field">
               <label className="pdf-modal-label">Type d'oral</label>
@@ -816,13 +832,14 @@ export const ExportButtons: React.FC<ExportButtonsProps> = ({ scenario, filtered
       {onlineResult && createPortal(
         <div className="pdf-modal-overlay" onClick={() => setOnlineResult(null)}>
           <div
+            ref={onlineResultRef}
             className="pdf-modal"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="online-result-title"
+            aria-labelledby={onlineResultTitreId}
             onClick={e => e.stopPropagation()}
           >
-            <h3 className="pdf-modal-title" id="online-result-title">Notation en ligne</h3>
+            <h3 className="pdf-modal-title" id={onlineResultTitreId}>Notation en ligne</h3>
 
             {onlineResult.success ? (
               <>

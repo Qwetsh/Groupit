@@ -10,10 +10,14 @@ import {
   HelpCircle,
   Keyboard,
   ClipboardCheck,
-  Briefcase
+  Briefcase,
+  Moon,
+  Sun,
+  ArrowUpRight
 } from 'lucide-react';
 import { useUIStore } from '../../stores/uiStore';
 import { Tooltip } from '../ui/Tooltip';
+import { useTheme } from '../../hooks/useTheme';
 import './Sidebar.css';
 
 interface NavItem {
@@ -75,9 +79,17 @@ const NavItemLink = ({ item, highlight = false, isCollapsed }: { item: NavItem; 
 
 const ExternalLink = ({ icon, label, href, tooltip, isCollapsed }: { icon: React.ReactNode; label: string; href: string; tooltip?: string; isCollapsed: boolean }) => {
   const link = (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="nav-link">
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="nav-link"
+      aria-label={`${label} (s'ouvre dans un nouvel onglet)`}
+      title="S'ouvre dans un nouvel onglet"
+    >
       <span className="nav-icon">{icon}</span>
       {!isCollapsed && <span className="nav-label">{label}</span>}
+      {!isCollapsed && <ArrowUpRight size={14} className="nav-externe" aria-hidden="true" />}
     </a>
   );
 
@@ -94,6 +106,7 @@ const ExternalLink = ({ icon, label, href, tooltip, isCollapsed }: { icon: React
 export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, mobileOpen = false }) => {
   const [collapsed, setCollapsed] = useState(false);
   const toggleShortcutsHelp = useUIStore(state => state.toggleShortcutsHelp);
+  const { theme, toggle: toggleTheme } = useTheme();
 
   // En mobile, la sidebar est toujours étendue (pas de mode collapsed)
   const isCollapsed = isMobile ? false : collapsed;
@@ -117,6 +130,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, mobileOpen =
           <button
             className="collapse-btn"
             onClick={() => setCollapsed(!collapsed)}
+            aria-label={isCollapsed ? 'Développer le menu' : 'Réduire le menu'}
           >
             {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
@@ -175,9 +189,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ isMobile = false, mobileOpen =
           <button
             className="shortcuts-btn"
             onClick={toggleShortcutsHelp}
+            aria-label={isCollapsed ? 'Raccourcis clavier' : undefined}
           >
             <Keyboard size={16} />
             {!isCollapsed && <span>Raccourcis</span>}
+          </button>
+        </Tooltip>
+        <Tooltip content="Basculer entre thème clair et thème sombre" position="right" delay={200}>
+          <button
+            className="shortcuts-btn"
+            onClick={toggleTheme}
+            aria-pressed={theme === 'dark'}
+            aria-label={isCollapsed ? 'Thème sombre' : undefined}
+          >
+            {theme === 'dark' ? <Moon size={16} /> : <Sun size={16} />}
+            {!isCollapsed && <span>Thème sombre</span>}
           </button>
         </Tooltip>
         {!isCollapsed && (

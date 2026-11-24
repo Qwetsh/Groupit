@@ -5,6 +5,7 @@
 import React from 'react';
 import { Clock, AlignLeft, BarChart3 } from 'lucide-react';
 import type { DistributionMode } from '../../algorithms/timeSlots';
+import { useDialog } from '../../hooks/useDialog';
 
 interface DistributionModeModalProps {
   nbDemiJournees: number;
@@ -17,12 +18,21 @@ export const DistributionModeModal: React.FC<DistributionModeModalProps> = ({
   onSelect,
   onClose,
 }) => {
+  const dialogRef = useDialog<HTMLDivElement>(true, onClose);
+
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content distribution-modal" onClick={e => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className="modal-content distribution-modal"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="distribution-mode-modal-title"
+      >
         <div className="modal-header">
           <Clock size={20} />
-          <h2>Distribution des créneaux</h2>
+          <h2 id="distribution-mode-modal-title">Distribution des créneaux</h2>
         </div>
 
         <p className="modal-description">

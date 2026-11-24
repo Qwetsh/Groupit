@@ -3,7 +3,7 @@
 // ============================================================
 
 import { describe, it, expect } from 'vitest';
-import { getGroupDuration, assignTimeSlots, getTimeSlotsForDemiJournee, planifierCreneaux } from './timeSlots';
+import { getGroupDuration, assignTimeSlots, getTimeSlotsForDemiJournee, planifierCreneaux, passagesMaxParJury } from './timeSlots';
 import type { Eleve, Enseignant, Jury, Affectation } from '../domain/models';
 
 describe('Time Slots', () => {
@@ -303,5 +303,20 @@ describe('Time Slots', () => {
       });
       expect(alertes).toEqual([]);
     });
+  });
+});
+
+describe('passagesMaxParJury', () => {
+  it('compte 11 passages sur une matinée par défaut (08:15 → 12:10, pause comprise)', () => {
+    expect(passagesMaxParJury(['mercredi_matin'])).toBe(11);
+  });
+
+  it('additionne les demi-journées et tient compte de l’heure de début', () => {
+    expect(passagesMaxParJury(['mercredi_matin', 'mercredi_aprem'])).toBe(11 + 8);
+    expect(passagesMaxParJury(['jeudi_matin'], '09:15')).toBe(8);
+  });
+
+  it('renvoie 0 sans demi-journée', () => {
+    expect(passagesMaxParJury([])).toBe(0);
   });
 });

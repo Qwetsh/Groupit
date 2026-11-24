@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useId } from 'react';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
 import { CSS } from '@dnd-kit/utilities';
 import { Users, CheckCircle, ShieldCheck, Clock, X } from 'lucide-react';
 import type { Eleve, Affectation, Jury, MetadataOralDNB } from '../../../domain/models';
 import type { DroppableJuryTileProps, JuryAffectationDisplay } from '../types';
+import { useDialog } from '../../../hooks/useDialog';
 
 // ============================================================
 // DRAGGABLE JURY AFFECTATION CHIP (interne)
@@ -86,6 +87,9 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
   scenarioAffectations,
   onClose,
 }) => {
+  const titreId = useId();
+  const dialogRef = useDialog<HTMLDivElement>(true, onClose);
+
   // Build schedule: eleve + heure + demiJournee, sorted by time
   const schedule = useMemo(() => {
     const items: { eleve: Eleve; heure: string; demiJournee: string; matiereEleve: string | null; matiereMatch: boolean }[] = [];
@@ -126,13 +130,20 @@ const ScheduleModal: React.FC<ScheduleModalProps> = ({
 
   return (
     <div className="schedule-modal-overlay" onClick={onClose}>
-      <div className="schedule-modal" onClick={e => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className="schedule-modal"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titreId}
+      >
         <div className="schedule-modal-header">
           <div className="schedule-modal-title">
             <Clock size={18} />
-            <h3>Planning — {jury.nom}</h3>
+            <h3 id={titreId}>Planning — {jury.nom}</h3>
           </div>
-          <button className="schedule-modal-close" onClick={onClose}>
+          <button className="schedule-modal-close" onClick={onClose} aria-label="Fermer le planning">
             <X size={18} />
           </button>
         </div>

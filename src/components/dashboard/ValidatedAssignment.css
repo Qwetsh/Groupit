@@ -4,11 +4,11 @@
 
 /* Card */
 .validated-assignment-card {
-  background: white;
+  background: var(--surface);
   border-radius: 12px;
   padding: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   transition: all 0.2s ease;
   display: flex;
   flex-direction: column;
@@ -16,7 +16,7 @@
 }
 
 .validated-assignment-card:hover {
-  border-color: #cbd5e1;
+  border-color: var(--border-strong);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
 }
@@ -38,13 +38,13 @@
 }
 
 .validated-assignment-card .card-type:has([data-type="oral_dnb"]) {
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--accent-soft-strong);
+  color: var(--ink-blue-800);
 }
 
 .validated-assignment-card .card-type {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
 }
 
 .validated-assignment-card .card-date {
@@ -52,21 +52,21 @@
   align-items: center;
   gap: 4px;
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .validated-assignment-card .card-title {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text);
 }
 
 .validated-assignment-card .card-stats {
   display: flex;
   gap: 16px;
   padding: 12px;
-  background: #f8fafc;
+  background: var(--surface-alt);
   border-radius: 8px;
 }
 
@@ -74,12 +74,12 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .validated-assignment-card .stat-value {
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text);
 }
 
 .validated-assignment-card .stat-label {
@@ -87,11 +87,11 @@
 }
 
 .validated-assignment-card .stat.success {
-  color: #16a34a;
+  color: var(--success-text);
 }
 
 .validated-assignment-card .stat.success .stat-value {
-  color: #16a34a;
+  color: var(--success-text);
 }
 
 .validated-assignment-card .card-classes {
@@ -102,8 +102,8 @@
 
 .validated-assignment-card .class-badge {
   padding: 2px 8px;
-  background: #e2e8f0;
-  color: #475569;
+  background: var(--border);
+  color: var(--text-secondary);
   border-radius: 4px;
   font-size: 11px;
   font-weight: 500;
@@ -111,8 +111,8 @@
 
 .validated-assignment-card .class-more {
   padding: 2px 8px;
-  background: #f1f5f9;
-  color: #94a3b8;
+  background: var(--surface-sunken);
+  color: var(--text-subtle);
   border-radius: 4px;
   font-size: 11px;
 }
@@ -124,7 +124,7 @@
 
 .validated-assignment-card .metadata-item {
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .validated-assignment-card .card-actions {
@@ -132,7 +132,7 @@
   gap: 8px;
   margin-top: auto;
   padding-top: 12px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .btn-action-card {
@@ -141,30 +141,30 @@
   justify-content: center;
   gap: 6px;
   padding: 8px 12px;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 6px;
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .btn-action-card:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-  color: #1e293b;
+  background: var(--surface-alt);
+  border-color: var(--border-strong);
+  color: var(--text);
 }
 
 .btn-action-card.primary {
   flex: 1;
-  background: #3b82f6;
-  border-color: #3b82f6;
-  color: white;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--text-on-accent);
 }
 
 .btn-action-card.primary:hover {
-  background: #2563eb;
+  background: var(--accent-strong);
 }
 
 /* ============================================================ */
@@ -187,7 +187,7 @@
   bottom: 0;
   width: 600px;
   max-width: 95vw;
-  background: white;
+  background: var(--surface);
   z-index: 1001;
   display: flex;
   flex-direction: column;
@@ -205,8 +205,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 20px 24px;
-  border-bottom: 1px solid #e2e8f0;
-  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, var(--surface-alt), var(--surface-sunken));
 }
 
 .drawer-header-info {
@@ -227,29 +227,29 @@
 }
 
 .drawer-header-info .type-badge.oral_dnb {
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--accent-soft-strong);
+  color: var(--ink-blue-800);
 }
 
 .drawer-header-info .type-badge.suivi_stage {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--warning-soft);
+  color: var(--warning-deep);
 }
 
 .drawer-header-info .type-badge.custom {
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
 }
 
 .drawer-header-info h2 {
   margin: 0;
   font-size: 20px;
-  color: #1e293b;
+  color: var(--text);
 }
 
 .drawer-header-info .date {
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .drawer-close {
@@ -257,14 +257,14 @@
   background: none;
   border: none;
   border-radius: 8px;
-  color: #64748b;
+  color: var(--text-muted);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .drawer-close:hover {
-  background: #e2e8f0;
-  color: #1e293b;
+  background: var(--border);
+  color: var(--text);
 }
 
 .drawer-content {
@@ -284,7 +284,7 @@
   margin: 0 0 12px;
   font-size: 14px;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -297,7 +297,7 @@
 
 .drawer-stat {
   padding: 16px;
-  background: #f8fafc;
+  background: var(--surface-alt);
   border-radius: 10px;
   text-align: center;
 }
@@ -305,17 +305,17 @@
 .drawer-stat .value {
   font-size: 24px;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text);
 }
 
 .drawer-stat .label {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-muted);
   margin-top: 4px;
 }
 
 .drawer-stat.success .value {
-  color: #16a34a;
+  color: var(--success-text);
 }
 
 /* Enseignant list in drawer */
@@ -326,10 +326,10 @@
 }
 
 .enseignant-item {
-  background: #f8fafc;
+  background: var(--surface-alt);
   border-radius: 10px;
   padding: 16px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
 }
 
 .enseignant-item-header {
@@ -349,8 +349,8 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  color: white;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: var(--text-on-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -360,13 +360,13 @@
 
 .enseignant-item-name .name {
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text);
 }
 
 .enseignant-item-role {
   padding: 4px 10px;
-  background: #e2e8f0;
-  color: #475569;
+  background: var(--border);
+  color: var(--text-secondary);
   border-radius: 4px;
   font-size: 12px;
 }
@@ -382,24 +382,24 @@
   align-items: center;
   gap: 6px;
   padding: 6px 10px;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 6px;
   font-size: 13px;
 }
 
 .eleve-chip .eleve-name {
-  color: #1e293b;
+  color: var(--text);
   font-weight: 500;
 }
 
 .eleve-chip .eleve-classe {
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 11px;
 }
 
 .eleve-chip .eleve-meta {
-  color: #94a3b8;
+  color: var(--text-subtle);
   font-size: 11px;
 }
 
@@ -408,8 +408,8 @@
   display: flex;
   gap: 12px;
   padding: 16px 24px;
-  border-top: 1px solid #e2e8f0;
-  background: #f8fafc;
+  border-top: 1px solid var(--border);
+  background: var(--surface-alt);
 }
 
 .drawer-footer .btn-export {
@@ -417,26 +417,26 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .drawer-footer .btn-export:hover {
-  background: #f8fafc;
-  border-color: #3b82f6;
-  color: #3b82f6;
+  background: var(--surface-alt);
+  border-color: var(--accent);
+  color: var(--accent-text);
 }
 
 /* Empty state */
 .validated-empty-state {
   text-align: center;
   padding: 40px 20px;
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .validated-empty-state svg {
@@ -446,7 +446,7 @@
 
 .validated-empty-state h3 {
   margin: 0 0 8px;
-  color: #1e293b;
+  color: var(--text);
   font-size: 18px;
 }
 

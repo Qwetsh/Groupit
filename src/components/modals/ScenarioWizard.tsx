@@ -13,6 +13,7 @@ import { useEnseignantStore } from '../../stores/enseignantStore';
 import type { ScenarioType, CritereInstance, Niveau } from '../../domain/models';
 import { createDefaultCriteres, getEffectiveCriteres } from '../../domain/models';
 import { CriteresEditor } from './CriteresEditor';
+import { useDialog } from '../../hooks/useDialog';
 import './ScenarioWizard.css';
 
 interface ScenarioWizardProps {
@@ -337,9 +338,20 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
     }
   };
 
+  // Échap se comporte comme le clic sur le fond (confirmation après l'étape 1),
+  // et ne ferme rien pendant l'enregistrement
+  const dialogRef = useDialog<HTMLDivElement>(true, handleOverlayClick, { fermerAvecEchap: !isSubmitting });
+
   return (
     <div className="wizard-overlay" onClick={handleOverlayClick}>
-      <div className="wizard-container wizard-5-steps" onClick={e => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className="wizard-container wizard-5-steps"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="scenario-wizard-step-title"
+      >
         {/* Header */}
         <div className="wizard-header">
           <div className="wizard-progress">
@@ -361,7 +373,7 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
               );
             })}
           </div>
-          <button className="wizard-close" onClick={onClose}>
+          <button className="wizard-close" onClick={onClose} aria-label="Fermer l'assistant">
             <X size={20} />
           </button>
         </div>
@@ -376,7 +388,7 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
           {step === 1 && (
             <div className="wizard-step">
               <div className="step-header">
-                <h2>Quel type de répartition ?</h2>
+                <h2 id="scenario-wizard-step-title">Quel type de répartition ?</h2>
                 <p>Choisissez le type de configuration selon votre besoin</p>
               </div>
 
@@ -409,7 +421,7 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
           {step === 2 && (
             <div className="wizard-step">
               <div className="step-header">
-                <h2>Donnez un nom à cette configuration</h2>
+                <h2 id="scenario-wizard-step-title">Donnez un nom à cette configuration</h2>
                 <p>Ce nom vous aidera à l'identifier plus tard</p>
               </div>
 
@@ -575,7 +587,7 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
           {step === 3 && (
             <div className="wizard-step">
               <div className="step-header">
-                <h2>Quels enseignants participent ?</h2>
+                <h2 id="scenario-wizard-step-title">Quels enseignants participent ?</h2>
                 <p>Décochez ceux qui ne participent pas à cette configuration</p>
               </div>
 
@@ -694,7 +706,7 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
           {step === 4 && selectedType && (
             <div className="wizard-step">
               <div className="step-header">
-                <h2>Critères de répartition</h2>
+                <h2 id="scenario-wizard-step-title">Critères de répartition</h2>
                 <p>Définissez l'importance de chaque critère</p>
               </div>
 
@@ -712,7 +724,7 @@ export function ScenarioWizard({ onClose, onComplete }: ScenarioWizardProps) {
           {step === 5 && (
             <div className="wizard-step">
               <div className="step-header">
-                <h2>Tout est prêt !</h2>
+                <h2 id="scenario-wizard-step-title">Tout est prêt !</h2>
                 <p>Vérifiez les informations avant de créer</p>
               </div>
 

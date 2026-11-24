@@ -14,6 +14,7 @@ import {
   type ParsedCSVData,
 } from '../../infrastructure/import';
 import { ProgressIndicator, MultiStepProgress, type ProgressStep } from '../ui/ProgressIndicator';
+import { useDialog } from '../../hooks/useDialog';
 import './ImportWizard.css';
 
 interface ImportWizardProps {
@@ -31,6 +32,9 @@ const ELEVE_FIELDS: { key: keyof Eleve; label: string }[] = [
   { key: 'sexe', label: 'Sexe' },
   { key: 'email', label: 'Email' },
   { key: 'regime', label: 'Régime' },
+  { key: 'lv1', label: 'LV1' },
+  { key: 'lv2', label: 'LV2' },
+  { key: 'options', label: 'Option' },
 ];
 
 export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
@@ -78,7 +82,7 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
       if (lastMappings && lastKey === headersKey) {
         setMappings(lastMappings);
       } else {
-        const autoMappings = generateAutoMapping(data.headers);
+        const autoMappings = generateAutoMapping(data.headers, data.rows);
         setMappings(autoMappings);
       }
 
@@ -348,6 +352,8 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
                     <th>Classe</th>
                     <th>Date naiss.</th>
                     <th>Sexe</th>
+                    <th>LV1</th>
+                    <th>LV2</th>
                     <th>Options</th>
                   </tr>
                 </thead>
@@ -359,6 +365,8 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
                       <td><span className="classe-badge">{eleve.classe}</span></td>
                       <td>{eleve.dateNaissance || '-'}</td>
                       <td>{eleve.sexe || '-'}</td>
+                      <td>{eleve.lv1 || '-'}</td>
+                      <td>{eleve.lv2 || '-'}</td>
                       <td>{eleve.options?.join(', ') || '-'}</td>
                     </tr>
                   ))}
@@ -425,6 +433,9 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
     }
   };
 
+  // Pas de fermeture par Échap pendant l'import
+  const dialogRef = useDialog<HTMLDivElement>(true, onClose, { fermerAvecEchap: step !== 'importing' });
+
   const handleBack = () => {
     switch (step) {
       case 'mapping':
@@ -447,18 +458,24 @@ export function ImportWizard({ onImport, onClose }: ImportWizardProps) {
 
   return (
     <div className="import-wizard-overlay">
-      <div className="import-wizard">
+      <div
+        ref={dialogRef}
+        className="import-wizard"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="import-wizard-title"
+      >
         <div className="wizard-header">
-          <h2>
+          <h2 id="import-wizard-title">
             Importer des élèves
             {(pendingFiles.length > 0 || importedCount > 0) && (
-              <span style={{ fontSize: '0.8rem', fontWeight: 400, marginLeft: '0.75rem', color: '#94a3b8' }}>
+              <span style={{ fontSize: '0.8rem', fontWeight: 400, marginLeft: '0.75rem', color: 'var(--text-muted)' }}>
                 {importedCount > 0 && `${importedCount} fichier${importedCount > 1 ? 's' : ''} importé${importedCount > 1 ? 's' : ''}`}
                 {pendingFiles.length > 0 && ` · ${pendingFiles.length} en attente`}
               </span>
             )}
           </h2>
-          <button className="close-btn" onClick={onClose}>
+          <button className="close-btn" onClick={onClose} aria-label="Fermer">
             <X size={20} />
           </button>
         </div>

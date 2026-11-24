@@ -9,15 +9,15 @@
 }
 
 .criteres-editor .section-description {
-  color: #9ca3af;
+  color: var(--ink-gray-500);
   font-size: 0.875rem;
   margin: 0;
 }
 
 /* Critère Card */
 .critere-card {
-  background: #1a1f2e;
-  border: 1px solid #2d3342;
+  background: var(--surface-alt);
+  border: 1px solid var(--border-subtle);
   border-radius: 10px;
   padding: 1rem;
   display: flex;
@@ -27,7 +27,7 @@
 }
 
 .critere-card.forced {
-  border-color: #3b82f6;
+  border-color: var(--accent);
   border-style: dashed;
 }
 
@@ -53,7 +53,7 @@
   gap: 0.5rem;
   font-weight: 600;
   font-size: 0.9375rem;
-  color: #f3f4f6;
+  color: var(--ink-gray-900);
 }
 
 .critere-card-title .badge {
@@ -67,13 +67,13 @@
 
 .critere-card-title .badge.system {
   background: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
+  color: var(--ink-2d72c3);
   border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
 .critere-card-description {
   font-size: 0.8125rem;
-  color: #9ca3af;
+  color: var(--ink-gray-500);
   margin-top: 0.25rem;
   line-height: 1.4;
 }
@@ -82,7 +82,7 @@
 .priority-buttons {
   display: flex;
   gap: 4px;
-  background: #111827;
+  background: var(--surface-sunken);
   padding: 4px;
   border-radius: 8px;
   flex-shrink: 0;
@@ -97,12 +97,12 @@
   cursor: pointer;
   transition: all 0.15s ease;
   background: transparent;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .priority-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.05);
-  color: #9ca3af;
+  background: var(--bg-slate-900-a5);
+  color: var(--ink-gray-500);
 }
 
 .priority-btn:disabled {
@@ -111,19 +111,19 @@
 }
 
 .priority-btn.active {
-  color: white;
+  color: var(--text-on-accent);
 }
 
 .priority-btn.active[data-priority="off"] {
-  background: #374151;
+  background: var(--border);
 }
 
 .priority-btn.active[data-priority="low"] {
-  background: #6b7280;
+  background: var(--bg-gray-400);
 }
 
 .priority-btn.active[data-priority="normal"] {
-  background: #3b82f6;
+  background: var(--accent);
 }
 
 .priority-btn.active[data-priority="high"] {
@@ -136,7 +136,7 @@
   flex-direction: column;
   gap: 0.5rem;
   padding-top: 0.5rem;
-  border-top: 1px solid #2d3342;
+  border-top: 1px solid var(--border-subtle);
 }
 
 .hard-constraint-toggle,
@@ -145,31 +145,31 @@
   align-items: center;
   gap: 0.5rem;
   font-size: 0.8125rem;
-  color: #9ca3af;
+  color: var(--ink-gray-500);
   cursor: pointer;
 }
 
 .hard-constraint-toggle input {
-  accent-color: #ef4444;
+  accent-color: var(--danger);
 }
 
 .weight-by-hours-toggle input {
-  accent-color: #3b82f6;
+  accent-color: var(--accent);
 }
 
 .hard-constraint-toggle:hover,
 .weight-by-hours-toggle:hover {
-  color: #d1d5db;
+  color: var(--text-soft);
 }
 
 .weight-by-hours-toggle .info-icon {
-  color: #6b7280;
+  color: var(--text-muted);
   cursor: help;
   flex-shrink: 0;
 }
 
 .weight-by-hours-toggle:hover .info-icon {
-  color: #9ca3af;
+  color: var(--ink-gray-500);
 }
 
 /* Section divider */
@@ -178,7 +178,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #6b7280;
+  color: var(--text-muted);
   margin: 0.5rem 0;
   display: flex;
   align-items: center;
@@ -189,14 +189,14 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: #2d3342;
+  background: var(--border-subtle);
 }
 
 /* Empty state */
 .criteres-empty {
   text-align: center;
   padding: 2rem;
-  color: #6b7280;
+  color: var(--text-muted);
   font-size: 0.875rem;
 }
 

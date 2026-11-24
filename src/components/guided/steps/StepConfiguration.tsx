@@ -15,11 +15,15 @@ import { useEleveStore } from '../../../stores/eleveStore';
 import { useEnseignantStore } from '../../../stores/enseignantStore';
 import { useJuryStore } from '../../../stores/juryStore';
 import type { Scenario, Enseignant, Jury } from '../../../domain/models';
+import { libelleMatiere } from '../../../domain/models';
+import { passagesMaxParJury } from '../../../algorithms/timeSlots';
 import '../GuidedMode.css';
 
 interface StepConfigurationProps {
   onNext: () => void;
   onBack: () => void;
+  /** Dernière étape du parcours : le bouton principal lance la répartition. */
+  lanceLeCalcul?: boolean;
 }
 
 // ============================================================
@@ -74,7 +78,7 @@ function DroppableSuppleantZone({ juryId }: { juryId: string }) {
       className={clsx('jury-suppleant-drop', isOver && 'drop-target')}
     >
       <ShieldCheck size={12} />
-      <span>Deposer ici pour suppleant</span>
+      <span>Déposer ici pour suppléant</span>
     </div>
   );
 }
@@ -124,7 +128,7 @@ function DroppableJury({ jury, enseignants, onCapacityChange, demiJourneesOral }
         <div className="jury-suppleants">
           <span className="suppleant-label">
             <ShieldCheck size={12} />
-            Suppleant{jurySuppleants.length > 1 ? 's' : ''}
+            Suppléant{jurySuppleants.length > 1 ? 's' : ''}
           </span>
           {jurySuppleants.map(ens => (
             <DraggableEnseignant
@@ -139,7 +143,7 @@ function DroppableJury({ jury, enseignants, onCapacityChange, demiJourneesOral }
       <DroppableSuppleantZone juryId={jury.id!} />
       <div className="jury-footer">
         <span className="jury-matieres">
-          {matieres.length > 0 ? matieres.join(', ') : 'Aucune matiere'}
+          {matieres.length > 0 ? matieres.join(', ') : 'Aucune matière'}
         </span>
       </div>
     </div>
@@ -184,7 +188,7 @@ function DroppableUnassigned({ enseignants, selectedIds, demiJourneesOral }: Dro
 // MAIN COMPONENT
 // ============================================================
 
-export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
+export function StepConfiguration({ onNext, onBack, lanceLeCalcul = false }: StepConfigurationProps) {
   const { guidedMode, setGuidedCreatedScenarioId } = useUIStore();
   const { scenarios, addScenario, setActiveScenario } = useScenarioStore();
   const eleves = useEleveStore(state => state.eleves);
@@ -193,7 +197,10 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
 
   // State
   const [scenarioName, setScenarioName] = useState('');
-  const [selectedEnseignantIds, setSelectedEnseignantIds] = useState<Set<string>>(new Set());
+  // Tous les enseignants sont proposés d'office : on en retire plutôt que d'en ajouter
+  const [selectedEnseignantIds, setSelectedEnseignantIds] = useState<Set<string>>(
+    () => new Set(enseignants.map(e => e.id!))
+  );
   const [elevesParJury, setElevesParJury] = useState(15);
   const [enseignantsParJury, setEnseignantsParJury] = useState(2);
   const [suppleants, setSuppleants] = useState(1);
@@ -205,6 +212,8 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
   const [heureDebutMatin, setHeureDebutMatin] = useState('08:15');
   const [heureDebutAprem, setHeureDebutAprem] = useState('13:35');
   const [dureeTiersTemps, setDureeTiersTemps] = useState(7);
+  // Plusieurs demi-journées : remplir la première d’abord, ou répartir à parts égales
+  const [distributionCreneaux, setDistributionCreneaux] = useState<'fill_first' | 'distribute_evenly'>('fill_first');
   const [filterNiveaux, setFilterNiveaux] = useState<Set<string>>(new Set());
   const [filterMatieres, setFilterMatieres] = useState<Set<string>>(new Set());
   const [filterDistanceMax, setFilterDistanceMax] = useState<number>(0); // 0 = no filter
@@ -254,6 +263,21 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
     : `${tempsMinutes} min`;
   const hasEnoughEnseignants = nbSelectedEnseignants >= nbEnseignantsNeeded;
 
+  // Prévenir avant le calcul qu'un jury ne tiendra pas dans les horaires
+  const passagesMax = passagesMaxParJury(demiJourneesOral, heureDebutMatin, heureDebutAprem);
+  const depasseLesHoraires = isOralDnb && demiJourneesOral.length > 0 && elevesParJury > passagesMax;
+
+  // Ce qui empêche de continuer, dit en clair à côté du bouton grisé
+  const raisonBlocage = !scenarioName.trim()
+    ? 'Donnez un nom à la configuration.'
+    : isOralDnb && demiJourneesOral.length === 0
+    ? "Choisissez au moins une demi-journée pour l'oral."
+    : isOralDnb && !hasEnoughEnseignants
+    ? `Sélectionnez encore ${nbEnseignantsNeeded - nbSelectedEnseignants} enseignant(s) pour former ${nbJurysNeeded} jurys.`
+    : !isOralDnb && nbSelectedEnseignants === 0
+    ? 'Sélectionnez au moins un enseignant tuteur.'
+    : null;
+
   // Distinct niveaux and matières for filters
   const distinctNiveaux = useMemo(() => {
     const niveaux = new Set<string>();
@@ -266,12 +290,14 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
     return Array.from(niveaux).sort();
   }, [enseignants]);
 
+  // Une seule entrée par matière, même si elle est écrite de plusieurs façons
   const distinctMatieres = useMemo(() => {
     const mats = new Set<string>();
     enseignants.forEach(e => {
-      if (e.matierePrincipale) mats.add(e.matierePrincipale);
+      const libelle = libelleMatiere(e.matierePrincipale);
+      if (libelle) mats.add(libelle);
     });
-    return Array.from(mats).sort();
+    return Array.from(mats).sort((a, b) => a.localeCompare(b, 'fr'));
   }, [enseignants]);
 
   // Distance au collège pour chaque enseignant géocodé
@@ -331,7 +357,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
       );
     }
     if (filterMatieres.size > 0) {
-      list = list.filter(e => e.matierePrincipale && filterMatieres.has(e.matierePrincipale));
+      list = list.filter(e => filterMatieres.has(libelleMatiere(e.matierePrincipale)));
     }
     if (filterDistanceMax > 0) {
       list = list.filter(e => {
@@ -370,7 +396,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
     if (isOralDnb) {
       setScenarioName('Oral du DNB');
     } else {
-      setScenarioName('Suivi de Stage 3eme');
+      setScenarioName('Suivi de Stage 3ème');
     }
   }, [isOralDnb]);
 
@@ -434,6 +460,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
               heureDebutMatin,
               heureDebutAprem,
               dureeSupplementaireTiersTemps: dureeTiersTemps,
+              distributionCreneaux,
             },
           },
         };
@@ -502,7 +529,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
     addScenario, setGuidedCreatedScenarioId, setActiveScenario, enseignants,
     generateJurysAuto, nbJurysNeeded, enseignantsParJury, suppleants, demiJourneesOral, eleves3e,
     distanceMaxKm, dureeMaxMin, prioriserPP, capaciteTuteurDefaut, onNext,
-    heureDebutMatin, heureDebutAprem, dureeTiersTemps,
+    heureDebutMatin, heureDebutAprem, dureeTiersTemps, distributionCreneaux,
   ]);
 
   // Regenerate jurys
@@ -607,9 +634,9 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
         <div className="guided-step step-config jury-editor">
           {/* Scrollable content */}
           <div className="jury-editor-scroll">
-            <h1 className="step-title">Vos jurys sont prets !</h1>
+            <h1 className="step-title">Vos jurys sont prêts !</h1>
             <p className="step-subtitle">
-              {scenarioJurys.length} jurys crees pour {nbEleves} eleves. Vous pouvez reorganiser les membres par glisser-deposer.
+              {scenarioJurys.length} jurys créés pour {nbEleves} élèves. Vous pouvez réorganiser les membres par glisser-déposer.
             </p>
 
             {/* Stats */}
@@ -624,12 +651,12 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
               </div>
               <div className="stat-item">
                 <span className="stat-value">{nbEleves}</span>
-                <span className="stat-label">eleves</span>
+                <span className="stat-label">élèves</span>
               </div>
               {totalCapacity < nbEleves && (
                 <div className="stat-item warning">
                   <AlertTriangle size={20} />
-                  <span>Capacite insuffisante</span>
+                  <span>Capacité insuffisante</span>
                 </div>
               )}
             </div>
@@ -641,7 +668,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
               disabled={creating}
             >
               <Shuffle size={18} />
-              Regenerer les jurys
+              Régénérer les jurys
             </button>
 
             {/* Jury grid + unassigned sidebar */}
@@ -677,7 +704,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
               onClick={handleContinue}
               disabled={scenarioJurys.length === 0}
             >
-              Continuer vers la repartition
+              Continuer : choisir les salles
               <ChevronRight size={20} />
             </button>
           </div>
@@ -705,8 +732,8 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
       <h1 className="step-title">Configuration</h1>
       <p className="step-subtitle">
         {isOralDnb
-          ? "Configurez l'oral du DNB et selectionnez les enseignants pour les jurys."
-          : 'Configurez le suivi de stage pour vos eleves de 3eme.'}
+          ? "Configurez l'oral du DNB et sélectionnez les enseignants pour les jurys."
+          : 'Configurez le suivi de stage pour vos élèves de 3ème.'}
       </p>
 
       <div className="config-form config-two-columns">
@@ -719,7 +746,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
               type="text"
               value={scenarioName}
               onChange={(e) => setScenarioName(e.target.value)}
-              placeholder="Ex: Oral du DNB"
+              placeholder={isOralDnb ? "Ex : Oral du DNB 2027" : "Ex : Stages de décembre"}
               className="form-input"
             />
           </div>
@@ -727,7 +754,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
           {/* Eleves info (auto for Oral DNB) */}
           {isOralDnb && (
             <div className="form-group">
-              <label>Eleves concernes <span className="label-count">{nbEleves} eleves de 3eme</span></label>
+              <label>Élèves concernés <span className="label-count">{nbEleves} élèves de 3ème</span></label>
             </div>
           )}
 
@@ -736,7 +763,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
             <div className="form-group">
               <label>
                 <Calendar size={18} />
-                Demi-journee(s) de l'oral
+                Demi-journée(s) de l'oral
               </label>
               <div className="indispo-grid oral-grid">
                 <div className="indispo-header">
@@ -770,7 +797,32 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
                   </div>
                 ))}
               </div>
-              <p className="form-hint">Cliquez pour selectionner — les enseignants indisponibles seront signales</p>
+              <p className="form-hint">Cliquez pour sélectionner — les enseignants indisponibles seront signalés</p>
+
+              {/* Plusieurs demi-journées : le choix se fait ici, pas dans une fenêtre au lancement */}
+              {demiJourneesOral.length > 1 && (
+                <fieldset className="choix-distribution">
+                  <legend>Répartition sur les {demiJourneesOral.length} demi-journées</legend>
+                  <label>
+                    <input
+                      type="radio"
+                      name="distribution-creneaux"
+                      checked={distributionCreneaux === 'fill_first'}
+                      onChange={() => setDistributionCreneaux('fill_first')}
+                    />
+                    Remplir la première demi-journée d’abord
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      name="distribution-creneaux"
+                      checked={distributionCreneaux === 'distribute_evenly'}
+                      onChange={() => setDistributionCreneaux('distribute_evenly')}
+                    />
+                    Répartir les élèves à parts égales
+                  </label>
+                </fieldset>
+              )}
 
               {/* Heures de début */}
               <div className="heure-debut-row">
@@ -815,8 +867,8 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
           {isOralDnb && (
             <div className="form-row-3col">
               <div className="form-group">
-                <label>Eleves par jury</label>
-                <p className="form-hint">Capacite de chaque jury.</p>
+                <label>Élèves par jury</label>
+                <p className="form-hint">Capacité de chaque jury.</p>
                 <div className="number-input-group">
                   <button
                     className="number-btn"
@@ -869,8 +921,8 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
               </div>
 
               <div className="form-group">
-                <label>Suppleants / jury</label>
-                <p className="form-hint">Enseignants de reserve.</p>
+                <label>Suppléants / jury</label>
+                <p className="form-hint">Enseignants de réserve.</p>
                 <div className="number-input-group">
                   <button
                     className="number-btn"
@@ -901,25 +953,25 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
           {isOralDnb && (
             <div className="calculation-preview">
               <div className="calc-item">
-                <span className="calc-label">Jurys necessaires</span>
+                <span className="calc-label">Jurys nécessaires</span>
                 <span className="calc-value">{nbJurysNeeded}</span>
               </div>
               <div className="calc-item">
-                <span className="calc-label">Enseignants necessaires</span>
+                <span className="calc-label">Enseignants nécessaires</span>
                 <span className="calc-value">{nbEnseignantsNeeded}</span>
                 {nbSuppleantsTotal > 0 && (
                   <span className="calc-detail">({nbEnseignantsTitulaires} + {nbSuppleantsTotal} suppl.)</span>
                 )}
               </div>
               <div className="calc-item">
-                <span className="calc-label">Duree estimee</span>
+                <span className="calc-label">Durée estimée</span>
                 <span className="calc-value time">
                   <Clock size={18} />
                   {tempsFormatted}
                 </span>
               </div>
               <div className="calc-item">
-                <span className="calc-label">Enseignants selectionnes</span>
+                <span className="calc-label">Enseignants sélectionnés</span>
                 <span className={clsx('calc-value', !hasEnoughEnseignants && 'warning')}>
                   {nbSelectedEnseignants}
                 </span>
@@ -932,9 +984,30 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
             <div className="warning-message">
               <AlertTriangle size={18} />
               <span>
-                Il manque {nbEnseignantsNeeded - nbSelectedEnseignants} enseignant(s) pour creer {nbJurysNeeded} jurys.
-                Selectionnez plus d'enseignants ou reduisez le nombre d'enseignants par jury.
+                Il manque {nbEnseignantsNeeded - nbSelectedEnseignants} enseignant(s) pour créer {nbJurysNeeded} jurys.
+                Sélectionnez plus d'enseignants ou réduisez le nombre d'enseignants par jury.
               </span>
+            </div>
+          )}
+
+          {/* Horaires dépassés : on le dit avant le calcul, avec la correction en un clic */}
+          {depasseLesHoraires && (
+            <div className="warning-message warning-horaires" role="status">
+              <AlertTriangle size={18} />
+              <span>
+                {elevesParJury} élèves par jury ne tiennent pas dans les horaires prévus :
+                {' '}{passagesMax} passages maximum par jury sur {demiJourneesOral.length > 1 ? 'ces demi-journées' : 'cette demi-journée'}.
+                {' '}Ajoutez une demi-journée ou réduisez le nombre d'élèves par jury.
+              </span>
+              {passagesMax > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-small"
+                  onClick={() => setElevesParJury(passagesMax)}
+                >
+                  Passer à {passagesMax} élèves par jury
+                </button>
+              )}
             </div>
           )}
 
@@ -942,7 +1015,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
           {!isOralDnb && (
             <>
               <div className="form-group">
-                <label>Eleves concernes <span className="label-count">{nbEleves} eleves de 3eme</span></label>
+                <label>Élèves concernés <span className="label-count">{nbEleves} élèves de 3ème</span></label>
               </div>
 
               <div className="form-row-3col">
@@ -964,7 +1037,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
                 </div>
 
                 <div className="form-group">
-                  <label>Duree max (min)</label>
+                  <label>Durée max (min)</label>
                   <p className="form-hint">Trajet domicile-stage max.</p>
                   <div className="number-input-group">
                     <button className="number-btn" onClick={() => setDureeMaxMin(Math.max(10, dureeMaxMin - 5))}>-</button>
@@ -982,7 +1055,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
 
                 <div className="form-group">
                   <label>Stages par enseignant</label>
-                  <p className="form-hint">Capacite par defaut.</p>
+                  <p className="form-hint">Capacité par défaut.</p>
                   <div className="number-input-group">
                     <button className="number-btn" onClick={() => setCapaciteTuteurDefaut(Math.max(1, capaciteTuteurDefaut - 1))}>-</button>
                     <input
@@ -1007,7 +1080,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
                   />
                   Prioriser les professeurs principaux
                 </label>
-                <p className="form-hint">Les PP seront affectes en priorite aux stages de leurs eleves.</p>
+                <p className="form-hint">Les PP seront affectés en priorité aux stages de leurs élèves.</p>
               </div>
             </>
           )}
@@ -1042,7 +1115,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
                 </div>
 
                 <div className="ens-filter-group">
-                  <span className="ens-filter-label">Matieres</span>
+                  <span className="ens-filter-label">Matières</span>
                   <div className="ens-filter-chips">
                     {distinctMatieres.map(m => (
                       <button
@@ -1060,7 +1133,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
                   {hasActiveFilters && (
                     <>
                       <button className="btn btn-text" onClick={selectFilteredEnseignants}>
-                        + {filteredEnseignants.length} affiches
+                        + {filteredEnseignants.length} affichés
                       </button>
                       <button className="btn btn-text" onClick={clearFilters}>
                         Effacer filtres
@@ -1078,7 +1151,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
 
               <div className="calculation-preview">
                 <div className="calc-item">
-                  <span className="calc-label">Enseignants selectionnes</span>
+                  <span className="calc-label">Enseignants sélectionnés</span>
                   <span className="calc-value">{nbSelectedEnseignants}</span>
                 </div>
               </div>
@@ -1104,7 +1177,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
               </div>
               {enseignants.length === 0 && (
                 <p className="no-data-warning">
-                  Aucun enseignant dans la base. Retournez a l'etape precedente pour en importer.
+                  Aucun enseignant dans la base. Retournez à l'étape précédente pour en importer.
                 </p>
               )}
             </div>
@@ -1141,7 +1214,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
                 </div>
 
                 <div className="ens-filter-group">
-                  <span className="ens-filter-label">Matieres</span>
+                  <span className="ens-filter-label">Matières</span>
                   <div className="ens-filter-chips">
                     {distinctMatieres.map(m => (
                       <button
@@ -1159,7 +1232,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
                   <div className="ens-filter-group">
                     <span className="ens-filter-label">
                       <MapPin size={14} />
-                      Distance max au college
+                      Distance max au collège
                     </span>
                     <div className="ens-filter-slider">
                       <input
@@ -1182,7 +1255,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
                   {hasActiveFilters && (
                     <>
                       <button className="btn btn-text" onClick={selectFilteredEnseignants}>
-                        + {filteredEnseignants.length} affiches
+                        + {filteredEnseignants.length} affichés
                       </button>
                       <button className="btn btn-text" onClick={clearFilters}>
                         Effacer filtres
@@ -1227,7 +1300,7 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
               </div>
               {enseignants.length === 0 && (
                 <p className="no-data-warning">
-                  Aucun enseignant dans la base. Retournez a l'etape precedente pour en importer.
+                  Aucun enseignant dans la base. Retournez à l'étape précédente pour en importer.
                 </p>
               )}
             </div>
@@ -1240,14 +1313,26 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
         <button className="btn btn-secondary" onClick={onBack}>
           Retour
         </button>
-        <button
-          className="btn btn-primary btn-large"
-          onClick={handleCreateAndGenerate}
-          disabled={!scenarioName.trim() || (isOralDnb && !hasEnoughEnseignants) || (!isOralDnb && nbSelectedEnseignants === 0) || creating}
-        >
-          {creating ? 'Creation...' : isOralDnb ? 'Creer les jurys' : 'Creer la configuration'}
-          <ChevronRight size={20} />
-        </button>
+        <div className="step-actions-primary">
+          {raisonBlocage && (
+            <span className="step-blocage" id="config-blocage">{raisonBlocage}</span>
+          )}
+          <button
+            className="btn btn-primary btn-large"
+            onClick={handleCreateAndGenerate}
+            disabled={raisonBlocage !== null || creating}
+            aria-describedby={raisonBlocage ? 'config-blocage' : undefined}
+          >
+            {creating
+              ? 'Création…'
+              : isOralDnb
+              ? 'Créer les jurys'
+              : lanceLeCalcul
+              ? 'Lancer la répartition'
+              : 'Continuer'}
+            <ChevronRight size={20} />
+          </button>
+        </div>
       </div>
     </div>
   );

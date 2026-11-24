@@ -1,0 +1,172 @@
+/* ============================================================
+ * TABLEAU DES RÉSULTATS : lisibilité
+ * ============================================================
+ * - le bilan du calcul et les points à vérifier restent en haut ;
+ * - la colonne « Élèves à affecter » se replie quand elle est vide ;
+ * - chaque jury ou tuteur affiche tous ses élèves (plus de barre de
+ *   défilement par carte) : c'est la page qui défile ;
+ * - sur téléphone, les cartes passent sur une colonne, sans débordement.
+ */
+
+/* ---------- Bilan ---------- */
+.board-bilan {
+  margin: 12px 16px 0;
+  padding: 10px 14px;
+  border: 1px solid var(--success-soft);
+  border-radius: 10px;
+  background: var(--success-softer);
+  color: var(--text);
+}
+
+.board-bilan.avec-alertes {
+  border-color: var(--warning);
+  background: var(--warning-soft);
+}
+
+.board-bilan-tete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+}
+
+.board-bilan-tete svg {
+  flex-shrink: 0;
+  color: var(--success-text, var(--success-strong));
+}
+
+.board-bilan.avec-alertes .board-bilan-tete svg {
+  color: var(--warning-text, var(--warning-deep));
+}
+
+.board-bilan-compte {
+  font-weight: 600;
+  color: var(--warning-text, var(--warning-deep));
+}
+
+.board-bilan-fermer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-left: auto;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.board-bilan-fermer:hover {
+  background: var(--bg-black-a5, rgba(0, 0, 0, 0.05));
+}
+
+.board-bilan-liste {
+  margin: 8px 0 0;
+  padding-left: 22px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* ---------- Colonne vide repliée ---------- */
+.board-columns.sans-attente .eleves-column {
+  width: 200px;
+  min-width: 200px;
+}
+
+.board-columns.sans-attente .eleves-column .empty-state {
+  padding: 12px;
+}
+
+.empty-state-aide {
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* ---------- Tous les élèves visibles dans chaque carte ---------- */
+.results-grid .tile-eleves,
+.results-grid .jury-eleves {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.results-grid .mini-eleve,
+.results-grid .mini-eleve .mini-name {
+  font-size: 12px;
+}
+
+.results-grid .mini-eleve {
+  padding: 2px 6px;
+}
+
+/* ---------- Tablette : colonnes empilées ---------- */
+@media (max-width: 1024px) {
+  .board-columns.sans-attente .eleves-column {
+    width: 100%;
+    min-width: 100%;
+    max-height: none;
+  }
+
+  .board-columns.sans-attente .eleves-column .column-content,
+  .board-columns.sans-attente .eleves-column .empty-state {
+    min-height: 0;
+  }
+
+  .results-column .column-content {
+    max-height: none;
+  }
+}
+
+/* ---------- Téléphone ---------- */
+@media (max-width: 768px) {
+  .results-column {
+    min-width: 0 !important;
+  }
+
+  .results-grid {
+    grid-template-columns: 1fr !important;
+    padding: 8px;
+  }
+
+  .results-grid .tile-eleves,
+  .results-grid .jury-eleves {
+    flex-wrap: wrap !important;
+  }
+
+  .board-bilan {
+    margin: 8px 8px 0;
+  }
+}
+
+/* ---------- Zone d'export nommée ---------- */
+.export-buttons-compact .export-titre {
+  align-self: center;
+  padding: 0 4px 0 8px;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* ---------- Badges de charge lisibles (texte blanc ≥ 4,5:1) ----------
+ * Vert, orange, rouge foncés : la surcharge doit se lire au premier coup d'œil. */
+.charge-badge.charge-ok {
+  background: #15803d;
+  color: #fff;
+}
+
+.charge-badge.charge-warning {
+  background: #b45309;
+  color: #fff;
+}
+
+.charge-badge.charge-overload {
+  background: #b91c1c;
+  color: #fff;
+}
+
+.charge-badge.charge-neutral {
+  background: #475569;
+  color: #fff;
+}

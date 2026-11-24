@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Settings, SlidersHorizontal, Database, Trash2, Compass, Users, Download, Upload } from 'lucide-react';
+import { Settings, SlidersHorizontal, Database, Trash2, Compass, Users, Download, Upload, Palette, Sun, Moon, Monitor } from 'lucide-react';
 import { useUIStore } from '../stores/uiStore';
 import { useEnseignantStore } from '../stores/enseignantStore';
 import { ConfirmModal } from '../components/ui/ConfirmModal';
@@ -7,19 +7,28 @@ import { useConfirm } from '../hooks/useConfirm';
 import {
   parseEnseignantsFile,
   serializeEnseignants,
-  splitNewEnseignants,
+  planifierImportEnseignants,
 } from '../services/enseignantFileService';
 import { extractErrorMessage } from '../utils/errorUtils';
+import { useTheme, type ThemePreference } from '../hooks/useTheme';
 import './InfoPage.css';
 
 type FileFeedback = { kind: 'success' | 'error'; text: string };
+
+const THEME_OPTIONS: { value: ThemePreference; label: string; icon: React.ReactNode }[] = [
+  { value: 'light', label: 'Clair', icon: <Sun size={16} /> },
+  { value: 'dark', label: 'Sombre', icon: <Moon size={16} /> },
+  { value: 'system', label: "Comme l'ordinateur", icon: <Monitor size={16} /> },
+];
 
 const plural = (n: number, singular: string, pluralForm: string) => `${n} ${n > 1 ? pluralForm : singular}`;
 
 export const ParametresPage: React.FC = () => {
   const resetGuidedMode = useUIStore(state => state.resetGuidedMode);
+  const { preference: themePreference, setPreference: setThemePreference } = useTheme();
   const enseignants = useEnseignantStore(state => state.enseignants);
   const addEnseignants = useEnseignantStore(state => state.addEnseignants);
+  const updateEnseignant = useEnseignantStore(state => state.updateEnseignant);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
@@ -51,13 +60,20 @@ export const ParametresPage: React.FC = () => {
     setFeedback(null);
     try {
       const records = parseEnseignantsFile(await file.text());
-      const { toAdd, skipped } = splitNewEnseignants(records, enseignants);
+      const { toAdd, toUpdate, unchanged } = planifierImportEnseignants(records, enseignants);
       if (toAdd.length > 0) {
         await addEnseignants(toAdd);
       }
-      const added = plural(toAdd.length, 'enseignant ajouté', 'enseignants ajoutés');
-      const ignored = skipped > 0 ? ` ${plural(skipped, 'déjà présent, ignoré', 'déjà présents, ignorés')}.` : '';
-      setFeedback({ kind: 'success', text: `${added}.${ignored}` });
+      // Fiches existantes complétées une par une (une nouvelle adresse est géocodée)
+      for (const { id, changes } of toUpdate) {
+        await updateEnseignant(id, changes);
+      }
+      const parts = [
+        plural(toAdd.length, 'enseignant ajouté', 'enseignants ajoutés'),
+        toUpdate.length > 0 ? plural(toUpdate.length, 'fiche complétée', 'fiches complétées') : '',
+        unchanged > 0 ? plural(unchanged, 'déjà à jour', 'déjà à jour') : '',
+      ].filter(Boolean);
+      setFeedback({ kind: 'success', text: `${parts.join(', ')}.` });
     } catch (error) {
       setFeedback({ kind: 'error', text: `Import impossible. ${extractErrorMessage(error)}` });
     } finally {
@@ -102,6 +118,31 @@ export const ParametresPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Apparence : thème clair ou sombre */}
+      <div className="info-card settings-card">
+        <div className="card-title">
+          <Palette size={18} />
+          <span>Apparence</span>
+        </div>
+        <p className="info-note" id="theme-help">
+          Choisissez le thème de l'application. « Comme l'ordinateur » suit le réglage clair ou sombre
+          de votre système.
+        </p>
+        <div className="button-group" role="group" aria-label="Thème" aria-describedby="theme-help">
+          {THEME_OPTIONS.map(option => (
+            <button
+              key={option.value}
+              className={themePreference === option.value ? 'btn-primary' : 'btn-secondary'}
+              aria-pressed={themePreference === option.value}
+              onClick={() => setThemePreference(option.value)}
+            >
+              {option.icon}
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Liste des enseignants : fichier privé */}
       <div className="info-card settings-card">
         <div className="card-title">
@@ -113,7 +154,9 @@ export const ParametresPage: React.FC = () => {
             ? `${plural(enseignants.length, 'enseignant enregistré', 'enseignants enregistrés')} dans ce navigateur.`
             : 'Aucun enseignant dans ce navigateur.'}{' '}
           Exportez la liste complète (adresses, classes, indisponibilités) dans un fichier,
-          puis importez-le sur un autre poste. Ce fichier contient des données personnelles :
+          puis importez-le sur un autre poste. L'import ajoute les nouveaux enseignants et
+          met à jour l'adresse des enseignants déjà présents, sans écraser ce que vous avez saisi
+          (matière, classes, indisponibilités). Ce fichier contient des données personnelles :
           conservez-le dans un espace privé.
         </p>
         <div className="button-group">
@@ -145,7 +188,7 @@ export const ParametresPage: React.FC = () => {
         <p
           className="info-note"
           role="status"
-          style={{ marginTop: 12, color: feedback?.kind === 'error' ? '#f87171' : '#34d399' }}
+          style={{ marginTop: 12, color: feedback?.kind === 'error' ? 'var(--danger-text)' : 'var(--success-text)' }}
         >
           {feedback?.text}
         </p>
@@ -159,7 +202,7 @@ export const ParametresPage: React.FC = () => {
         <ul>
           <li>Préférences globales (capacités par défaut, matières, filtres)</li>
           <li>Gestion des sauvegardes locales et réinitialisation</li>
-          <li>Personnalisation de l'interface (thème, densité)</li>
+          <li>Personnalisation de l'interface (densité d'affichage)</li>
         </ul>
         <span className="info-badge">Bientôt disponible</span>
       </div>

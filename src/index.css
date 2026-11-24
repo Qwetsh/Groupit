@@ -24,6 +24,59 @@
   --primary-light: #dbeafe;
   --color-primary: #1d4ed8;
 
+  /* ===== COULEURS PAR RÔLE =====
+     Les feuilles de style utilisent ces variables plutôt que des couleurs
+     écrites en dur : changer l'apparence se fait ici, à un seul endroit. */
+
+  /* Texte */
+  --text-strong: #0f172a;
+  --text: #1e293b;
+  --text-soft: #334155;
+  --text-secondary: #475569;
+  --text-muted: #5b6b80; /* 4,5:1 minimum, y compris sur les fonds gris clair */
+  --text-subtle: #617086; /* 4,6:1 minimum, y compris sur les fonds gris clair */
+  --text-on-accent: white;
+
+  /* Fonds */
+  --surface: white;
+  --surface-alt: #f8fafc;
+  --surface-sunken: #f1f5f9;
+
+  /* Bordures */
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --border-subtle: #f1f5f9;
+
+  /* Accent (actions principales, sélection). Fond des boutons : texte blanc
+     lisible (4,5:1 minimum), d'où un bleu plus soutenu que #3b82f6. */
+  --accent: #2563eb;
+  --accent-strong: #1d4ed8;
+  --accent-deep: #1e40af;
+  --accent-soft: #eff6ff;
+  --accent-soft-strong: #dbeafe;
+  /* Accent utilisé comme couleur de texte */
+  --accent-text: #2563eb;
+  --accent-text-strong: #1d4ed8;
+
+  /* États (fonds et bordures) */
+  --success: #22c55e;
+  --success-strong: #16a34a;
+  --success-deep: #166534;
+  --success-soft: #dcfce7;
+  --success-softer: #f0fdf4;
+  --warning: #f59e0b;
+  --warning-deep: #92400e;
+  --warning-soft: #fef3c7;
+  --danger: #ef4444;
+  --danger-strong: #dc2626;
+  --danger-soft: #fef2f2;
+  /* États utilisés comme couleur de texte */
+  --success-text: #15803d;
+  --warning-text: #b45309;
+  --danger-text: #dc2626;
+  --danger-text-strong: #b91c1c;
+
+
   /* ===== RESPONSIVE SYSTEM ===== */
   /* Breakpoints (référence, non utilisable dans media queries) */
   /* sm: 640px  | md: 768px  | lg: 1024px | xl: 1280px | 2xl: 1536px */
@@ -48,6 +101,58 @@
   --modal-padding: 24px;
 }
 
+/* ===== THÈME SOMBRE =====
+   Activé par data-theme="dark" sur <html> (voir index.html et useTheme).
+   Les couleurs propres à chaque écran sont dans theme.css. */
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --primary: #1d4ed8;
+  --primary-dark: #1e40af;
+  --primary-light: #1e3a6b;
+  --color-primary: #1d4ed8;
+
+  --text-strong: #f8fafc;
+  --text: #e2e8f0;
+  --text-soft: #cbd5e1;
+  --text-secondary: #cbd5e1;
+  --text-muted: #aeb9ca;
+  --text-subtle: #a3b0c3;
+  --text-on-accent: white;
+
+  --surface: #1e293b;
+  --surface-alt: #172133;
+  --surface-sunken: #0f172a;
+
+  --border: #334155;
+  --border-strong: #475569;
+  --border-subtle: #273449;
+
+  --accent: #2563eb;
+  --accent-strong: #1d4ed8;
+  --accent-deep: #1e40af;
+  --accent-soft: #1b2a4a;
+  --accent-soft-strong: #1e3a6b;
+  --accent-text: #60a5fa;
+  --accent-text-strong: #93c5fd;
+
+  --success: #16a34a;
+  --success-strong: #15803d;
+  --success-deep: #86efac;
+  --success-soft: #14361f;
+  --success-softer: #112a1a;
+  --warning: #d97706;
+  --warning-deep: #fcd34d;
+  --warning-soft: #3a2a08;
+  --danger: #dc2626;
+  --danger-strong: #b91c1c;
+  --danger-soft: #3a1a1c;
+  --success-text: #4ade80;
+  --warning-text: #fbbf24;
+  --danger-text: #f87171;
+  --danger-text-strong: #fca5a5;
+}
+
 /* Responsive overrides */
 @media (max-width: 1024px) {
   :root {
@@ -67,8 +172,8 @@ body {
   padding: 0;
   min-width: 320px;
   min-height: 100vh;
-  background: #f1f5f9;
-  color: #1e293b;
+  background: var(--surface-sunken);
+  color: var(--text);
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -77,12 +182,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 a {
-  color: var(--primary);
+  color: var(--accent-text-strong);
   text-decoration: none;
 }
 
 a:hover {
-  color: var(--primary-dark);
+  color: var(--accent-text);
 }
 
 button {
@@ -101,15 +206,15 @@ input, select, textarea {
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--surface-sunken);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--border-strong);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--text-subtle);
 }
 

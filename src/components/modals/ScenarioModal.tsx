@@ -11,6 +11,7 @@ import { useUIStore } from '../../stores/uiStore';
 import type { CritereConfig, ScenarioType, ScenarioMode, Niveau, CritereInstance } from '../../domain/models';
 import { MATIERES_HEURES_3E, createDefaultCriteres, getEffectiveCriteres, calculateCapacitesStage } from '../../domain/models';
 import { CriteresEditor } from './CriteresEditor';
+import { useDialog } from '../../hooks/useDialog';
 import './Modal.css';
 
 interface ScenarioModalProps {
@@ -396,6 +397,9 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Pas de fermeture par Échap pendant l'enregistrement
+  const dialogRef = useDialog<HTMLDivElement>(true, onClose, { fermerAvecEchap: !saving });
+
   // Quand le type de scénario change, réinitialiser les critères
   useEffect(() => {
     if (!scenario) {
@@ -582,14 +586,21 @@ export function ScenarioModal({ onClose }: ScenarioModalProps) {
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content modal-large" onClick={e => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className="modal-content modal-large"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="scenario-modal-title"
+      >
         <form onSubmit={handleSubmit}>
           <div className="modal-header">
             <div className="modal-title">
               <Settings size={20} />
-              <h2>{isEditing ? 'Modifier la configuration' : 'Nouvelle configuration'}</h2>
+              <h2 id="scenario-modal-title">{isEditing ? 'Modifier la configuration' : 'Nouvelle configuration'}</h2>
             </div>
-            <button type="button" className="modal-close" onClick={onClose}>
+            <button type="button" className="modal-close" onClick={onClose} aria-label="Fermer">
               <X size={20} />
             </button>
           </div>

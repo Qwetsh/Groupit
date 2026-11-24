@@ -37,9 +37,9 @@ export function StepResults({ onFinish }: StepResultsProps) {
       <div className="redirect-animation">
         <Loader2 size={48} className="spin" />
       </div>
-      <h1 className="step-title">Preparation de la repartition...</h1>
+      <h1 className="step-title">Préparation de la répartition...</h1>
       <p className="step-subtitle">
-        Vous allez etre redirige vers l'ecran de repartition.
+        Vous allez être redirigé vers l'écran de répartition.
       </p>
     </div>
   );

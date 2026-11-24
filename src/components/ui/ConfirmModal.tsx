@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useId } from 'react';
 import { AlertTriangle, Trash2, RefreshCw, X } from 'lucide-react';
+import { useDialog } from '../../hooks/useDialog';
 import './ConfirmModal.css';
 
 // ============================================================
@@ -59,6 +60,9 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onConfirm,
   onCancel,
 }) => {
+  const titreId = useId();
+  const dialogRef = useDialog<HTMLDivElement>(isOpen, onCancel, { fermerAvecEchap: !isLoading });
+
   if (!isOpen) return null;
 
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -67,22 +71,18 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Escape' && !isLoading) {
-      onCancel();
-    }
-  };
-
   return (
     <div
       className="confirm-modal-overlay"
       onClick={handleBackdropClick}
-      onKeyDown={handleKeyDown}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="confirm-modal-title"
     >
-      <div className="confirm-modal">
+      <div
+        ref={dialogRef}
+        className="confirm-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titreId}
+      >
         <button
           className="confirm-modal-close"
           onClick={onCancel}
@@ -96,7 +96,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
           {variantIcons[variant]}
         </div>
 
-        <h2 id="confirm-modal-title" className="confirm-modal-title">
+        <h2 id={titreId} className="confirm-modal-title">
           {title}
         </h2>
 
@@ -105,10 +105,13 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
         </div>
 
         <div className="confirm-modal-actions">
+          {/* Pour une action destructrice, le focus va sur « Annuler » :
+              un appui machinal sur Entrée ne doit rien supprimer. */}
           <button
             className="btn-cancel"
             onClick={onCancel}
             disabled={isLoading}
+            autoFocus={variant === 'danger'}
           >
             {cancelLabel}
           </button>
@@ -116,7 +119,7 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
             className={`btn-confirm btn-${variant}`}
             onClick={onConfirm}
             disabled={isLoading}
-            autoFocus
+            autoFocus={variant !== 'danger'}
           >
             {isLoading ? 'En cours...' : confirmLabel}
           </button>

@@ -19,6 +19,7 @@ import { useEleveStore } from '../../stores/eleveStore';
 import { useUIStore } from '../../stores/uiStore';
 import { MATIERES_HEURES_3E } from '../../domain/models';
 import type { Eleve } from '../../domain/models';
+import { useDialog } from '../../hooks/useDialog';
 import './ImportMatiereOralModal.css';
 
 interface ImportMatiereOralModalProps {
@@ -416,6 +417,9 @@ export function ImportMatiereOralModal({ onClose, matieresAutorisees }: ImportMa
     );
   }, [mappings, searchFilter]);
 
+  // Pas de fermeture par Échap pendant l'import
+  const dialogRef = useDialog<HTMLDivElement>(true, onClose, { fermerAvecEchap: step !== 'importing' });
+
   // Toggle matière column
   const toggleMatiereColumn = (col: string) => {
     setMatiereColumns(prev => 
@@ -427,10 +431,17 @@ export function ImportMatiereOralModal({ onClose, matieresAutorisees }: ImportMa
 
   return (
     <div className="import-matiere-overlay" onClick={onClose}>
-      <div className="import-matiere-wizard" onClick={e => e.stopPropagation()}>
+      <div
+        ref={dialogRef}
+        className="import-matiere-wizard"
+        onClick={e => e.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="import-matiere-oral-title"
+      >
         <div className="wizard-header">
-          <h2>Importer les matières Oral DNB</h2>
-          <button className="close-btn" onClick={onClose}>
+          <h2 id="import-matiere-oral-title">Importer les matières Oral DNB</h2>
+          <button className="close-btn" onClick={onClose} aria-label="Fermer">
             <X size={20} />
           </button>
         </div>

@@ -24,27 +24,27 @@ import type { Enseignant } from '../../domain/models';
 import type { EnseignantHistoryEntry } from '../../infrastructure/repositories/scenarioArchiveRepository';
 import './EnseignantProfileDrawer.css';
 
-// Palette de couleurs par matière (cohérent avec EnseignantsPage)
+// Palette de couleurs par matière (teintes foncées : initiales blanches lisibles, 4,5:1 minimum) (cohérent avec EnseignantsPage)
 const MATIERE_COLORS: Record<string, { gradient: string; light: string }> = {
-  'Français': { gradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8)', light: '#dbeafe' },
-  'Mathématiques': { gradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)', light: '#ede9fe' },
-  'Histoire-Géographie': { gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', light: '#fef3c7' },
-  'Histoire-Géo': { gradient: 'linear-gradient(135deg, #f59e0b, #d97706)', light: '#fef3c7' },
-  'Anglais': { gradient: 'linear-gradient(135deg, #ec4899, #be185d)', light: '#fce7f3' },
-  'Espagnol': { gradient: 'linear-gradient(135deg, #f97316, #ea580c)', light: '#ffedd5' },
-  'Allemand': { gradient: 'linear-gradient(135deg, #64748b, #475569)', light: '#f1f5f9' },
-  'SVT': { gradient: 'linear-gradient(135deg, #22c55e, #16a34a)', light: '#dcfce7' },
-  'Physique-Chimie': { gradient: 'linear-gradient(135deg, #06b6d4, #0891b2)', light: '#cffafe' },
-  'Technologie': { gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)', light: '#e0e7ff' },
-  'EPS': { gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', light: '#fee2e2' },
-  'Arts Plastiques': { gradient: 'linear-gradient(135deg, #a855f7, #9333ea)', light: '#f3e8ff' },
-  'Éducation Musicale': { gradient: 'linear-gradient(135deg, #14b8a6, #0d9488)', light: '#ccfbf1' },
-  'Latin': { gradient: 'linear-gradient(135deg, #78716c, #57534e)', light: '#f5f5f4' },
-  'Grec': { gradient: 'linear-gradient(135deg, #78716c, #57534e)', light: '#f5f5f4' },
+  'Français': { gradient: 'linear-gradient(135deg, #2563eb, #1e40af)', light: 'var(--bg-blue-100)' },
+  'Mathématiques': { gradient: 'linear-gradient(135deg, #7c3aed, #5b21b6)', light: 'var(--bg-violet-100)' },
+  'Histoire-Géographie': { gradient: 'linear-gradient(135deg, #b45309, #92400e)', light: 'var(--bg-amber-100)' },
+  'Histoire-Géo': { gradient: 'linear-gradient(135deg, #b45309, #92400e)', light: 'var(--bg-amber-100)' },
+  'Anglais': { gradient: 'linear-gradient(135deg, #be185d, #9d174d)', light: 'var(--bg-pink-100)' },
+  'Espagnol': { gradient: 'linear-gradient(135deg, #c2410c, #9a3412)', light: 'var(--bg-orange-100)' },
+  'Allemand': { gradient: 'linear-gradient(135deg, #475569, #334155)', light: 'var(--border-subtle)' },
+  'SVT': { gradient: 'linear-gradient(135deg, #15803d, #166534)', light: 'var(--bg-green-100)' },
+  'Physique-Chimie': { gradient: 'linear-gradient(135deg, #0e7490, #155e75)', light: 'var(--bg-cyan-100)' },
+  'Technologie': { gradient: 'linear-gradient(135deg, #4f46e5, #3730a3)', light: 'var(--bg-indigo-100)' },
+  'EPS': { gradient: 'linear-gradient(135deg, #dc2626, #991b1b)', light: 'var(--bg-red-100)' },
+  'Arts Plastiques': { gradient: 'linear-gradient(135deg, #9333ea, #6b21a8)', light: 'var(--bg-purple-100)' },
+  'Éducation Musicale': { gradient: 'linear-gradient(135deg, #0f766e, #115e59)', light: 'var(--bg-teal-100)' },
+  'Latin': { gradient: 'linear-gradient(135deg, #57534e, #44403c)', light: 'var(--bg-f5f5f4)' },
+  'Grec': { gradient: 'linear-gradient(135deg, #57534e, #44403c)', light: 'var(--bg-f5f5f4)' },
 };
 
-const DEFAULT_MATIERE_COLOR = { gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)', light: '#e0e7ff' };
-const NOT_GEOCODED_COLOR = { gradient: 'linear-gradient(135deg, #ef4444, #dc2626)', light: '#fee2e2' };
+const DEFAULT_MATIERE_COLOR = { gradient: 'linear-gradient(135deg, #4f46e5, #3730a3)', light: 'var(--bg-indigo-100)' };
+const NOT_GEOCODED_COLOR = { gradient: 'linear-gradient(135deg, #dc2626, #991b1b)', light: 'var(--bg-red-100)' };
 
 function getMatiereColor(matiere: string | undefined) {
   if (!matiere) return DEFAULT_MATIERE_COLOR;
@@ -235,7 +235,7 @@ export function EnseignantProfileDrawer({
       <div className={`profile-drawer ${isOpen ? 'open' : ''}`}>
         {/* Header avec couleur matière */}
         <div className="drawer-header" style={{ background: matiereColor.gradient }}>
-          <button className="close-btn" onClick={onClose}>
+          <button className="close-btn" onClick={onClose} aria-label="Fermer la fiche">
             <X size={20} />
           </button>
 
