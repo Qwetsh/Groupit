@@ -21,8 +21,7 @@ import {
 import { etapeDeDepart } from '../components/guided/guidedFlow';
 import './DashboardPage.css';
 import './Accueil.css';
-import { AccueilPreparation, type ActionsAccueil } from '../components/accueil/AccueilPreparation';
-import { lireDateStage, type EtatPreparation, type ActionAccueil } from '../services/accueilService';
+import { AccueilModes, type UsagePrincipal, type UsageSecondaire } from '../components/accueil/AccueilModes';
 
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -171,65 +170,55 @@ export const DashboardPage: React.FC = () => {
     [archives]
   );
 
-  // État de la préparation : uniquement des comptes, aucun nom
-  const openModal = useUIStore(state => state.openModal);
-  const etatPreparation = useMemo<EtatPreparation>(() => {
-    const eleves3e = eleves.filter(e => e.classe?.startsWith("3"));
-    const ids3e = new Set(eleves3e.map(e => e.id));
-    const stages3e = stages.filter(st => st.eleveId && ids3e.has(st.eleveId));
-    const debuts = stages3e.map(st => lireDateStage(st.dateDebut)).filter((d): d is Date => d !== null);
-    const aujourdhui = new Date();
-    const aVenir = debuts.filter(d => d.getTime() >= aujourdhui.getTime() - 86_400_000).sort((x, y) => x.getTime() - y.getTime());
-    return {
-      nbEleves: eleves3e.length,
-      nbClasses: new Set(eleves3e.map(e => e.classe)).size,
-      nbEnseignants: enseignants.length,
-      nbEnseignantsSansAdresse: enseignants.filter(e => !e.adresse?.trim()).length,
-      nbStages: new Set(stages3e.map(st => st.eleveId)).size,
-      debutStages: aVenir[0] ?? debuts.sort((x, y) => x.getTime() - y.getTime())[0] ?? null,
-      nbSujetsRenseignes: eleves3e.filter(e => e.sujetOral?.trim() || e.parcoursOral?.trim()).length,
-      oral: {
-        enCours: !!inProgressOralDnb,
-        nbJurys: inProgressOralDnb ? jurys.filter(j => j.scenarioId === inProgressOralDnb.id).length : 0,
-        nbRepartis: inProgressOralDnb ? affectations.filter(af => af.scenarioId === inProgressOralDnb.id).length : 0,
-      },
-      stages: {
-        enCours: !!inProgressStage,
-        nbAttribues: inProgressStage ? affectations.filter(af => af.scenarioId === inProgressStage.id).length : 0,
-      },
-      aujourdhui,
-    };
-  }, [eleves, enseignants, stages, jurys, affectations, inProgressOralDnb, inProgressStage]);
+  const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
+  const nbJurysDe = (id?: string) => jurys.filter(j => j.scenarioId === id).length;
+  const nbAffectationsDe = (id?: string) => affectations.filter(af => af.scenarioId === id).length;
 
-  const actionsAccueil: ActionsAccueil = {
-    lancer: (action: ActionAccueil) => {
-      switch (action) {
-        case "importer-eleves": openModal("import"); break;
-        case "importer-enseignants": navigate("/parametres"); break;
-        case "importer-stages":
-        case "attribuer-tuteurs": handleLaunchMode("suivi_stage"); break;
-        case "reprendre-stages": if (inProgressStage) handleResumeScenario(inProgressStage.id!); break;
-        case "preparer-oral": handleLaunchMode("oral_dnb"); break;
-        case "reprendre-oral": if (inProgressOralDnb) handleResumeScenario(inProgressOralDnb.id!); break;
-      }
+  const principaux: UsagePrincipal[] = [
+    {
+      id: 'oral',
+      titre: 'Oral du DNB',
+      description: "Constituez les jurys et répartissez les élèves pour l'oral du brevet.",
+      points: ['Jurys équilibrés selon les matières', 'Horaires de passage et salles', 'Convocations et notes en ligne'],
+      enCours: inProgressOralDnb
+        ? `${pluriel(nbJurysDe(inProgressOralDnb.id), 'jury')}, ${pluriel(nbAffectationsDe(inProgressOralDnb.id), 'élève')} réparti${nbAffectationsDe(inProgressOralDnb.id) > 1 ? 's' : ''}.`
+        : null,
+      commencer: () => handleLaunchMode('oral_dnb'),
+      reprendre: () => { if (inProgressOralDnb) handleResumeScenario(inProgressOralDnb.id!); },
     },
-    ouvrir: (chemin: string) => {
-      if (chemin === "personnalise") {
-        if (inProgressCustom) handleResumeScenario(inProgressCustom.id!);
-        else handleLaunchMode("personnalise");
-      } else {
-        navigate(chemin);
-      }
+    {
+      id: 'stages',
+      titre: 'Stages de 3e',
+      description: 'Attribuez à chaque élève un enseignant tuteur, au plus près de son lieu de stage.',
+      points: ['Tuteur le plus proche du stage', 'Carte des trajets', 'Charge équilibrée entre enseignants'],
+      enCours: inProgressStage
+        ? `${pluriel(nbAffectationsDe(inProgressStage.id), 'stage')} attribué${nbAffectationsDe(inProgressStage.id) > 1 ? 's' : ''}.`
+        : null,
+      commencer: () => handleLaunchMode('suivi_stage'),
+      reprendre: () => { if (inProgressStage) handleResumeScenario(inProgressStage.id!); },
     },
-    recommencerOral: () => handleLaunchMode("oral_dnb"),
-    recommencerStages: () => handleLaunchMode("suivi_stage"),
-    reprendreStages: () => { if (inProgressStage) handleResumeScenario(inProgressStage.id!); },
-    reprendreSession: () => setShowImportSessionModal(true),
-  };
+  ];
+
+  const secondaires: UsageSecondaire[] = [
+    {
+      id: 'perso',
+      titre: 'Mode personnalisé',
+      description: 'Des groupes selon vos propres critères',
+      enCours: !!inProgressCustom,
+      ouvrir: () => (inProgressCustom ? handleResumeScenario(inProgressCustom.id!) : handleLaunchMode('personnalise')),
+    },
+    {
+      id: 'libre',
+      titre: 'Mode libre',
+      description: 'Composer les groupes à la main',
+      enCours: false,
+      ouvrir: () => navigate('/libre'),
+    },
+  ];
 
   return (
     <div className="dashboard-page">
-      <AccueilPreparation etat={etatPreparation} actions={actionsAccueil} />
+      <AccueilModes principaux={principaux} secondaires={secondaires} reprendreSession={() => setShowImportSessionModal(true)} />
 
       {/* Archives / history */}
       {archives.length > 0 && (
