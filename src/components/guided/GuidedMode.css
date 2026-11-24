@@ -2241,6 +2241,37 @@
   margin: 0;
 }
 
+/* Points à vérifier après la répartition */
+.recap-alertes {
+  max-width: 640px;
+  margin: 1.5rem auto 0;
+  padding: 1rem 1.25rem;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.1);
+  text-align: left;
+}
+
+.recap-alertes-titre {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+.recap-alertes ul {
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
+  color: #e2e8f0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.recap-alertes li + li {
+  margin-top: 0.35rem;
+}
+
 /* Error view */
 .step-recap.error-view {
   text-align: center;

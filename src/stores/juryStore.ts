@@ -4,111 +4,18 @@
 
 import { create } from 'zustand';
 import type { Jury, JuryStats, Enseignant, Scenario } from '../domain/models';
-import { MATIERES_HEURES_3E } from '../domain/models';
+import { composerJurys, type JuryCompositionOptions, type JuryComposition } from '../algorithms/juryComposition';
 import { juryRepository } from '../infrastructure/repositories';
 import { extractErrorMessage } from '../utils/errorUtils';
 import { reconcileRows, byIds } from './dbSync';
 
 // ============================================================
-// ALGORITHME DE GÉNÉRATION AUTOMATIQUE DES JURYS
+// GÉNÉRATION AUTOMATIQUE DES JURYS
 // ============================================================
+// L'algorithme vit dans algorithms/juryComposition.ts (testé à part).
 
-interface JuryGenerationOptions {
-  nbJurys?: number; // Si non spécifié, calculé automatiquement
+interface JuryGenerationOptions extends JuryCompositionOptions {
   capaciteParJury?: number;
-  enseignantsParJury?: number; // Nombre cible d'enseignants par jury (défaut: 2)
-  suppleantsParJury?: number; // Nombre de suppléants par jury (défaut: 0)
-  equilibrerMatieres?: boolean; // Essayer de diversifier les matières dans chaque jury
-}
-
-/**
- * Génère automatiquement une répartition des enseignants en jurys
- * Stratégie:
- * 1. Créer exactement nbJurys jurys
- * 2. Placer exactement enseignantsParJury enseignants dans chaque jury
- * 3. Les enseignants restants ne sont PAS assignés (restent disponibles)
- * 4. Essayer de diversifier les matières dans chaque jury si equilibrerMatieres=true
- */
-function generateJurysDistribution(
-  enseignants: Enseignant[],
-  options: JuryGenerationOptions = {}
-): { juryIndex: number; enseignantIds: string[]; suppleantsIds: string[] }[] {
-  const {
-    nbJurys: nbJurysRequested,
-    enseignantsParJury = 2,
-    suppleantsParJury = 0,
-    equilibrerMatieres = true,
-  } = options;
-
-  if (enseignants.length === 0) return [];
-
-  // Nombre de jurys à créer
-  const nbJurys = nbJurysRequested || Math.max(1, Math.floor(enseignants.length / enseignantsParJury));
-
-  // Initialiser les jurys vides
-  const jurysDistrib: { juryIndex: number; enseignantIds: string[]; suppleantsIds: string[] }[] = [];
-  for (let i = 0; i < nbJurys; i++) {
-    jurysDistrib.push({ juryIndex: i, enseignantIds: [], suppleantsIds: [] });
-  }
-
-  // Préparer la liste des enseignants à distribuer
-  let enseignantsPool: Enseignant[] = [];
-
-  if (equilibrerMatieres) {
-    // Grouper les enseignants par catégorie de matière
-    const byCategorie: Record<string, Enseignant[]> = {};
-
-    for (const ens of enseignants) {
-      const matiereRef = MATIERES_HEURES_3E.find(m =>
-        m.matiere.toLowerCase() === ens.matierePrincipale?.toLowerCase() ||
-        ens.matierePrincipale?.toLowerCase().includes(m.matiere.toLowerCase())
-      );
-      const cat = matiereRef?.categorie || 'autre';
-      if (!byCategorie[cat]) byCategorie[cat] = [];
-      byCategorie[cat].push(ens);
-    }
-
-    // Mélanger les enseignants en alternant les catégories pour diversifier
-    const categories = Object.keys(byCategorie).sort((a, b) =>
-      byCategorie[b].length - byCategorie[a].length
-    );
-
-    // Round-robin sur les catégories pour créer une liste intercalée
-    let hasMore = true;
-    while (hasMore) {
-      hasMore = false;
-      for (const cat of categories) {
-        if (byCategorie[cat].length > 0) {
-          enseignantsPool.push(byCategorie[cat].shift()!);
-          hasMore = true;
-        }
-      }
-    }
-  } else {
-    enseignantsPool = [...enseignants];
-  }
-
-  // Distribution titulaires: on remplit chaque jury jusqu'à enseignantsParJury
-  let poolIndex = 0;
-  for (let juryIdx = 0; juryIdx < nbJurys && poolIndex < enseignantsPool.length; juryIdx++) {
-    for (let slot = 0; slot < enseignantsParJury && poolIndex < enseignantsPool.length; slot++) {
-      jurysDistrib[juryIdx].enseignantIds.push(enseignantsPool[poolIndex].id!);
-      poolIndex++;
-    }
-  }
-
-  // Distribution suppléants: les enseignants restants sont répartis comme suppléants
-  if (suppleantsParJury > 0) {
-    for (let juryIdx = 0; juryIdx < nbJurys && poolIndex < enseignantsPool.length; juryIdx++) {
-      for (let slot = 0; slot < suppleantsParJury && poolIndex < enseignantsPool.length; slot++) {
-        jurysDistrib[juryIdx].suppleantsIds.push(enseignantsPool[poolIndex].id!);
-        poolIndex++;
-      }
-    }
-  }
-
-  // Filtrer les jurys vides (ne devrait pas arriver si nbJurys est bien calculé)
-  return jurysDistrib.filter(j => j.enseignantIds.length > 0);
 }
 
 // ============================================================
@@ -133,11 +40,12 @@ interface JuryState {
   updateJuryStats: (juryId: string, stats: JuryStats) => Promise<void>;
   
   // Génération automatique
+  /** Compose les jurys ; renvoie les enseignants écartés car indisponibles. */
   generateJurysAuto: (
     scenario: Scenario,
     enseignants: Enseignant[],
     options?: JuryGenerationOptions
-  ) => Promise<void>;
+  ) => Promise<Pick<JuryComposition, 'indisponibles'>>;
   
   // Queries
   getJurysByScenario: (scenarioId: string) => Jury[];
@@ -274,10 +182,11 @@ export const useJuryStore = create<JuryState>((set, get) => {
     const capaciteParJury = options.capaciteParJury || scenario.parametres.oralDnb?.capaciteJuryDefaut || 8;
     // Supprimer les jurys existants pour ce scénario
     await get().clearJurysByScenario(scenarioId);
-    // Générer la distribution
-    const distribution = generateJurysDistribution(enseignants, {
+    // Composer les jurys
+    const { jurys: distribution, indisponibles } = composerJurys(enseignants, {
       ...options,
       enseignantsParJury: options.enseignantsParJury || 2,
+      demiJournees: options.demiJournees ?? scenario.parametres.oralDnb?.demiJourneesOral,
     });
     // Créer tous les jurys puis mettre à jour le state en une seule fois
     const createdIds: string[] = [];
@@ -293,6 +202,7 @@ export const useJuryStore = create<JuryState>((set, get) => {
       createdIds.push(newJury.id);
     }
     await syncFromDb(createdIds);
+    return { indisponibles };
   },
   computeJuryMatieres: (jury, enseignants) => {
     const matieres = new Set<string>();

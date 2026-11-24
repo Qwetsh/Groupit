@@ -3,8 +3,8 @@
 // ============================================================
 
 import { describe, it, expect } from 'vitest';
-import { getGroupDuration, assignTimeSlots, getTimeSlotsForDemiJournee } from './timeSlots';
-import type { Eleve, Jury, Affectation } from '../domain/models';
+import { getGroupDuration, assignTimeSlots, getTimeSlotsForDemiJournee, planifierCreneaux } from './timeSlots';
+import type { Eleve, Enseignant, Jury, Affectation } from '../domain/models';
 
 describe('Time Slots', () => {
   // === TESTS getGroupDuration ===
@@ -229,6 +229,79 @@ describe('Time Slots', () => {
       const updates = assignTimeSlots([], affectations, eleves, ['jeudi_matin'], 'fill_first');
 
       expect(updates.size).toBe(0);
+    });
+  });
+
+  // === Disponibilités et débordements ===
+
+  describe('planifierCreneaux', () => {
+    const prof = (id: string, indisponibilites: string[] = []): Enseignant => ({
+      id, nom: id, prenom: id, matierePrincipale: 'SVT', classesEnCharge: [], estProfPrincipal: false,
+      indisponibilites, tags: [], customFields: {}, createdAt: new Date(), updatedAt: new Date(),
+    });
+    const juryAvec = (id: string, enseignantIds: string[]): Jury => ({ ...createJury(id), enseignantIds });
+    const passages = (n: number, juryId: string) => ({
+      eleves: Array.from({ length: n }, (_, i) => createEleve(`${juryId}e${i}`)),
+      affectations: Array.from({ length: n }, (_, i) => createAffectation(`${juryId}a${i}`, `${juryId}e${i}`, juryId)),
+    });
+
+    it('ne fait passer un jury que lorsque tous ses membres sont disponibles', () => {
+      const { eleves, affectations } = passages(4, 'j1');
+      const { updates, alertes } = planifierCreneaux({
+        jurys: [juryAvec('j1', ['p1', 'p2'])],
+        affectations, eleves,
+        demiJournees: ['jeudi_matin', 'jeudi_aprem'],
+        mode: 'fill_first',
+        enseignants: [prof('p1'), prof('p2', ['jeudi_matin'])],
+      });
+      expect(new Set([...updates.values()].map(u => u.dateCreneau))).toEqual(new Set(['Jeudi après-midi']));
+      expect(alertes).toEqual([]);
+    });
+
+    it('signale un jury dont les membres ne sont jamais disponibles ensemble', () => {
+      const { eleves, affectations } = passages(2, 'j1');
+      const { updates, alertes } = planifierCreneaux({
+        jurys: [juryAvec('j1', ['p1', 'p2'])],
+        affectations, eleves,
+        demiJournees: ['jeudi_matin', 'jeudi_aprem'],
+        mode: 'fill_first',
+        enseignants: [prof('p1', ['jeudi_aprem']), prof('p2', ['jeudi_matin'])],
+      });
+      expect(updates.size).toBe(2);
+      expect(alertes.join(' ')).toContain('Jury j1');
+    });
+
+    it("signale des passages qui finissent après l'horaire prévu", () => {
+      // 15 passages de 20 min à partir de 8 h 15 : bien au-delà de 12 h 10.
+      const { eleves, affectations } = passages(15, 'j1');
+      const { alertes } = planifierCreneaux({
+        jurys: [juryAvec('j1', [])], affectations, eleves,
+        demiJournees: ['jeudi_matin'], mode: 'fill_first',
+      });
+      expect(alertes).toHaveLength(1);
+      expect(alertes[0]).toContain('après la fin prévue (12:10)');
+    });
+
+    it("ne déborde pas du matin quand l'après-midi est libre", () => {
+      const { eleves, affectations } = passages(15, 'j1');
+      const { updates, alertes } = planifierCreneaux({
+        jurys: [juryAvec('j1', [])], affectations, eleves,
+        demiJournees: ['jeudi_matin', 'jeudi_aprem'], mode: 'fill_first',
+      });
+      expect(alertes).toEqual([]);
+      const matin = [...updates.values()].filter(u => u.dateCreneau === 'Jeudi matin').map(u => u.heureCreneau).sort();
+      // Le dernier passage du matin (20 min) se termine au plus tard à 12 h 10.
+      const [h, m] = matin[matin.length - 1].split(':').map(Number);
+      expect(h * 60 + m + 20).toBeLessThanOrEqual(12 * 60 + 10);
+    });
+
+    it('ne signale rien quand tout tient dans les horaires', () => {
+      const { eleves, affectations } = passages(8, 'j1');
+      const { alertes } = planifierCreneaux({
+        jurys: [juryAvec('j1', [])], affectations, eleves,
+        demiJournees: ['jeudi_matin'], mode: 'fill_first',
+      });
+      expect(alertes).toEqual([]);
     });
   });
 });

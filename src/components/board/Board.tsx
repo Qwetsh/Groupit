@@ -19,7 +19,7 @@ import { useJuryStore } from '../../stores/juryStore';
 import { useStageStore } from '../../stores/stageStore';
 import { calculateDistance, recalcTimeSlotsForJurys } from '../../algorithms';
 import type { Eleve, Enseignant, Affectation, Jury, MatchingResultDNB, Stage } from '../../domain/models';
-import { calculateCapacitesStage, getHeuresMatiere } from '../../domain/models';
+import { calculateCapacitesStage, getHeuresMatiere, premiereMatiereCouverte } from '../../domain/models';
 import { filterEleves, filterEnseignants } from '../../utils/filteringUtils';
 import { Info, UserX, Users, MapPin, MapPinOff, Palette, Eye, Tag } from 'lucide-react';
 import { OverlayProgress } from '../ui/ProgressIndicator';
@@ -599,7 +599,7 @@ export const Board: React.FC = () => {
       const jury = jurysById.get(targetJuryId);
       if (jury) {
         const juryMatieres = [...new Set(jury.enseignantIds.map(id => enseignantsById.get(id)?.matierePrincipale).filter(Boolean))] as string[];
-        const matiereMatch = eleve.matieresOral?.some(m => juryMatieres.includes(m)) ?? false;
+        const matiereMatch = premiereMatiereCouverte(eleve.matieresOral, juryMatieres) !== null;
         try {
           await addAffectation({
             eleveId: activeDataCurrent.eleveId,
@@ -633,7 +633,8 @@ export const Board: React.FC = () => {
                 distMode,
                 activeScenario.parametres.oralDnb?.heureDebutMatin,
                 activeScenario.parametres.oralDnb?.heureDebutAprem,
-                activeScenario.parametres.oralDnb?.dureeSupplementaireTiersTemps
+                activeScenario.parametres.oralDnb?.dureeSupplementaireTiersTemps,
+                enseignants
               );
               for (const [affId, meta] of updates) {
                 await updateAffectation(affId, {
@@ -663,7 +664,7 @@ export const Board: React.FC = () => {
       const jury = jurysById.get(targetJuryId);
       if (jury) {
         const juryMatieres = [...new Set(jury.enseignantIds.map(id => enseignantsById.get(id)?.matierePrincipale).filter(Boolean))] as string[];
-        const matiereMatch = eleve.matieresOral?.some(m => juryMatieres.includes(m)) ?? false;
+        const matiereMatch = premiereMatiereCouverte(eleve.matieresOral, juryMatieres) !== null;
         try {
           await updateAffectation(activeDataCurrent.affectationId, {
             juryId: targetJuryId,
@@ -698,7 +699,8 @@ export const Board: React.FC = () => {
                 distMode,
                 activeScenario.parametres.oralDnb?.heureDebutMatin,
                 activeScenario.parametres.oralDnb?.heureDebutAprem,
-                activeScenario.parametres.oralDnb?.dureeSupplementaireTiersTemps
+                activeScenario.parametres.oralDnb?.dureeSupplementaireTiersTemps,
+                enseignants
               );
               for (const [affId, meta] of updates) {
                 await updateAffectation(affId, {
@@ -736,7 +738,8 @@ export const Board: React.FC = () => {
               distMode,
               activeScenario.parametres.oralDnb?.heureDebutMatin,
               activeScenario.parametres.oralDnb?.heureDebutAprem,
-              activeScenario.parametres.oralDnb?.dureeSupplementaireTiersTemps
+              activeScenario.parametres.oralDnb?.dureeSupplementaireTiersTemps,
+              enseignants
             );
             for (const [affId, meta] of updates) {
               await updateAffectation(affId, {
@@ -749,7 +752,7 @@ export const Board: React.FC = () => {
         setMatchingError(`Erreur lors de la suppression : ${String(err)}`);
       }
     }
-  }, [activeScenario, jurysById, enseignantsById, addAffectation, updateAffectation, deleteAffectation, affectations, scenarioJurys, eleves]);
+  }, [activeScenario, jurysById, enseignantsById, enseignants, addAffectation, updateAffectation, deleteAffectation, affectations, scenarioJurys, eleves]);
 
 
 

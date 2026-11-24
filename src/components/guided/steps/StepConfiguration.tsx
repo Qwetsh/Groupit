@@ -451,6 +451,8 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
           enseignantsParJury,
           suppleantsParJury: suppleants,
           equilibrerMatieres: true,
+          eleves: eleves3e,
+          demiJournees: demiJourneesOral,
         });
 
         setShowJuryEditor(true);
@@ -498,8 +500,9 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
   }, [
     scenarioName, hasEnoughEnseignants, isOralDnb, elevesParJury, selectedEnseignantIds,
     addScenario, setGuidedCreatedScenarioId, setActiveScenario, enseignants,
-    generateJurysAuto, nbJurysNeeded, enseignantsParJury, suppleants, demiJourneesOral,
-    distanceMaxKm, dureeMaxMin, prioriserPP, capaciteTuteurDefaut, onNext
+    generateJurysAuto, nbJurysNeeded, enseignantsParJury, suppleants, demiJourneesOral, eleves3e,
+    distanceMaxKm, dureeMaxMin, prioriserPP, capaciteTuteurDefaut, onNext,
+    heureDebutMatin, heureDebutAprem, dureeTiersTemps,
   ]);
 
   // Regenerate jurys
@@ -519,13 +522,16 @@ export function StepConfiguration({ onNext, onBack }: StepConfigurationProps) {
         enseignantsParJury,
         suppleantsParJury: suppleants,
         equilibrerMatieres: true,
+        eleves: eleves3e,
+        demiJournees: demiJourneesOral,
       });
     } finally {
       setCreating(false);
     }
   }, [
     createdScenarioId, scenarios, clearJurysByScenario, enseignants,
-    selectedEnseignantIds, generateJurysAuto, nbJurysNeeded, elevesParJury, enseignantsParJury
+    selectedEnseignantIds, generateJurysAuto, nbJurysNeeded, elevesParJury, enseignantsParJury,
+    suppleants, eleves3e, demiJourneesOral,
   ]);
 
   // Update jury capacity

@@ -3,7 +3,7 @@
 // ============================================================
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { Users, GraduationCap, Settings, Play, Loader2, CheckCircle, PartyPopper, Eye, Briefcase } from 'lucide-react';
+import { Users, GraduationCap, Settings, Play, Loader2, CheckCircle, PartyPopper, Eye, Briefcase, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '../../../stores/uiStore';
 import { useScenarioStore } from '../../../stores/scenarioStore';
@@ -12,7 +12,9 @@ import { useEnseignantStore } from '../../../stores/enseignantStore';
 import { useJuryStore } from '../../../stores/juryStore';
 import { useAffectationStore } from '../../../stores/affectationStore';
 import { useStageStore } from '../../../stores/stageStore';
-import { solveOralDnbComplete, solveStageMatching, solveCustom, toStageGeoInfo, toEnseignantGeoInfo, assignTimeSlots, type DistributionMode } from '../../../algorithms';
+import { solveStageMatching, toStageGeoInfo, toEnseignantGeoInfo, type DistributionMode } from '../../../algorithms';
+import { planifierCreneaux } from '../../../algorithms/timeSlots';
+import { runOralDnbSolver, runCustomSolver } from '../../../algorithms/solverRunner';
 import { computeRoutePairs, geocodeAddressWithFallback } from '../../../infrastructure/geo/stageGeoWorkflow';
 import { DistributionModeModal } from '../../modals/DistributionModeModal';
 import '../GuidedMode.css';
@@ -46,6 +48,8 @@ export function StepRecap({ onBack }: StepRecapProps) {
   const [progressPercent, setProgressPercent] = useState(0);
   const [affectationCount, setAffectationCount] = useState(0);
   const [pendingAffectations, setPendingAffectations] = useState<Awaited<ReturnType<typeof addAffectations>> | null>(null);
+  // Problèmes signalés par le moteur (élèves sans jury, matières non couvertes…)
+  const [alertes, setAlertes] = useState<string[]>([]);
 
   const scenario = scenarios.find(s => s.id === guidedMode.createdScenarioId);
 
@@ -81,15 +85,14 @@ export function StepRecap({ onBack }: StepRecapProps) {
     setError(null);
     setProgressMessage(null);
     setProgressPercent(0);
+    setAlertes([]);
 
     try {
-      // Small delay for visual effect
-      await new Promise(resolve => setTimeout(resolve, 500));
 
       if (scenario.type === 'custom') {
         // === MODE PERSONNALISE ===
         const customConfig = guidedMode.customConfig;
-        const result = solveCustom(eleves, enseignants, scenario, customConfig);
+        const result = await runCustomSolver(eleves, enseignants, scenario, customConfig);
 
         // Create jurys from groups
         const { addJury } = useJuryStore.getState();
@@ -139,12 +142,13 @@ export function StepRecap({ onBack }: StepRecapProps) {
         }
       } else if (scenario.type === 'oral_dnb') {
         // === ORAL DNB ===
-        const result = solveOralDnbComplete(
+        const result = await runOralDnbSolver(
           eleves3e,
           enseignants,
           scenarioJurys,
           scenario
         );
+        setAlertes((result.alertes ?? []).map(a => a.message));
 
         const affectationsToAdd = result.affectations.map(aff => ({
           eleveId: aff.eleveId,
@@ -343,34 +347,39 @@ export function StepRecap({ onBack }: StepRecapProps) {
     selectedEleves: typeof eleves,
     customConfig: typeof guidedMode.customConfig
   ) => {
-    const updates = assignTimeSlots(
-      jurys, savedAffectations, selectedEleves, customConfig.demiJournees, 'fill_first',
-      customConfig.heureDebutMatin, customConfig.heureDebutAprem
-    );
+    const { updates, alertes: alertesCreneaux } = planifierCreneaux({
+      jurys, affectations: savedAffectations, eleves: selectedEleves,
+      demiJournees: customConfig.demiJournees, mode: 'fill_first',
+      heureDebutMatin: customConfig.heureDebutMatin, heureDebutAprem: customConfig.heureDebutAprem,
+      enseignants,
+    });
+    setAlertes(prev => [...prev, ...alertesCreneaux]);
     for (const [affId, meta] of updates) {
       await updateAffectation(affId, {
         metadata: { dateCreneau: meta.dateCreneau, heureCreneau: meta.heureCreneau },
       });
     }
-  }, [updateAffectation, assignTimeSlots]);
+  }, [updateAffectation, enseignants]);
 
   const applyTimeSlots = useCallback(async (
     savedAffectations: Awaited<ReturnType<typeof addAffectations>>,
     demiJournees: string[],
     mode: DistributionMode
   ) => {
-    const updates = assignTimeSlots(
-      scenarioJurys, savedAffectations, eleves3e, demiJournees, mode,
-      scenario?.parametres.oralDnb?.heureDebutMatin,
-      scenario?.parametres.oralDnb?.heureDebutAprem,
-      scenario?.parametres.oralDnb?.dureeSupplementaireTiersTemps
-    );
+    const { updates, alertes: alertesCreneaux } = planifierCreneaux({
+      jurys: scenarioJurys, affectations: savedAffectations, eleves: eleves3e, demiJournees, mode,
+      heureDebutMatin: scenario?.parametres.oralDnb?.heureDebutMatin,
+      heureDebutAprem: scenario?.parametres.oralDnb?.heureDebutAprem,
+      dureeSupplementaireTiersTemps: scenario?.parametres.oralDnb?.dureeSupplementaireTiersTemps,
+      enseignants,
+    });
+    setAlertes(prev => [...prev, ...alertesCreneaux]);
     for (const [affId, meta] of updates) {
       await updateAffectation(affId, {
         metadata: { dateCreneau: meta.dateCreneau, heureCreneau: meta.heureCreneau },
       });
     }
-  }, [scenarioJurys, eleves3e, updateAffectation]);
+  }, [scenarioJurys, eleves3e, updateAffectation, enseignants, scenario]);
 
   const handleDistributionSelect = useCallback(async (mode: DistributionMode) => {
     if (!scenario || !pendingAffectations) return;
@@ -421,20 +430,32 @@ export function StepRecap({ onBack }: StepRecapProps) {
           <PartyPopper size={32} className="confetti right" />
         </div>
 
-        <h1 className="step-title success">Repartition terminee !</h1>
+        <h1 className="step-title success">Répartition terminée !</h1>
         <p className="step-subtitle">
           {scenario?.type === 'suivi_stage'
-            ? `${affectationCount} eleves ont ete affectes a des enseignants tuteurs.`
+            ? `${affectationCount} élèves ont été affectés à des enseignants tuteurs.`
             : scenario?.type === 'custom'
-            ? `${affectationCount} eleves ont ete repartis dans ${scenarioJurys.length} groupes.`
-            : `${affectationCount} eleves ont ete repartis dans ${scenarioJurys.length} jurys.`}
+            ? `${affectationCount} élèves ont été répartis dans ${scenarioJurys.length} groupes.`
+            : `${affectationCount} élèves ont été répartis dans ${scenarioJurys.length} jurys.`}
         </p>
+
+        {alertes.length > 0 && (
+          <div className="recap-alertes" role="status">
+            <div className="recap-alertes-titre">
+              <AlertTriangle size={18} />
+              <span>{alertes.length > 1 ? `${alertes.length} points à vérifier` : '1 point à vérifier'}</span>
+            </div>
+            <ul>
+              {alertes.map((message, i) => <li key={i}>{message}</li>)}
+            </ul>
+          </div>
+        )}
 
         <div className="success-stats">
           <div className="success-stat">
             <Users size={24} />
             <span className="stat-value">{affectationCount}</span>
-            <span className="stat-label">eleves affectes</span>
+            <span className="stat-label">élèves affectés</span>
           </div>
           <div className="success-stat">
             {scenario?.type === 'suivi_stage' ? <Briefcase size={24} /> : <GraduationCap size={24} />}
@@ -448,11 +469,11 @@ export function StepRecap({ onBack }: StepRecapProps) {
           onClick={handleViewResults}
         >
           <Eye size={20} />
-          Voir les resultats
+          Voir les résultats
         </button>
 
         <p className="success-hint">
-          Vous pourrez ajuster les affectations manuellement par glisser-deposer.
+          Vous pourrez ajuster les affectations manuellement par glisser-déposer.
         </p>
       </div>
     );

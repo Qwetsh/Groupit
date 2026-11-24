@@ -2,7 +2,7 @@
 // TIME SLOTS - Calcul des créneaux horaires pour l'oral DNB
 // ============================================================
 
-import type { Affectation, Eleve, Jury } from '../domain/models';
+import type { Affectation, Eleve, Enseignant, Jury } from '../domain/models';
 
 // ============ DURÉE PAR TAILLE DE GROUPE ============
 
@@ -126,8 +126,42 @@ export function getDemiJourneeLabel(id: string): string {
 
 // ============ ASSIGNATION PRINCIPALE ============
 
+export interface PlanificationOptions {
+  jurys: Jury[];
+  affectations: Affectation[];
+  eleves: Eleve[];
+  demiJournees: string[];
+  mode: DistributionMode;
+  heureDebutMatin?: string;
+  heureDebutAprem?: string;
+  dureeSupplementaireTiersTemps?: number;
+  /**
+   * Enseignants : un jury ne passe que sur les demi-journées où tous ses
+   * titulaires sont disponibles. Sans cette liste, toutes les demi-journées
+   * sont utilisées.
+   */
+  enseignants?: Enseignant[];
+}
+
+export interface Planification {
+  updates: Map<string, { dateCreneau: string; heureCreneau: string }>;
+  /** Problèmes à signaler : jury sans demi-journée commune, passages qui débordent. */
+  alertes: string[];
+}
+
+/**
+ * Assigne des créneaux horaires aux affectations d'oral DNB, en tenant compte
+ * des disponibilités des jurys, et signale ce qui ne tient pas dans les horaires.
+ */
+export function planifierCreneaux(options: PlanificationOptions): Planification {
+  const alertes: string[] = [];
+  const updates = assignTimeSlotsInterne(options, alertes);
+  return { updates, alertes };
+}
+
 /**
  * Assigne des créneaux horaires aux affectations d'oral DNB.
+ * Conservée pour compatibilité : préférer `planifierCreneaux`, qui signale les débordements.
  *
  * @param jurys - Les jurys du scénario
  * @param affectations - Les affectations existantes
@@ -146,9 +180,23 @@ export function assignTimeSlots(
   heureDebutAprem?: string,
   dureeSupplementaireTiersTemps?: number
 ): Map<string, { dateCreneau: string; heureCreneau: string }> {
+  return assignTimeSlotsInterne({
+    jurys, affectations, eleves, demiJournees, mode,
+    heureDebutMatin, heureDebutAprem, dureeSupplementaireTiersTemps,
+  }, []);
+}
+
+function assignTimeSlotsInterne(
+  {
+    jurys, affectations, eleves, demiJournees, mode,
+    heureDebutMatin, heureDebutAprem, dureeSupplementaireTiersTemps, enseignants,
+  }: PlanificationOptions,
+  alertes: string[]
+): Map<string, { dateCreneau: string; heureCreneau: string }> {
   const updates = new Map<string, { dateCreneau: string; heureCreneau: string }>();
 
   if (demiJournees.length === 0 || jurys.length === 0) return updates;
+  const enseignantsParId = new Map((enseignants ?? []).map(e => [e.id, e]));
 
   // Estimer le nombre max d'élèves par jury pour dimensionner les créneaux
   const elevesById = new Map(eleves.map(e => [e.id, e]));
@@ -215,25 +263,41 @@ export function assignTimeSlots(
       passages.push({ affs: groupAffs, groupSize: groupAffs.length, hasTiersTemps: hasTT });
     }
 
+    // Demi-journées où tous les titulaires du jury sont disponibles
+    let djJury = demiJournees;
+    if (enseignantsParId.size > 0) {
+      const membres = jury.enseignantIds.map(id => enseignantsParId.get(id)).filter((e): e is Enseignant => !!e);
+      const communes = demiJournees.filter(dj => membres.every(m => !m.indisponibilites?.includes(dj)));
+      if (communes.length > 0) {
+        djJury = communes;
+      } else {
+        alertes.push(`${jury.nom} : ses membres ne sont jamais tous disponibles en même temps pendant l'oral. Les créneaux ont été placés quand même ; revoyez la composition du jury.`);
+      }
+    }
+
     // Distribute passages across demi-journées
     const passagesPerDj: { dj: string; passages: Passage[] }[] = [];
     if (mode === 'fill_first') {
       // Fill each DJ before moving to the next
       let djIdx = 0;
       const remaining = [...passages];
-      while (remaining.length > 0 && djIdx < demiJournees.length) {
-        const dj = demiJournees[djIdx];
+      while (remaining.length > 0 && djIdx < djJury.length) {
+        const dj = djJury[djIdx];
         const periodType = getPeriodType(dj);
         const start = periodType === 'matin' ? matinStart : apremStart;
         const end = periodType === 'matin' ? MATIN_END : APREM_END;
         const availableMin = timeToMinutes(end.h, end.m) - timeToMinutes(start.h, start.m);
 
+        // On ne déborde pas d'une demi-journée tant qu'il en reste une autre :
+        // la pause de 10 min (insérée dès 4 passages) compte dans le temps disponible.
+        const derniere = djIdx === djJury.length - 1;
         const djPassages: Passage[] = [];
         let usedMin = 0;
         while (remaining.length > 0) {
           const p = remaining[0];
           const dur = getGroupDuration(p.groupSize) + (p.hasTiersTemps ? extraTT : 0);
-          if (usedMin + dur > availableMin + 10 && djPassages.length > 0) break; // 10min tolerance
+          const pause = djPassages.length + 1 >= 4 ? 10 : 0;
+          if (!derniere && usedMin + dur + pause > availableMin && djPassages.length > 0) break;
           djPassages.push(remaining.shift()!);
           usedMin += dur;
         }
@@ -246,9 +310,9 @@ export function assignTimeSlots(
       }
     } else {
       // Distribute evenly
-      const perDj = Math.ceil(passages.length / demiJournees.length);
+      const perDj = Math.ceil(passages.length / djJury.length);
       let idx = 0;
-      for (const dj of demiJournees) {
+      for (const dj of djJury) {
         const djPassages = passages.slice(idx, idx + perDj);
         if (djPassages.length > 0) passagesPerDj.push({ dj, passages: djPassages });
         idx += perDj;
@@ -281,6 +345,12 @@ export function assignTimeSlots(
           curMin += 10;
         }
       }
+
+      const end = periodType === 'matin' ? MATIN_END : APREM_END;
+      const finPrevue = timeToMinutes(end.h, end.m);
+      if (curMin > finPrevue) {
+        alertes.push(`${jury.nom}, ${getDemiJourneeLabel(dj).toLowerCase()} : les passages finissent à ${minutesToTimeStr(curMin)}, après la fin prévue (${minutesToTimeStr(finPrevue)}).`);
+      }
     }
   }
 
@@ -300,8 +370,12 @@ export function recalcTimeSlotsForJurys(
   mode: DistributionMode,
   heureDebutMatin?: string,
   heureDebutAprem?: string,
-  dureeSupplementaireTiersTemps?: number
+  dureeSupplementaireTiersTemps?: number,
+  enseignants?: Enseignant[]
 ): Map<string, { dateCreneau: string; heureCreneau: string }> {
   const targetJurys = allJurys.filter(j => juryIds.includes(j.id!));
-  return assignTimeSlots(targetJurys, affectations, eleves, demiJournees, mode, heureDebutMatin, heureDebutAprem, dureeSupplementaireTiersTemps);
+  return assignTimeSlotsInterne({
+    jurys: targetJurys, affectations, eleves, demiJournees, mode,
+    heureDebutMatin, heureDebutAprem, dureeSupplementaireTiersTemps, enseignants,
+  }, []);
 }
