@@ -15,7 +15,7 @@ const SCORE_LABELS: Record<string, { label: string; icon: string; description: s
   equilibrage:   { label: 'Répartition',    icon: '⚖️', description: 'Favorise les jurys les moins remplis pour équilibrer le nombre d\'élèves' },
   mixite:        { label: 'Mixité',        icon: '👥', description: 'Équilibre filles/garçons dans le jury' },
   capacite:      { label: 'Capacité',      icon: '📊', description: 'Place disponible dans le jury' },
-  elevesEnCours: { label: 'Élèves du prof', icon: '🎓', description: 'Évite de placer un élève devant son propre professeur' },
+  elevesEnCours: { label: 'Élèves du prof', icon: '🎓', description: 'Favorise les jurys dont un enseignant a l\'élève en classe' },
   pedagogique:   { label: 'Pédagogique',   icon: '📝', description: 'Score pédagogique des enseignants du jury' },
   tiersTemps:    { label: 'Tiers temps',   icon: '⏱️', description: 'Équilibrage des tiers temps + proximité des profs au collège' },
   diversite:     { label: 'Diversité',    icon: '🎨', description: 'Dispersion des sujets pour varier les passages dans chaque jury' },

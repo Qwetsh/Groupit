@@ -127,7 +127,7 @@ describe('Solveur Oral DNB', () => {
       expect(result.affectations).toHaveLength(1);
       // Pas de scoreDetail.langue ou langue = 0
       const detail = result.affectations[0].scoreDetail;
-      expect(detail['langue']).toBe(0);
+      expect(detail['langue'] ?? 0).toBe(0);
     });
 
     it('2 élèves anglais + 1 seul jury anglais capacité 1 → 1 affecté là, l\'autre en fallback', () => {
