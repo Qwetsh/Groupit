@@ -3,7 +3,7 @@
 // Cards avec drawer profil et historique
 // ============================================================
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useEnseignantStore } from '../stores/enseignantStore';
 import { useUIStore } from '../stores/uiStore';
 import {
@@ -266,12 +266,15 @@ export const EnseignantsPage: React.FC = () => {
   const addEnseignant = useEnseignantStore(s => s.addEnseignant);
   const openModal = useUIStore(s => s.openModal);
 
-  // Load on mount only if not already loaded
+  // Charger une seule fois à l'ouverture si la liste est vide. Sans ce garde-fou,
+  // une base sans enseignant relançait le chargement en boucle (liste vide →
+  // rechargement → liste vide…) et la page restait sur « Chargement ».
+  const chargementDemande = useRef(false);
   useEffect(() => {
-    if (enseignants.length === 0 && !loading) {
-      loadEnseignants();
-    }
-  }, [enseignants.length, loading, loadEnseignants]);
+    if (chargementDemande.current) return;
+    chargementDemande.current = true;
+    if (enseignants.length === 0) loadEnseignants();
+  }, [enseignants.length, loadEnseignants]);
 
   // Get distinct matieres for filter
   const distinctMatieres = useMemo(() => {
@@ -433,7 +436,7 @@ export const EnseignantsPage: React.FC = () => {
             onChange={e => setSearchQuery(e.target.value)}
           />
           {searchQuery && (
-            <button className="clear-search" onClick={() => setSearchQuery('')}>
+            <button className="clear-search" onClick={() => setSearchQuery('')} aria-label="Effacer la recherche">
               <X size={14} />
             </button>
           )}

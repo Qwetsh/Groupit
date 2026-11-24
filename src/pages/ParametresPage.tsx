@@ -7,7 +7,7 @@ import { useConfirm } from '../hooks/useConfirm';
 import {
   parseEnseignantsFile,
   serializeEnseignants,
-  splitNewEnseignants,
+  planifierImportEnseignants,
 } from '../services/enseignantFileService';
 import { extractErrorMessage } from '../utils/errorUtils';
 import './InfoPage.css';
@@ -20,6 +20,7 @@ export const ParametresPage: React.FC = () => {
   const resetGuidedMode = useUIStore(state => state.resetGuidedMode);
   const enseignants = useEnseignantStore(state => state.enseignants);
   const addEnseignants = useEnseignantStore(state => state.addEnseignants);
+  const updateEnseignant = useEnseignantStore(state => state.updateEnseignant);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
@@ -51,13 +52,20 @@ export const ParametresPage: React.FC = () => {
     setFeedback(null);
     try {
       const records = parseEnseignantsFile(await file.text());
-      const { toAdd, skipped } = splitNewEnseignants(records, enseignants);
+      const { toAdd, toUpdate, unchanged } = planifierImportEnseignants(records, enseignants);
       if (toAdd.length > 0) {
         await addEnseignants(toAdd);
       }
-      const added = plural(toAdd.length, 'enseignant ajouté', 'enseignants ajoutés');
-      const ignored = skipped > 0 ? ` ${plural(skipped, 'déjà présent, ignoré', 'déjà présents, ignorés')}.` : '';
-      setFeedback({ kind: 'success', text: `${added}.${ignored}` });
+      // Fiches existantes complétées une par une (une nouvelle adresse est géocodée)
+      for (const { id, changes } of toUpdate) {
+        await updateEnseignant(id, changes);
+      }
+      const parts = [
+        plural(toAdd.length, 'enseignant ajouté', 'enseignants ajoutés'),
+        toUpdate.length > 0 ? plural(toUpdate.length, 'fiche complétée', 'fiches complétées') : '',
+        unchanged > 0 ? plural(unchanged, 'déjà à jour', 'déjà à jour') : '',
+      ].filter(Boolean);
+      setFeedback({ kind: 'success', text: `${parts.join(', ')}.` });
     } catch (error) {
       setFeedback({ kind: 'error', text: `Import impossible. ${extractErrorMessage(error)}` });
     } finally {
@@ -113,7 +121,9 @@ export const ParametresPage: React.FC = () => {
             ? `${plural(enseignants.length, 'enseignant enregistré', 'enseignants enregistrés')} dans ce navigateur.`
             : 'Aucun enseignant dans ce navigateur.'}{' '}
           Exportez la liste complète (adresses, classes, indisponibilités) dans un fichier,
-          puis importez-le sur un autre poste. Ce fichier contient des données personnelles :
+          puis importez-le sur un autre poste. L'import ajoute les nouveaux enseignants et
+          met à jour l'adresse des enseignants déjà présents, sans écraser ce que vous avez saisi
+          (matière, classes, indisponibilités). Ce fichier contient des données personnelles :
           conservez-le dans un espace privé.
         </p>
         <div className="button-group">
